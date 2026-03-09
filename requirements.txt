@@ -1,0 +1,15 @@
+feedparser
+httpx
+telethon
+aiohttp
+asyncpg
+redis
+apscheduler
+python-dotenv
+langdetect
+psycopg2-binary
+fastapi
+uvicorn[standard]
+slowapi
+pydantic
+requests

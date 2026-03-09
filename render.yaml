@@ -1,0 +1,30 @@
+services:
+  - type: worker
+    name: crisislens-worker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m backend.ingestion_worker.scheduler
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: NEWSAPI_KEY
+        sync: false
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      - key: TELEGRAM_SESSION_B64
+        sync: false
+
+  - type: web
+    name: crisislens-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.api_server.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
