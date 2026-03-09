@@ -1,8 +1,8 @@
 INSERT INTO sources (name, code, language, trust_tier, trust_weight, feed_url, feed_type) VALUES
 
 -- ── Tier 1 ───────────────────────────────────────────────────────────────────
-('Al Jazeera Arabic',       'AJA',  'ar', 1, 1.00,
- 'https://www.aljazeera.net/xml/rss/all.xml',
+('Al Jazeera Arabic', 'AJA', 'en', 1, 1.00,
+ 'https://www.aljazeera.com/xml/rss/all.xml',
  'rss'),
 
 -- ── Tier 2 ───────────────────────────────────────────────────────────────────
@@ -18,9 +18,8 @@ INSERT INTO sources (name, code, language, trust_tier, trust_weight, feed_url, f
  NULL,
  'newsapi'),
 
-('Reuters',                 'REU',  'en', 2, 0.80,
- NULL,
- 'newsapi'),
+('The Jerusalem Post',  'JRP', 'en', 2, 0.75, NULL, 'newsapi'),
+('The Washington Post', 'WP',  'en', 2, 0.80, NULL, 'newsapi'),
 
 ('Associated Press',        'AP',   'en', 2, 0.80,
  NULL,
@@ -31,14 +30,8 @@ INSERT INTO sources (name, code, language, trust_tier, trust_weight, feed_url, f
  'https://www.alarabiya.net/tools/rss',
  'mrss'),
 
-('Asharq Al-Awsat',         'ASH',  'ar', 3, 0.65,
- 'https://aawsat.com/rss.xml',
- 'rss'),
-
-('Arab News',               'ARN',  'en', 3, 0.65,
- 'https://www.arabnews.com/rss.xml',
- 'rss'),
-
+('Asharq Al-Awsat', 'ASH', 'ar', 3, 0.65, 'https://aawsat.com/feed', 'rss'),
+('The New Arab', 'TNA', 'en', 3, 0.65, 'https://www.newarab.com/rss', 'rss'),
 -- ── Tier 4 ───────────────────────────────────────────────────────────────────
 ('BNO News',                'BNO',  'en', 4, 0.50,
  NULL,
@@ -48,9 +41,9 @@ INSERT INTO sources (name, code, language, trust_tier, trust_weight, feed_url, f
  NULL,
  'telegram'),
 
-('AJ Plus English',         'AJE+', 'en', 4, 0.45,
- NULL,
- 'telegram'),
+('Al Jazeera English (TG)', 'AJE+', 'en', 2, 0.80, NULL, 'telegram'),
+('Reuters (Telegram)',      'REU',  'en', 2, 0.80, NULL, 'telegram'),
+('BBC Breaking (Telegram)', 'BBC+', 'en', 2, 0.80, NULL, 'telegram'),
 
 -- ── Tier 5 ───────────────────────────────────────────────────────────────────
 ('War Monitor',             'WM',   'en', 5, 0.25,
