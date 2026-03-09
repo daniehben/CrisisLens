@@ -1,3 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Environment
 .env
 .env.local
 !.env.example
+
+# Telegram session files
+*.session
+*.session-journal
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Docker volumes
+postgres_data/
+redis_data/
