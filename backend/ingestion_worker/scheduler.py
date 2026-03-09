@@ -1,6 +1,8 @@
 import os
 import base64
 import logging
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from backend.ingestion_worker.worker import run_worker
@@ -10,10 +12,9 @@ log = logging.getLogger(__name__)
 
 
 def restore_telegram_session():
-    """Reconstruct Telegram session file from base64 env var on Render."""
     b64 = os.getenv('TELEGRAM_SESSION_B64')
     if not b64:
-        print("[scheduler] No TELEGRAM_SESSION_B64 found — using existing session file")
+        print("[scheduler] No TELEGRAM_SESSION_B64 — using existing session file")
         return
     session_path = 'backend/ingestion_worker/telegram.session'
     if os.path.exists(session_path):
@@ -24,9 +25,30 @@ def restore_telegram_session():
     print("[scheduler] Telegram session file restored from env var")
 
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'{"status": "worker running"}')
+
+    def log_message(self, format, *args):
+        pass  # silence HTTP logs
+
+
+def start_health_server():
+    port = int(os.getenv('PORT', 8001))
+    server = HTTPServer(('0.0.0.0', port), HealthHandler)
+    print(f"[scheduler] Health server listening on port {port}")
+    server.serve_forever()
+
+
 def main():
     print("[scheduler] CrisisLens ingestion worker starting...")
     restore_telegram_session()
+
+    # Start dummy HTTP server in background thread so Render sees a web service
+    thread = threading.Thread(target=start_health_server, daemon=True)
+    thread.start()
 
     print("[scheduler] Running initial ingestion cycle...")
     run_worker()
