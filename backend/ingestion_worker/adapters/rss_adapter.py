@@ -12,12 +12,7 @@ RSS_SOURCES = {
         'url': 'https://www.aljazeera.com/xml/rss/all.xml',
         'language': 'en',  # temporarily English until DACR credentials arrive
         'trust_weight': 1.00,
-    },
-     'TNA': {
-        'url': 'https://www.newarab.com/rss',
-        'language': 'en',
-        'trust_weight': 0.65,
-    },
+    }
 }
 
 # Mimic a real browser to avoid being blocked
