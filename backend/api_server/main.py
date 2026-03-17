@@ -32,9 +32,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {"status": "ok"}
+
 @app.get("/health", response_model=HealthResponse)
 @limiter.limit("60/minute")
 def health(request: Request):
