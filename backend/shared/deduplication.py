@@ -15,14 +15,13 @@ def _url_to_bit(url: str) -> int:
 def get_redis_client() -> redis.Redis:
     config = Config()
     url = config.REDIS_URL
-    if 'onrender.com' in url or 'render.com' in url:
-        url = url.replace('redis://', 'rediss://', 1)
     return redis.from_url(
         url,
         decode_responses=False,
         socket_timeout=10,
         socket_connect_timeout=10,
     )
+    
 def is_duplicate(r: redis.Redis, url: str) -> bool:
     """Return True if URL has been seen before."""
     bit = _url_to_bit(url)

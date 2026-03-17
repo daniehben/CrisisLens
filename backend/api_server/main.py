@@ -54,10 +54,7 @@ def health(request: Request):
 
     redis_status = "error"
     try:
-        redis_url = config.REDIS_URL
-        if 'onrender.com' in redis_url or 'render.com' in redis_url:
-            redis_url = redis_url.replace('redis://', 'rediss://', 1)
-        r = redis_lib.from_url(redis_url, decode_responses=False, socket_timeout=3, socket_connect_timeout=3)
+        r = redis_lib.from_url(config.REDIS_URL, decode_responses=False, socket_timeout=3, socket_connect_timeout=3)
         r.ping()
         redis_status = "ok"
     except Exception as e:
