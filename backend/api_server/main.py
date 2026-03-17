@@ -43,23 +43,25 @@ def health(request: Request):
     articles_count = 0
     try:
         with get_db_connection() as conn:
+            conn.set_session(autocommit=True)
             with conn.cursor() as cur:
+                cur.execute("SET statement_timeout = '3000'")
                 cur.execute("SELECT COUNT(*) FROM articles")
                 articles_count = cur.fetchone()[0]
                 db_status = "ok"
     except Exception as e:
-        db_status = f"error: {e}"
+        db_status = f"error: {str(e)[:50]}"
 
     redis_status = "error"
     try:
         redis_url = config.REDIS_URL
         if 'onrender.com' in redis_url or 'render.com' in redis_url:
             redis_url = redis_url.replace('redis://', 'rediss://', 1)
-        r = redis_lib.from_url(redis_url, decode_responses=False)
+        r = redis_lib.from_url(redis_url, decode_responses=False, socket_timeout=3, socket_connect_timeout=3)
         r.ping()
         redis_status = "ok"
     except Exception as e:
-        redis_status = f"error: {e}"
+        redis_status = f"error: {str(e)[:50]}"
 
     return HealthResponse(
         db=db_status,
