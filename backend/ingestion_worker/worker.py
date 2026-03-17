@@ -9,7 +9,7 @@ from backend.ingestion_worker.adapters.telegram_adapter import TelegramAdapter
 
 def get_all_adapters():
     adapters = []
-    for code in ['AJA', 'ASH', 'TNA']:
+    for code in ['AJA','TNA']:
         adapters.append(RSSAdapter(code))
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
         adapters.append(NewsAPIAdapter(code))

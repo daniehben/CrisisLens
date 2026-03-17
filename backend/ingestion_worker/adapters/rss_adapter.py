@@ -13,11 +13,6 @@ RSS_SOURCES = {
         'language': 'en',  # temporarily English until DACR credentials arrive
         'trust_weight': 1.00,
     },
-     'ASH': {
-        'url': 'https://aawsat.com/feed',
-        'language': 'ar',
-        'trust_weight': 0.65,
-    },
      'TNA': {
         'url': 'https://www.newarab.com/rss',
         'language': 'en',
