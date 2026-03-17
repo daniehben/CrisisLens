@@ -1,61 +1,65 @@
-# CLAUDE.md
+# CrisisLens — CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Project Overview
+Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tier infrastructure.
 
-## What This Repository Is
+## Infrastructure
+- **GitHub:** github.com/daniehben/CrisisLens (main branch)
+- **Render PostgreSQL:** crisislens-db, Frankfurt free tier
+  - Internal URL: `postgresql://crisislens_db_user:KKdadOnM5ftKPBdsJhcpewcw0EoppVYW@dpg-d6ms1sn5r7bs73cl59tg-a/crisislens_db`
+  - External URL: append `?sslmode=require` and use `.frankfurt-postgres.render.com` host
+- **Render Redis (Valkey):** crisislens-redis, Frankfurt free tier
+  - Internal URL: `redis://red-d6ms42sr85hc73dav9l0:6379` — NO TLS (internal network only, no password)
+  - ⚠️ Redis is currently NOT reachable from worker — connection refused on private network. Deduplication bypassed.
+- **Render Web Services** (both free tier, Frankfurt):
+  - crisislens-api: https://crisislens-api.onrender.com — LIVE ✅
+  - crisislens-worker: https://crisislens-worker.onrender.com — LIVE ✅
 
-CrisisLens is a project that uses **CCPM (Claude Code Project Manager)** — a spec-driven development workflow built around GitHub Issues, Git worktrees, and parallel AI agents. The CCPM system files live in `ccpm/` and must be initialized before use.
+## Render Deployment Notes (CRITICAL)
+- Both services must be `type: web` in render.yaml — `type: worker` has no HTTP server and times out
+- Health check path must be EMPTY in Render settings — do NOT set it to `/health`
+- Root endpoint must accept HEAD requests: `@app.api_route("/", methods=["GET", "HEAD"])`
+- Add `PYTHONUNBUFFERED=1` env var to worker for visible logs
+- Free tier spins down after inactivity — first request takes 50+ seconds
 
-## Initial Setup
+## Active Sources (Phase 1)
+| Code | Name | Type | Language | Trust | Status |
+|------|------|------|----------|-------|--------|
+| AJA | Al Jazeera | RSS | en | 1.00 | ✅ Live |
+| AJE | Al Jazeera English | NewsAPI | en | 0.80 | ✅ Live |
+| BBC | BBC News | NewsAPI | en | 0.80 | ✅ Live |
+| JRP | Jerusalem Post | NewsAPI | en | 0.75 | ✅ Live |
+| WP | Washington Post | NewsAPI | en | 0.80 | ✅ Live |
+| AP | Associated Press | NewsAPI | en | 0.80 | ✅ Live |
+| ASH | Asharq Al-Awsat | RSS | ar | 0.65 | ⏸ Disabled — Render IPs blocked |
+| TNA | The New Arab | RSS | en | 0.65 | ⏸ Disabled — Render IPs blocked |
+| BNO | BNO News | Telegram | en | 0.50 | ⏸ Disabled — MTProto blocked |
+| AJA+ | AJ Plus Arabic | Telegram | ar | 0.50 | ⏸ Disabled — MTProto blocked |
+| AJE+ | Al Jazeera English TG | Telegram | en | 0.80 | ⏸ Disabled — MTProto blocked |
+| REU | Reuters Telegram | Telegram | en | 0.80 | ⏸ Disabled — MTProto blocked |
+| BBC+ | BBC Breaking TG | Telegram | en | 0.80 | ⏸ Disabled — MTProto blocked |
+| WM | War Monitor | Telegram | en | 0.25 | ⏸ Disabled — MTProto blocked |
+| SI | Spectator Index | Telegram | en | 0.10 | ⏸ Disabled — MTProto blocked |
 
-Run this once to install dependencies, authenticate GitHub CLI, and create the `.claude/` directory structure:
+## Known Issues & Workarounds
+1. **Redis unreachable:** `Connection refused` on internal network. Worker uses DB-level `ON CONFLICT DO NOTHING` for deduplication instead.
+2. **Telegram blocked:** Render Frankfurt IPs cannot complete MTProto TLS handshake. Fix: migrate to async Telethon with explicit proxy or use Telegram Bot API instead.
+3. **ASH/TNA RSS blocked:** aawsat.com and newarab.com block Render Frankfurt IPs. Fix: use alternative feeds or proxy.
+4. **API /health hangs:** DB and Redis connections in health check can hang. Fixed with `socket_timeout=3` and `statement_timeout=3000ms`.
 
-```
-/pm:init
-```
+## API Endpoints
+- `GET /` — root health (HEAD supported)
+- `GET /health` — db + redis + article count
+- `GET /api/v1/sources` — list active sources
+- `GET /api/v1/feed?language=&source=&limit=&offset=` — paginated articles
 
-Prerequisites: `gh` (GitHub CLI) must be installed and authenticated, and the repo must have a GitHub remote that is **not** `automazeio/ccpm`.
+## Phase Status
+- ✅ Phase 1 — Pipeline MVP (complete, 78+ articles live)
+- 🔜 Phase 2 — NLP MVP (language detection, translation, AraBERT embeddings, contradiction detection)
+- 🔜 Phase 3 — Website MVP (Next.js + Vercel)
+- 🔜 Phase 4 — Expansion
 
-## Core Workflow (5 Phases)
-
-1. **PRD** → `/pm:prd-new <feature>` — guided requirements brainstorming → saves to `.claude/prds/<feature>.md`
-2. **Epic** → `/pm:prd-parse <feature>` — converts PRD to technical plan → saves to `.claude/epics/<feature>/epic.md`
-3. **Decompose** → `/pm:epic-decompose <feature>` — breaks epic into numbered task files
-4. **Sync** → `/pm:epic-sync <feature>` or `/pm:epic-oneshot <feature>` — pushes tasks to GitHub Issues
-5. **Execute** → `/pm:issue-start <id>` — launches specialized agent in isolated Git worktree
-
-## Key Commands
-
-```
-/pm:status          # Project dashboard
-/pm:next            # Show highest-priority issue to work on
-/pm:standup         # Daily standup report
-/pm:blocked         # Show blocked tasks
-/pm:in-progress     # List active work
-/pm:help            # Full command reference
-
-/context:create     # Generate project context docs
-/context:prime      # Load context for current session
-/context:update     # Refresh context after changes
-```
-
-## Architecture
-
-- `ccpm/commands/pm/` — All `/pm:*` slash command definitions (`.md` files)
-- `ccpm/scripts/pm/` — Bash implementations of PM commands
-- `ccpm/agents/` — Specialized agent definitions (code-analyzer, file-analyzer, test-runner, parallel-worker)
-- `ccpm/rules/` — Reusable rule files loaded into commands
-- `ccpm/hooks/` — Claude hooks (e.g., automatic worktree directory handling)
-- `ccpm/ccpm.config` — GitHub repo detection and `gh` CLI configuration
-- `.claude/` — Created by `/pm:init`; holds project-specific prds, epics, context, and scripts
-
-## Parallel Execution Pattern
-
-Issues marked as parallelizable can be run simultaneously. Each `/pm:issue-start` spawns an agent in its own Git worktree, keeping context isolated. Agents return concise summaries; heavy file-reading/test-running stays inside the agent.
-
-## GitHub Integration Notes
-
-- All issue operations use `gh` CLI with the repo auto-detected from `git remote get-url origin`
-- Override with `CCPM_GITHUB_REPO=owner/repo` environment variable
-- GitHub labels `epic` and `task` are auto-created on `/pm:init`
-- The `gh-sub-issue` extension (`yahsan2/gh-sub-issue`) is required for sub-issue linking
+## Pending
+- Al Jazeera DACR credentials: Reference VPHX98C923 — switch AJA to Arabic RSS when received
+- Redis connectivity fix needed before Phase 2
+- Telegram adapter fix needed for Phase 4 source expansion
