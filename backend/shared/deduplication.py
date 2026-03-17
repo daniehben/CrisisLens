@@ -9,7 +9,7 @@ TTL_SECONDS = 48 * 60 * 60  # 48 hours
 def _url_to_bit(url: str) -> int:
     """Convert URL to a 32-bit integer for bitmap indexing."""
     digest = hashlib.md5(url.encode()).hexdigest()
-    return int(digest[:8], 16) % (2 ** 32)
+    return int(digest[:8], 16) % (8 * 1024 * 512)  # 512KB bitmap
 
 
 def get_redis_client() -> redis.Redis:
