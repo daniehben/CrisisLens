@@ -43,26 +43,33 @@ class TelegramAdapter(FeedAdapter):
         return self._code
 
     def fetch(self) -> list[RawArticle]:
-        # Import here to avoid errors if telethon not installed
         try:
             from telethon.sync import TelegramClient
         except ImportError:
             print(f"[{self._code}] Telethon not installed, skipping")
             return []
 
+        import os
+        import socket
+        socket.setdefaulttimeout(20)
+
         articles = []
         channel = self._source_config['channel']
         lang = self._source_config['language']
 
         try:
-            import os
             session_path = os.path.join(
                 os.path.dirname(__file__), '..', 'telegram'
             )
-
-            with TelegramClient(session_path, config.TELEGRAM_API_ID, config.TELEGRAM_API_HASH) as client:
+            with TelegramClient(
+                session_path,
+                config.TELEGRAM_API_ID,
+                config.TELEGRAM_API_HASH,
+                connection_retries=1,
+                timeout=15,
+                request_retries=1,
+            ) as client:
                 messages = client.get_messages(channel, limit=30)
-
                 for msg in messages:
                     if not msg.text or len(msg.text.strip()) < 20:
                         continue
@@ -71,7 +78,6 @@ class TelegramAdapter(FeedAdapter):
                     try:
                         text = msg.text.strip()
                         headline = text.split('\n')[0][:300]
-
                         article = RawArticle(
                             source_code=self._code,
                             external_id=_make_external_id(channel, msg.id),
@@ -84,13 +90,10 @@ class TelegramAdapter(FeedAdapter):
                             body_snippet=text[:500],
                         )
                         articles.append(article)
-
                     except Exception as e:
                         print(f"[{self._code}] Skipping message {msg.id}: {e}")
                         continue
-
             print(f"[{self._code}] Fetched {len(articles)} messages")
-
         except Exception as e:
             print(f"[{self._code}] Fetch failed: {e}")
 
