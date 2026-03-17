@@ -14,9 +14,8 @@ def _url_to_bit(url: str) -> int:
 
 def get_redis_client() -> redis.Redis:
     config = Config()
-    url = config.REDIS_URL
     return redis.from_url(
-        url,
+        config.REDIS_URL,
         decode_responses=False,
         socket_timeout=10,
         socket_connect_timeout=10,

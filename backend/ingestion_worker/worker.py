@@ -47,7 +47,7 @@ def run_ingestion_cycle() -> None:
           f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC ===")
     
     # Redis deduplication temporarily disabled - using DB-level deduplication only
-    r = None
+    r = get_redis_client()
     
     adapters = get_all_adapters()
     total_fetched = 0
@@ -65,7 +65,15 @@ def run_ingestion_cycle() -> None:
                 errors = 1
                 articles = []
             fetched = len(articles)
-            inserted, db_skipped = write_batch(articles)  # send all, DB handles dupes
+            new_articles = []
+            dupes = 0
+            for article in articles:
+                if check_and_mark(r, article.url):
+                    dupes += 1
+                else:
+                    new_articles.append(article)
+            inserted, db_skipped = write_batch(new_articles)
+            dupes += db_skipped
             duration_ms = int(
                 (datetime.now(timezone.utc) - start).total_seconds() * 1000
             )
