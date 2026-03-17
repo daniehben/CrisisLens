@@ -14,7 +14,7 @@ def get_db_connection():
             with conn.cursor() as cur:
                 cur.execute(...)
     """
-    conn = psycopg2.connect(config.DATABASE_URL)
+    conn = psycopg2.connect(config.DATABASE_URL, connect_timeout=10)
     try:
         yield conn
         conn.commit()
