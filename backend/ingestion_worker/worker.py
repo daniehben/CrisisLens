@@ -13,8 +13,9 @@ def get_all_adapters():
         adapters.append(RSSAdapter(code))
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
         adapters.append(NewsAPIAdapter(code))
-    for code in ['BNO', 'AJA+', 'AJE+', 'REU', 'BBC+', 'WM', 'SI']:
-        adapters.append(TelegramAdapter(code))
+    # Telegram temporarily disabled on Render - fix in next iteration
+    # for code in ['BNO', 'AJA+', 'AJE+', 'REU', 'BBC+', 'WM', 'SI']:
+    #     adapters.append(TelegramAdapter(code))
     return adapters
 
 
