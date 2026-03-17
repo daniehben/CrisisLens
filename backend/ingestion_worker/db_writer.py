@@ -41,11 +41,9 @@ def write_article(cur, article: RawArticle, source_map: dict) -> bool:
 def write_batch(articles: list[RawArticle]) -> tuple[int, int]:
     if not articles:
         return 0, 0
-
     inserted = 0
     skipped = 0
     source_map = get_source_map()
-
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             for article in articles:
@@ -54,5 +52,5 @@ def write_batch(articles: list[RawArticle]) -> tuple[int, int]:
                     inserted += 1
                 else:
                     skipped += 1
-
+        conn.commit()  # ← ADD THIS
     return inserted, skipped
