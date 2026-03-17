@@ -45,7 +45,10 @@ def log_ingestion(conn, source_code: str, fetched: int, inserted: int,
 def run_ingestion_cycle() -> None:
     print(f"\n[worker] === Ingestion cycle starting at "
           f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC ===")
-    r = get_redis_client()
+    
+    # Redis deduplication temporarily disabled - using DB-level deduplication only
+    r = None
+    
     adapters = get_all_adapters()
     total_fetched = 0
     total_inserted = 0
@@ -62,30 +65,21 @@ def run_ingestion_cycle() -> None:
                 errors = 1
                 articles = []
             fetched = len(articles)
-            new_articles = []
-            dupes = 0
-            for article in articles:
-                if check_and_mark(r, article.url):
-                    dupes += 1
-                else:
-                    new_articles.append(article)
-            inserted, db_skipped = write_batch(new_articles)
-            dupes += db_skipped
+            inserted, db_skipped = write_batch(articles)  # send all, DB handles dupes
             duration_ms = int(
                 (datetime.now(timezone.utc) - start).total_seconds() * 1000
             )
-            log_ingestion(conn, code, fetched, inserted, dupes, errors, duration_ms)
+            log_ingestion(conn, code, fetched, inserted, db_skipped, errors, duration_ms)
             print(f"[worker] [{code}] fetched={fetched} "
-                  f"new={inserted} dupes={dupes} errors={errors} "
+                  f"new={inserted} dupes={db_skipped} errors={errors} "
                   f"({duration_ms}ms)")
             total_fetched += fetched
             total_inserted += inserted
-            total_dupes += dupes
+            total_dupes += db_skipped
         conn.commit()
     print(f"[worker] === Cycle complete: "
           f"fetched={total_fetched} inserted={total_inserted} "
           f"dupes={total_dupes} ===\n")
-
 
 def run_worker():
     run_ingestion_cycle()
