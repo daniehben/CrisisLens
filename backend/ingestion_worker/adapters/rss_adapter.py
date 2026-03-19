@@ -12,7 +12,12 @@ RSS_SOURCES = {
         'url': 'https://www.aljazeera.com/xml/rss/all.xml',
         'language': 'en',  # temporarily English until DACR credentials arrive
         'trust_weight': 1.00,
-    }
+    },
+    'AJA+': {
+    'url': 'https://crisislens-rsshub.onrender.com/telegram/channel/ajplusar',
+    'language': 'ar',
+    'trust_weight': 0.50,
+},
 }
 
 # Mimic a real browser to avoid being blocked
