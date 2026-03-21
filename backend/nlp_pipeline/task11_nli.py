@@ -9,17 +9,15 @@ HF_NLI_URL = "https://router.huggingface.co/hf-inference/models/facebook/bart-la
 
 
 def classify_pair(premise: str, hypothesis: str, hf_token: str) -> dict:
-    """Run NLI on a pair of headlines. Returns label and scores."""
     headers = {"Authorization": f"Bearer {hf_token}"}
     try:
         response = httpx.post(
             HF_NLI_URL,
             headers=headers,
             json={
-                "inputs": premise,
+                "inputs": f"{premise} [SEP] {hypothesis}",
                 "parameters": {
-                    "candidate_labels": ["contradiction", "neutral", "entailment"],
-                    "hypothesis_template": hypothesis
+                    "candidate_labels": ["contradiction", "neutral", "entailment"]
                 }
             },
             timeout=30
@@ -42,8 +40,8 @@ def classify_pair(premise: str, hypothesis: str, hf_token: str) -> dict:
     except Exception as e:
         log.warning(f"[Task11] NLI request failed: {e}")
         return {"label": "neutral", "contradiction_score": 0.0, "scores": {}}
-
-
+    
+    
 def run_task11():
     log.info("[Task11] Starting NLI contradiction classification...")
 
