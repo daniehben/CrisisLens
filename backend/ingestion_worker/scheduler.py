@@ -9,6 +9,7 @@ from backend.ingestion_worker.worker import run_worker
 from backend.nlp_pipeline.task8_translate import run_task8
 from backend.nlp_pipeline.task9_embed import run_task9
 from backend.nlp_pipeline.task10_pairs import run_task10
+from backend.nlp_pipeline.task11_nli import run_task11
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -49,6 +50,8 @@ def run_ingestion_and_nlp():
     run_task8()
     run_task9()
     run_task10()
+    run_task11()
+    
     
 def main():
     print("[scheduler] CrisisLens ingestion worker starting...")
