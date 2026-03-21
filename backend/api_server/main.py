@@ -139,3 +139,39 @@ def get_feed(
 
     articles = [ArticleSchema(**dict(r)) for r in rows]
     return FeedResponse(total=total, limit=limit, offset=offset, articles=articles)
+@app.get("/api/v1/conflicts")
+@limiter.limit("60/minute")
+def get_conflicts(
+    request: Request,
+    min_score: float = Query(0.0, ge=0.0, le=1.0),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT
+                    c.conflict_id,
+                    c.conflict_score,
+                    c.contradiction_score,
+                    c.similarity_score,
+                    c.trust_score_1,
+                    c.trust_score_2,
+                    c.detected_at,
+                    a1.headline_en AS headline_1_en,
+                    a1.headline_ar AS headline_1_ar,
+                    s1.code AS source_1,
+                    a2.headline_en AS headline_2_en,
+                    a2.headline_ar AS headline_2_ar,
+                    s2.code AS source_2
+                FROM conflicts c
+                JOIN articles a1 ON a1.article_id = c.article_id_1
+                JOIN articles a2 ON a2.article_id = c.article_id_2
+                JOIN sources s1 ON s1.source_id = a1.source_id
+                JOIN sources s2 ON s2.source_id = a2.source_id
+                WHERE c.conflict_score >= %s
+                ORDER BY c.conflict_score DESC
+                LIMIT %s OFFSET %s
+            """, (min_score, limit, offset))
+            rows = cur.fetchall()
+    return [dict(r) for r in rows]

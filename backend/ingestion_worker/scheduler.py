@@ -10,6 +10,7 @@ from backend.nlp_pipeline.task8_translate import run_task8
 from backend.nlp_pipeline.task9_embed import run_task9
 from backend.nlp_pipeline.task10_pairs import run_task10
 from backend.nlp_pipeline.task11_nli import run_task11
+from backend.nlp_pipeline.task12_conflicts import run_task12
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ def run_ingestion_and_nlp():
     run_task9()
     run_task10()
     run_task11()
+    run_task12()
     
     
 def main():
