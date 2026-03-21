@@ -15,4 +15,3 @@ pydantic
 requests
 beautifulsoup4
 deep-translator
-sentence-transformers
