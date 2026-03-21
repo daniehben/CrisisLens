@@ -152,25 +152,25 @@ def get_conflicts(
             cur.execute("""
                 SELECT
                     c.conflict_id,
-                    c.conflict_score,
-                    c.contradiction_score,
+                    c.weighted_score AS conflict_score,
+                    c.nli_confidence AS contradiction_score,
                     c.similarity_score,
-                    c.trust_score_1,
-                    c.trust_score_2,
                     c.detected_at,
                     a1.headline_en AS headline_1_en,
                     a1.headline_ar AS headline_1_ar,
                     s1.code AS source_1,
+                    s1.trust_weight AS trust_score_1,
                     a2.headline_en AS headline_2_en,
                     a2.headline_ar AS headline_2_ar,
-                    s2.code AS source_2
+                    s2.code AS source_2,
+                    s2.trust_weight AS trust_score_2
                 FROM conflicts c
-                JOIN articles a1 ON a1.article_id = c.article_id_1
-                JOIN articles a2 ON a2.article_id = c.article_id_2
+                JOIN articles a1 ON a1.article_id = c.article_a_id
+                JOIN articles a2 ON a2.article_id = c.article_b_id
                 JOIN sources s1 ON s1.source_id = a1.source_id
                 JOIN sources s2 ON s2.source_id = a2.source_id
-                WHERE c.conflict_score >= %s
-                ORDER BY c.conflict_score DESC
+                WHERE c.weighted_score >= %s
+                ORDER BY c.weighted_score DESC
                 LIMIT %s OFFSET %s
             """, (min_score, limit, offset))
             rows = cur.fetchall()

@@ -28,10 +28,10 @@ def run_task12():
                   AND ap.nli_label = 'contradiction'
                   AND ap.contradiction_score >= %s
                   AND ap.pair_id NOT IN (
-                      SELECT article_id_1 FROM conflicts
-                      UNION
-                      SELECT article_id_2 FROM conflicts
-                  )
+                    SELECT article_a_id FROM conflicts
+                    UNION
+                    SELECT article_b_id FROM conflicts
+                )
             """, (CONTRADICTION_THRESHOLD,))
             pairs = cur.fetchall()
 
@@ -58,13 +58,16 @@ def run_task12():
 
                 cur.execute("""
                     INSERT INTO conflicts (
-                        article_id_1, article_id_2,
-                        similarity_score, contradiction_score,
-                        trust_score_1, trust_score_2, conflict_score
+                        article_a_id, article_b_id,
+                        conflict_type,
+                        similarity_score, nli_label, nli_confidence, weighted_score
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT DO NOTHING
-                """, (id1, id2, similarity, contradiction_score,
-                      trust_1, trust_2, conflict_score))
+                    ON CONFLICT (article_a_id, article_b_id) DO NOTHING
+                """, (id1, id2, 'contradiction',
+                    round(similarity, 4),
+                    'contradiction',
+                    round(contradiction_score, 4),
+                    round(conflict_score, 4)))
 
                 if cur.rowcount == 1:
                     conflicts_inserted += 1
