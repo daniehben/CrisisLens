@@ -24,6 +24,9 @@ def classify_pair(premise: str, hypothesis: str, hf_token: str) -> dict:
         )
         if response.status_code == 200:
             result = response.json()
+            # API returns a list when input is a list, or a dict when input is a string
+            if isinstance(result, list):
+                result = result[0]
             labels = result.get("labels", [])
             scores = result.get("scores", [])
             label_scores = dict(zip(labels, scores))
