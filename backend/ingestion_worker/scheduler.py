@@ -6,6 +6,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from backend.ingestion_worker.worker import run_worker
+from backend.nlp_pipeline.task8_translate import run_task8
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -41,7 +42,10 @@ def start_health_server():
     print(f"[scheduler] Health server listening on port {port}")
     server.serve_forever()
 
-
+def run_ingestion_and_nlp():
+    run_worker()
+    run_task8()
+    
 def main():
     print("[scheduler] CrisisLens ingestion worker starting...")
     restore_telegram_session()
@@ -52,10 +56,11 @@ def main():
 
     print("[scheduler] Running initial ingestion cycle...")
     run_worker()
+    run_task8()
 
     scheduler = BlockingScheduler()
     scheduler.add_job(
-        run_worker,
+        run_ingestion_and_nlp,
         trigger=IntervalTrigger(minutes=15),
         id='ingestion_cycle',
         name='Fetch all sources every 15 minutes',
