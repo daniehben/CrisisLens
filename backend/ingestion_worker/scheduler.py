@@ -7,6 +7,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from backend.ingestion_worker.worker import run_worker
 from backend.nlp_pipeline.task8_translate import run_task8
+from backend.nlp_pipeline.task9_embed import run_task9
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ def start_health_server():
 def run_ingestion_and_nlp():
     run_worker()
     run_task8()
+    run_task9()
     
 def main():
     print("[scheduler] CrisisLens ingestion worker starting...")
@@ -57,6 +59,7 @@ def main():
     print("[scheduler] Running initial ingestion cycle...")
     run_worker()
     run_task8()
+    
 
     scheduler = BlockingScheduler()
     scheduler.add_job(
