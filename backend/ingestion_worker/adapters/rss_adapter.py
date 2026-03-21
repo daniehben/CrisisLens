@@ -58,7 +58,7 @@ class RSSAdapter(FeedAdapter):
         articles = []
         try:
             # Fetch raw content with browser headers first
-            with httpx.Client(timeout=httpx.Timeout(10.0, connect=5.0), headers=HEADERS, follow_redirects=True) as client:
+            with httpx.Client(timeout=httpx.Timeout(60.0, connect=10.0), headers=HEADERS, follow_redirects=True) as client:
                 response = client.get(self._config['url'])
                 response.raise_for_status()
                 raw_content = response.content
