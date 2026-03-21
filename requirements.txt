@@ -13,3 +13,8 @@ uvicorn[standard]
 slowapi
 pydantic
 requests
+beautifulsoup4
+transformers
+torch
+sentencepiece
+sacremoses
