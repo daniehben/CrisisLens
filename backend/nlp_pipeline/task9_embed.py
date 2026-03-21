@@ -7,7 +7,8 @@ from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
-HF_API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/pipeline/feature-extraction"
+
 
 
 def get_embeddings_from_api(texts: list[str], hf_token: str) -> list[list[float]]:
