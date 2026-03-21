@@ -57,8 +57,7 @@ def main():
     thread.start()
 
     print("[scheduler] Running initial ingestion cycle...")
-    run_worker()
-    run_task8()
+    run_ingestion_and_nlp()
     
 
     scheduler = BlockingScheduler()
