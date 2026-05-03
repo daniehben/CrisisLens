@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from backend.shared.deduplication import get_redis_client, check_and_mark
 from backend.shared.database import get_db_connection
@@ -7,9 +8,14 @@ from backend.ingestion_worker.adapters.newsapi_adapter import NewsAPIAdapter
 from backend.ingestion_worker.adapters.telegram_adapter import TelegramAdapter
 
 
+# Cap concurrent fetches so we don't hammer NewsAPI and trip its 100 req/day quota
+# all at once (each NewsAPI source is one separate API call).
+MAX_CONCURRENT_FETCHES = 6
+
+
 def get_all_adapters():
     adapters = []
-    for code in ['AJA','AJA+']:
+    for code in ['AJA', 'AJA+']:
         adapters.append(RSSAdapter(code))
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
         adapters.append(NewsAPIAdapter(code))
@@ -42,28 +48,45 @@ def log_ingestion(conn, source_code: str, fetched: int, inserted: int,
         print(f"[worker] Failed to log ingestion for {source_code}: {e}")
 
 
+def _fetch_one(adapter):
+    """Wrap adapter.fetch() so an exception in one source doesn't kill the pool.
+    Returns (code, articles, errors, duration_ms)."""
+    code = adapter.source_code()
+    start = datetime.now(timezone.utc)
+    try:
+        articles = adapter.fetch()
+        errors = 0
+    except Exception as e:
+        print(f"[worker] [{code}] Adapter fetch failed: {e}")
+        articles = []
+        errors = 1
+    duration_ms = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
+    return code, articles, errors, duration_ms
+
+
 def run_ingestion_cycle() -> None:
+    cycle_start = datetime.now(timezone.utc)
     print(f"\n[worker] === Ingestion cycle starting at "
-          f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC ===")
-    
-    # Redis deduplication temporarily disabled - using DB-level deduplication only
-    r = get_redis_client()
-    
+          f"{cycle_start.strftime('%Y-%m-%d %H:%M:%S')} UTC ===")
+
+    r = get_redis_client()  # None if Redis unreachable — handled downstream
     adapters = get_all_adapters()
     total_fetched = 0
     total_inserted = 0
     total_dupes = 0
+
+    # Phase 1 — fetch all sources concurrently.
+    # I/O-bound work (HTTP to external APIs) → threads are the right tool.
+    fetch_results = []
+    with ThreadPoolExecutor(max_workers=min(MAX_CONCURRENT_FETCHES, len(adapters))) as pool:
+        futures = [pool.submit(_fetch_one, a) for a in adapters]
+        for future in as_completed(futures):
+            fetch_results.append(future.result())
+
+    # Phase 2 — dedup + write serially against a single DB connection.
+    # Keeps connection count at 1 and avoids transaction-scope confusion.
     with get_db_connection() as conn:
-        for adapter in adapters:
-            code = adapter.source_code()
-            start = datetime.now(timezone.utc)
-            errors = 0
-            try:
-                articles = adapter.fetch()
-            except Exception as e:
-                print(f"[worker] [{code}] Adapter fetch failed: {e}")
-                errors = 1
-                articles = []
+        for code, articles, errors, fetch_ms in fetch_results:
             fetched = len(articles)
             new_articles = []
             dupes = 0
@@ -74,18 +97,17 @@ def run_ingestion_cycle() -> None:
                     new_articles.append(article)
             inserted, db_skipped = write_batch(new_articles)
             dupes += db_skipped
-            duration_ms = int(
-                (datetime.now(timezone.utc) - start).total_seconds() * 1000
-            )
-            log_ingestion(conn, code, fetched, inserted, db_skipped, errors, duration_ms)
+            log_ingestion(conn, code, fetched, inserted, db_skipped, errors, fetch_ms)
             print(f"[worker] [{code}] fetched={fetched} "
                   f"new={inserted} dupes={db_skipped} errors={errors} "
-                  f"({duration_ms}ms)")
+                  f"({fetch_ms}ms)")
             total_fetched += fetched
             total_inserted += inserted
             total_dupes += db_skipped
         conn.commit()
-    print(f"[worker] === Cycle complete: "
+
+    cycle_ms = int((datetime.now(timezone.utc) - cycle_start).total_seconds() * 1000)
+    print(f"[worker] === Cycle complete in {cycle_ms}ms: "
           f"fetched={total_fetched} inserted={total_inserted} "
           f"dupes={total_dupes} ===\n")
 

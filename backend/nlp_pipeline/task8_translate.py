@@ -22,7 +22,18 @@ def detect_language(text: str, fallback: str = "en") -> str:
 
 
 def translate_to_arabic(texts: list[str]) -> list[str]:
+    """Translate a list of English headlines to Arabic in one batch call.
+    Falls back to per-text translation if the batch call fails so one bad
+    input doesn't poison the whole batch — keeps the original text on failure."""
     translator = GoogleTranslator(source='en', target='ar')
+
+    try:
+        translated = translator.translate_batch(texts)
+        # translate_batch can return None entries on partial failure
+        return [t if t else original for t, original in zip(translated, texts)]
+    except Exception as e:
+        log.warning(f"[Task8] Batch translate failed, falling back per-text: {e}")
+
     results = []
     for text in texts:
         try:

@@ -27,11 +27,11 @@ def run_task12():
                 WHERE ap.status = 'processed'
                   AND ap.nli_label = 'contradiction'
                   AND ap.contradiction_score >= %s
-                  AND ap.pair_id NOT IN (
-                    SELECT article_a_id FROM conflicts
-                    UNION
-                    SELECT article_b_id FROM conflicts
-                )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM conflicts c
+                      WHERE (c.article_a_id = ap.article_id_1 AND c.article_b_id = ap.article_id_2)
+                         OR (c.article_a_id = ap.article_id_2 AND c.article_b_id = ap.article_id_1)
+                  )
             """, (CONTRADICTION_THRESHOLD,))
             pairs = cur.fetchall()
 

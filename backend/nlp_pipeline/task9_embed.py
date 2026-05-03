@@ -11,30 +11,60 @@ HF_API_URL = "https://router.huggingface.co/hf-inference/models/sentence-transfo
 
 
 
-def get_embeddings_from_api(texts: list[str], hf_token: str) -> list[list[float]]:
+def _normalize_embedding(raw) -> list[float] | None:
+    """HF returns either a sentence vector [floats] or token vectors [[floats]].
+    Mean-pool token vectors so we always return one vector per input."""
+    if not raw:
+        return None
+    if isinstance(raw[0], list):
+        import numpy as np
+        return np.mean(raw, axis=0).tolist()
+    return raw
+
+
+def get_embeddings_from_api(texts: list[str], hf_token: str, batch_size: int = 16) -> list[list[float] | None]:
+    """Batch embed texts via HF Inference API.
+    Sends batch_size texts per request instead of one. Falls back to per-text
+    on batch error so a single malformed input doesn't drop the whole batch."""
     headers = {"Authorization": f"Bearer {hf_token}"}
-    results = []
-    for text in texts:
+    results: list[list[float] | None] = []
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
         try:
             response = httpx.post(
                 HF_API_URL,
                 headers=headers,
-                json={"inputs": text},
-                timeout=30
+                json={"inputs": batch},
+                timeout=60,
             )
             if response.status_code == 200:
-                embedding = response.json()
-                if isinstance(embedding[0], list):
-                    # model returned token embeddings, mean pool
-                    import numpy as np
-                    embedding = np.mean(embedding, axis=0).tolist()
-                results.append(embedding)
-            else:
-                log.warning(f"[Task9] HF API error {response.status_code}: {response.text[:100]}")
-                results.append(None)
+                payload = response.json()
+                # Batch response: list of embeddings, one per input
+                for raw in payload:
+                    results.append(_normalize_embedding(raw))
+                continue
+            log.warning(f"[Task9] HF batch error {response.status_code}: {response.text[:120]}")
         except Exception as e:
-            log.warning(f"[Task9] Embedding request failed: {e}")
-            results.append(None)
+            log.warning(f"[Task9] HF batch request failed: {e}")
+
+        # Batch failed — fall back to one-at-a-time for this batch only
+        for text in batch:
+            try:
+                response = httpx.post(
+                    HF_API_URL,
+                    headers=headers,
+                    json={"inputs": text},
+                    timeout=30,
+                )
+                if response.status_code == 200:
+                    results.append(_normalize_embedding(response.json()))
+                else:
+                    results.append(None)
+            except Exception as e:
+                log.warning(f"[Task9] Per-text fallback failed: {e}")
+                results.append(None)
+
     return results
 
 
