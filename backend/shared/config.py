@@ -17,16 +17,21 @@ class Config:
 
     @classmethod
     def validate(cls):
+        # Required for any worker run
         missing = []
         if not cls.DATABASE_URL:
             missing.append('DATABASE_URL')
         if not cls.NEWSAPI_KEY:
             missing.append('NEWSAPI_KEY')
-        if not cls.TELEGRAM_API_ID:
-            missing.append('TELEGRAM_API_ID')
-        if not cls.TELEGRAM_API_HASH:
-            missing.append('TELEGRAM_API_HASH')
         if missing:
             raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
+
+        # Soft warnings for optional features
+        warnings = []
+        if not cls.TELEGRAM_API_ID or not cls.TELEGRAM_API_HASH:
+            warnings.append('TELEGRAM_API_* not set — Telegram sources disabled')
+        if warnings:
+            for w in warnings:
+                print(f"[config] {w}")
 
 config = Config()

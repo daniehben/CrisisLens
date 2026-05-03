@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from backend.shared.deduplication import get_redis_client, check_and_mark
-from backend.shared.database import get_db_connection
+from backend.shared.database import get_db_connection, get_source_map
 from backend.ingestion_worker.db_writer import write_batch
 from backend.ingestion_worker.adapters.rss_adapter import RSSAdapter
 from backend.ingestion_worker.adapters.newsapi_adapter import NewsAPIAdapter
@@ -71,6 +71,7 @@ def run_ingestion_cycle() -> None:
 
     r = get_redis_client()  # None if Redis unreachable — handled downstream
     adapters = get_all_adapters()
+    source_map = get_source_map()  # cache once per cycle, not per write_batch
     total_fetched = 0
     total_inserted = 0
     total_dupes = 0
@@ -95,7 +96,7 @@ def run_ingestion_cycle() -> None:
                     dupes += 1
                 else:
                     new_articles.append(article)
-            inserted, db_skipped = write_batch(new_articles)
+            inserted, db_skipped = write_batch(new_articles, source_map=source_map)
             dupes += db_skipped
             log_ingestion(conn, code, fetched, inserted, db_skipped, errors, fetch_ms)
             print(f"[worker] [{code}] fetched={fetched} "

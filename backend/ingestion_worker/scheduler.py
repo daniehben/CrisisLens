@@ -57,6 +57,15 @@ def run_ingestion_and_nlp():
     
 def main():
     print("[scheduler] CrisisLens ingestion worker starting...")
+
+    # Fail fast on missing config rather than crash mid-cycle
+    from backend.shared.config import Config
+    try:
+        Config.validate()
+    except ValueError as e:
+        print(f"[scheduler] CONFIG ERROR: {e}")
+        raise
+
     restore_telegram_session()
 
     # Start dummy HTTP server in background thread so Render sees a web service
