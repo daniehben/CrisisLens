@@ -18,6 +18,8 @@ services:
         sync: false
       - key: TELEGRAM_SESSION_B64
         sync: false
+      - key: HF_TOKEN
+        sync: false
 
   - type: web
     name: crisislens-api
