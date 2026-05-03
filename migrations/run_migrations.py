@@ -13,11 +13,13 @@ if not DATABASE_URL:
 # Fix URL prefix for psycopg2
 db_url = DATABASE_URL.replace('postgresql://', 'postgresql://')
 
-MIGRATIONS = [
-    '001_create_tables.sql',
-    '002_create_indexes.sql',
-    '003_seed_sources.sql',
-]
+def _discover_migrations(folder: str) -> list[str]:
+    """Auto-discover NNN_*.sql files in numeric order so new migrations
+    don't require editing this script."""
+    return sorted(
+        f for f in os.listdir(folder)
+        if f.endswith('.sql') and f[:3].isdigit()
+    )
 
 def run_migrations():
     conn = psycopg2.connect(db_url)
@@ -25,8 +27,9 @@ def run_migrations():
     cursor = conn.cursor()
 
     migrations_dir = os.path.dirname(__file__)
+    migrations = _discover_migrations(migrations_dir)
 
-    for filename in MIGRATIONS:
+    for filename in migrations:
         filepath = os.path.join(migrations_dir, filename)
         print(f"Running {filename}...")
         with open(filepath, 'r') as f:

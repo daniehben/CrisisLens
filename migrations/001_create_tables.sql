@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS articles (
     fetched_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     url           TEXT         NOT NULL UNIQUE,
     language      CHAR(2)      NOT NULL,
-    embedding     vector(768),
+    embedding     vector(384),  -- matches paraphrase-multilingual-MiniLM-L12-v2 output
     trust_weight  NUMERIC(3,2) NOT NULL,
     UNIQUE (source_id, external_id)
 );
