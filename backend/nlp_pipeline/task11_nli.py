@@ -15,9 +15,12 @@ log = logging.getLogger(__name__)
 
 # Multilingual NLI model — supports Arabic, English, and ~100 other langs.
 # ~280M params, runs on free HF Inference tier.
+# Force /pipeline/text-classification because HF defaults this model to
+# zero-shot-classification, which expects a different input shape.
 HF_NLI_URL = (
     "https://router.huggingface.co/hf-inference/models/"
     "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
+    "/pipeline/text-classification"
 )
 
 
@@ -27,7 +30,12 @@ def classify_pair(premise: str, hypothesis: str, hf_token: str) -> dict:
     headers = {"Authorization": f"Bearer {hf_token}"}
 
     # mDeBERTa expects premise </s></s> hypothesis (XNLI training format)
-    payload = {"inputs": f"{premise}</s></s>{hypothesis}"}
+    # top_k=None returns scores for ALL classes (entailment/neutral/contradiction)
+    # instead of just the winning one.
+    payload = {
+        "inputs": f"{premise}</s></s>{hypothesis}",
+        "parameters": {"top_k": None},
+    }
 
     try:
         response = httpx.post(HF_NLI_URL, headers=headers, json=payload, timeout=30)
@@ -121,3 +129,4 @@ def run_task11():
 
     log.info(f"[Task11] Complete — {classified} pairs classified")
     return classified
+
