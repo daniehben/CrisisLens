@@ -13,11 +13,13 @@ RSS_SOURCES = {
         'language': 'en',  # temporarily English until DACR credentials arrive
         'trust_weight': 1.00,
     },
-    'AJA+': {
-        'url': 'https://crisislens-rsshub.onrender.com/telegram/channel/ajplusar',
-        'language': 'ar',
-        'trust_weight': 0.50,
-    },
+    # AJA+ disabled — RSSHub bridge hits Telegram rate limit (429) on free tier.
+    # See docs/BACKLOG.md to re-enable once we have a paid RSSHub or alternative.
+    # 'AJA+': {
+    #     'url': 'https://crisislens-rsshub.onrender.com/telegram/channel/ajplusar',
+    #     'language': 'ar',
+    #     'trust_weight': 0.50,
+    # },
     # ── Arabic-language broadcasters accessible from Frankfurt ─────────────
     'DW': {
         'url': 'https://rss.dw.com/rdf/rss-ar-all',
