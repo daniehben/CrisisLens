@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CrisisLens — Where the news disagrees</title>
+  <meta name="description" content="Real-time contradictions in crisis reporting across Arabic and English news sources.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { --bg: #0a0a0b; --card: #15151a; --line: #26262e; --ink: #f5f5f7; --muted: #8a8a96; --accent: #ff5b3a; --good: #4ade80; }
+    body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; }
+    .ar { font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif; direction: rtl; text-align: right; line-height: 1.55; }
+    .card { background: var(--card); border: 1px solid var(--line); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(255,91,58,.7); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,91,58,.7)} 70%{box-shadow:0 0 0 12px rgba(255,91,58,0)} 100%{box-shadow:0 0 0 0 rgba(255,91,58,0)} }
+    .bar { height: 4px; background: #26262e; border-radius: 999px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #ff5b3a, #ffb23a); }
+    .skeleton { background: linear-gradient(90deg,#15151a,#1d1d24,#15151a); background-size:200% 100%; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="border-b border-[var(--line)]">
+    <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="pulse-dot"></span>
+        <h1 class="text-xl font-semibold tracking-tight">
+          Crisis<span style="color:var(--accent)">Lens</span>
+        </h1>
+        <span class="text-xs uppercase tracking-widest text-[var(--muted)] hidden sm:inline">live</span>
+      </div>
+      <nav class="flex items-center gap-4 text-sm text-[var(--muted)]">
+        <button id="lang-toggle" class="hover:text-white transition">العربية</button>
+        <a href="https://github.com/daniehben/CrisisLens" class="hover:text-white transition">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="max-w-6xl mx-auto px-6 pt-12 pb-8">
+    <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight max-w-3xl">
+      When the news disagrees, you see it first.
+    </h2>
+    <p class="text-[var(--muted)] mt-3 max-w-2xl">
+      CrisisLens reads Arabic and English reporting on the same events and surfaces moments where sources contradict each other — different casualty counts, opposing quotes, conflicting facts.
+    </p>
+    <div id="stats" class="mt-6 flex flex-wrap gap-6 text-sm text-[var(--muted)]">
+      <span><span id="stat-conflicts" class="text-white font-semibold">…</span> contradictions detected</span>
+      <span>updated every 15 minutes</span>
+    </div>
+  </section>
+
+  <main class="max-w-6xl mx-auto px-6 pb-20">
+    <div id="feed" class="grid gap-5"></div>
+    <div id="empty" class="hidden text-center text-[var(--muted)] py-20">
+      <p>No contradictions to show yet. Worker is still ingesting.</p>
+    </div>
+    <div id="error" class="hidden text-center text-[var(--accent)] py-20">
+      <p>Couldn't reach the API. Try again in a minute — free-tier services sleep when idle.</p>
+    </div>
+  </main>
+
+  <footer class="border-t border-[var(--line)] mt-12">
+    <div class="max-w-6xl mx-auto px-6 py-6 text-xs text-[var(--muted)] flex justify-between flex-wrap gap-2">
+      <span>Built for the moments that matter.</span>
+      <span>API: <a class="hover:text-white" href="https://crisislens-api.onrender.com/api/v1/conflicts">/api/v1/conflicts</a></span>
+    </div>
+  </footer>
+
+  <script>
+    const API_BASE = 'https://crisislens-api.onrender.com';
+    const feed = document.getElementById('feed');
+    const langBtn = document.getElementById('lang-toggle');
+
+    let preferAr = localStorage.getItem('crisislens.lang') === 'ar';
+    applyLang();
+
+    langBtn.onclick = () => {
+      preferAr = !preferAr;
+      localStorage.setItem('crisislens.lang', preferAr ? 'ar' : 'en');
+      applyLang();
+      render(); // re-render with new language preference
+    };
+
+    function applyLang() {
+      langBtn.textContent = preferAr ? 'English' : 'العربية';
+    }
+
+    function trustLabel(t) {
+      const v = parseFloat(t);
+      if (v >= 0.85) return 'High';
+      if (v >= 0.65) return 'Medium';
+      if (v >= 0.40) return 'Low';
+      return 'Unverified';
+    }
+
+    function timeAgo(iso) {
+      if (!iso) return '';
+      const s = (Date.now() - new Date(iso).getTime()) / 1000;
+      if (s < 60) return 'just now';
+      if (s < 3600) return `${Math.floor(s/60)}m ago`;
+      if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+      return `${Math.floor(s/86400)}d ago`;
+    }
+
+    function pickHeadline(c, side) {
+      const en = c[`headline_${side}_en`];
+      const ar = c[`headline_${side}_ar`];
+      const primary = preferAr ? (ar || en) : (en || ar);
+      const secondary = preferAr ? (en || '') : (ar || '');
+      return { primary, secondary, primaryIsAr: preferAr ? !!ar : !ar && !!ar };
+    }
+
+    function sideBlock(c, side) {
+      const code = c[`source_${side}`];
+      const trust = c[`trust_score_${side}`];
+      const trustPct = Math.round(parseFloat(trust) * 100);
+      const url = side === '1' ? c.url_a : c.url_b;
+      const { primary, secondary } = pickHeadline(c, side);
+      const dirClass = preferAr ? 'ar' : '';
+      return `
+        <article class="flex-1 min-w-0">
+          <header class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">${code || '—'}</span>
+            <span class="text-xs text-[var(--muted)]">${trustLabel(trust)} trust · ${trustPct}%</span>
+          </header>
+          <div class="bar mb-4"><span style="width:${trustPct}%"></span></div>
+          <h3 class="text-lg font-semibold leading-snug ${dirClass}">${primary || '—'}</h3>
+          ${secondary ? `<p class="text-sm text-[var(--muted)] mt-2 ${preferAr ? '' : 'ar'}">${secondary}</p>` : ''}
+        </article>
+      `;
+    }
+
+    function card(c) {
+      const conf = Math.round(parseFloat(c.contradiction_score) * 100);
+      const score = parseFloat(c.weighted_score).toFixed(2);
+      return `
+        <div class="card rounded-xl p-6">
+          <div class="flex items-center justify-between mb-5 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--accent)"></span>
+              <span class="text-[var(--muted)] uppercase tracking-widest">Contradiction</span>
+              <span class="text-white font-semibold">${conf}% confidence</span>
+            </div>
+            <span class="text-[var(--muted)]">${timeAgo(c.detected_at)}</span>
+          </div>
+          <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+            ${sideBlock(c, '1')}
+            <div class="md:flex md:items-center md:justify-center hidden">
+              <div class="text-2xl text-[var(--muted)]">⇋</div>
+            </div>
+            ${sideBlock(c, '2')}
+          </div>
+        </div>
+      `;
+    }
+
+    function skeleton() {
+      return `
+        <div class="card rounded-xl p-6">
+          <div class="h-3 w-48 skeleton rounded mb-6"></div>
+          <div class="grid md:grid-cols-2 gap-8">
+            <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
+            <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
+          </div>
+        </div>`;
+    }
+
+    let cache = null;
+    async function load() {
+      feed.innerHTML = skeleton() + skeleton() + skeleton();
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/conflicts?limit=30`);
+        if (!res.ok) throw new Error('http ' + res.status);
+        cache = await res.json();
+        document.getElementById('stat-conflicts').textContent = cache.length;
+        render();
+      } catch (e) {
+        document.getElementById('error').classList.remove('hidden');
+        feed.innerHTML = '';
+      }
+    }
+
+    function render() {
+      if (!cache) return;
+      if (!cache.length) {
+        document.getElementById('empty').classList.remove('hidden');
+        feed.innerHTML = '';
+        return;
+      }
+      feed.innerHTML = cache.map(card).join('');
+    }
+
+    load();
+  </script>
+</body>
+</html>
