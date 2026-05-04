@@ -3,8 +3,8 @@ from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
-CONTRADICTION_THRESHOLD = 0.3
-CONFLICT_SCORE_THRESHOLD = 0.15  # min: contradiction(0.3) × min trust(0.5) = 0.15
+CONTRADICTION_THRESHOLD = 0.55  # raised from 0.3 — kills noisy borderline pairs
+CONFLICT_SCORE_THRESHOLD = 0.30  # raised proportionally: 0.55 × min trust 0.5 = 0.275
 
 
 def run_task12():

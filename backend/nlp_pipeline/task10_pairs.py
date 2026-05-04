@@ -3,7 +3,7 @@ from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
-SIMILARITY_THRESHOLD = 0.75
+SIMILARITY_THRESHOLD = 0.70   # lowered from 0.75 — more candidate pairs
 TIME_WINDOW_HOURS = 48
 TOP_K = 10
 
