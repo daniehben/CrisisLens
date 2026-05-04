@@ -4,7 +4,7 @@ from backend.shared.database import get_db_connection
 log = logging.getLogger(__name__)
 
 CONTRADICTION_THRESHOLD = 0.3
-CONFLICT_SCORE_THRESHOLD = 0.1
+CONFLICT_SCORE_THRESHOLD = 0.15  # min: contradiction(0.3) × min trust(0.5) = 0.15
 
 
 def run_task12():
@@ -48,10 +48,13 @@ def run_task12():
                 trust_1 = trust_1 or 0.5
                 trust_2 = trust_2 or 0.5
 
-                # conflict score: NLI confidence × trust differential × max trust
-                trust_diff = abs(trust_1 - trust_2)
+                # Conflict score: contradiction confidence weighted by source quality.
+                # Reward contradictions where at least one source is trustworthy
+                # (max_trust). Old formula multiplied by trust_diff which crushed
+                # equal-trust contradictions to ~0 — exactly the cases we DO
+                # want to surface (e.g. AJA contradicting Reuters).
                 max_trust = max(trust_1, trust_2)
-                conflict_score = contradiction_score * trust_diff * max_trust
+                conflict_score = contradiction_score * max_trust
 
                 if conflict_score < CONFLICT_SCORE_THRESHOLD:
                     continue
