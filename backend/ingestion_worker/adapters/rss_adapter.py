@@ -30,7 +30,10 @@ RSS_SOURCES = {
         'trust_weight': 0.80,  # French international broadcaster
     },
     'ARB': {
-        'url': 'https://www.alarabiya.net/feed/rss2/ar.xml',
+        # Direct alarabiya.net feed blocks Render Frankfurt IPs (403).
+        # Route through Google News which indexes Al Arabiya articles
+        # and is much harder to IP-block.
+        'url': 'https://news.google.com/rss/search?q=site:alarabiya.net&hl=ar&gl=SA&ceid=SA:ar',
         'language': 'ar',
         'trust_weight': 0.65,  # Saudi-aligned
     },
