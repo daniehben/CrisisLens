@@ -15,7 +15,7 @@ MAX_CONCURRENT_FETCHES = 6
 
 def get_all_adapters():
     adapters = []
-    for code in ['AJA', 'AJA+']:
+    for code in ['AJA', 'AJA+', 'DW', 'F24', 'ARB']:
         adapters.append(RSSAdapter(code))
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
         adapters.append(NewsAPIAdapter(code))

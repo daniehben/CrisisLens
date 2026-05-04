@@ -14,10 +14,26 @@ RSS_SOURCES = {
         'trust_weight': 1.00,
     },
     'AJA+': {
-    'url': 'https://crisislens-rsshub.onrender.com/telegram/channel/ajplusar',
-    'language': 'ar',
-    'trust_weight': 0.50,
-},
+        'url': 'https://crisislens-rsshub.onrender.com/telegram/channel/ajplusar',
+        'language': 'ar',
+        'trust_weight': 0.50,
+    },
+    # ── Arabic-language broadcasters accessible from Frankfurt ─────────────
+    'DW': {
+        'url': 'https://rss.dw.com/rdf/rss-ar-all',
+        'language': 'ar',
+        'trust_weight': 0.80,  # German state broadcaster
+    },
+    'F24': {
+        'url': 'https://www.france24.com/ar/rss',
+        'language': 'ar',
+        'trust_weight': 0.80,  # French international broadcaster
+    },
+    'ARB': {
+        'url': 'https://www.alarabiya.net/feed/rss2/ar.xml',
+        'language': 'ar',
+        'trust_weight': 0.65,  # Saudi-aligned
+    },
 }
 
 # Mimic a real browser to avoid being blocked
