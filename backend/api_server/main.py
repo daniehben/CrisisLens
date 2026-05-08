@@ -152,18 +152,34 @@ def get_conflicts(
             cur.execute("""
                 SELECT
                     c.conflict_id,
+                    c.conflict_type,
                     c.weighted_score AS conflict_score,
+                    c.weighted_score,
                     c.nli_confidence AS contradiction_score,
                     c.similarity_score,
                     c.detected_at,
-                    a1.headline_en AS headline_1_en,
-                    a1.headline_ar AS headline_1_ar,
-                    s1.code AS source_1,
-                    s1.trust_weight AS trust_score_1,
-                    a2.headline_en AS headline_2_en,
-                    a2.headline_ar AS headline_2_ar,
-                    s2.code AS source_2,
-                    s2.trust_weight AS trust_score_2
+                    -- side A
+                    a1.article_id      AS article_id_1,
+                    a1.headline_en     AS headline_1_en,
+                    a1.headline_ar     AS headline_1_ar,
+                    a1.body_snippet    AS body_1,
+                    a1.published_at    AS published_1,
+                    a1.url             AS url_a,
+                    s1.code            AS source_1,
+                    s1.name            AS source_1_name,
+                    s1.trust_weight    AS trust_score_1,
+                    s1.language        AS source_1_lang,
+                    -- side B
+                    a2.article_id      AS article_id_2,
+                    a2.headline_en     AS headline_2_en,
+                    a2.headline_ar     AS headline_2_ar,
+                    a2.body_snippet    AS body_2,
+                    a2.published_at    AS published_2,
+                    a2.url             AS url_b,
+                    s2.code            AS source_2,
+                    s2.name            AS source_2_name,
+                    s2.trust_weight    AS trust_score_2,
+                    s2.language        AS source_2_lang
                 FROM conflicts c
                 JOIN articles a1 ON a1.article_id = c.article_a_id
                 JOIN articles a2 ON a2.article_id = c.article_b_id
@@ -175,3 +191,50 @@ def get_conflicts(
             """, (min_score, limit, offset))
             rows = cur.fetchall()
     return [dict(r) for r in rows]
+
+
+@app.get("/api/v1/conflicts/{conflict_id}")
+@limiter.limit("60/minute")
+def get_conflict_detail(request: Request, conflict_id: int):
+    """Single conflict with full article context — used by the detail view."""
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT
+                    c.conflict_id,
+                    c.conflict_type,
+                    c.weighted_score,
+                    c.nli_confidence AS contradiction_score,
+                    c.similarity_score,
+                    c.detected_at,
+                    a1.article_id      AS article_id_1,
+                    a1.headline_en     AS headline_1_en,
+                    a1.headline_ar     AS headline_1_ar,
+                    a1.body_snippet    AS body_1,
+                    a1.published_at    AS published_1,
+                    a1.url             AS url_a,
+                    s1.code            AS source_1,
+                    s1.name            AS source_1_name,
+                    s1.trust_weight    AS trust_score_1,
+                    s1.language        AS source_1_lang,
+                    a2.article_id      AS article_id_2,
+                    a2.headline_en     AS headline_2_en,
+                    a2.headline_ar     AS headline_2_ar,
+                    a2.body_snippet    AS body_2,
+                    a2.published_at    AS published_2,
+                    a2.url             AS url_b,
+                    s2.code            AS source_2,
+                    s2.name            AS source_2_name,
+                    s2.trust_weight    AS trust_score_2,
+                    s2.language        AS source_2_lang
+                FROM conflicts c
+                JOIN articles a1 ON a1.article_id = c.article_a_id
+                JOIN articles a2 ON a2.article_id = c.article_b_id
+                JOIN sources s1 ON s1.source_id = a1.source_id
+                JOIN sources s2 ON s2.source_id = a2.source_id
+                WHERE c.conflict_id = %s
+            """, (conflict_id,))
+            row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Conflict not found")
+    return dict(row)
