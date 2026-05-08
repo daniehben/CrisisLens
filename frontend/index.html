@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,53 +10,94 @@
   <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Open the API connection early so TLS + DNS + cold-start happens in parallel
+       with the rest of the page load instead of blocking it. -->
+  <link rel="preconnect" href="https://crisislens-api.onrender.com" crossorigin>
+  <link rel="dns-prefetch" href="https://crisislens-api.onrender.com">
+  <!-- Fire the data fetch as early as possible. The promises are stashed on
+       window so the main script can await them once it's ready. -->
+  <script>
+    window.__CL_API = 'https://crisislens-api.onrender.com';
+    window.__CL_DATA = fetch(window.__CL_API + '/api/v1/conflicts?limit=100').then(r => r.ok ? r.json() : null).catch(() => null);
+    window.__CL_PROFILES = fetch('./source-profiles.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root {
-      --bg:#0a0a0b; --card:#15151a; --line:#26262e; --ink:#f5f5f7; --muted:#8a8a96;
-      --accent:#ff5b3a; --good:#4ade80; --warn:#f59e0b;
-      /* perspective colors */
-      --west:#3b82f6; --west-soft:rgba(59,130,246,.14);
-      --mena:#f59e0b; --mena-soft:rgba(245,158,11,.14);
-      --gulf:#fbbf24; --gulf-soft:rgba(251,191,36,.14);
-      --isr: #a78bfa; --isr-soft: rgba(167,139,250,.14);
-      --neut:#6b7280; --neut-soft:rgba(107,114,128,.14);
+    /* ── Theme: Documentary ─────────────────────────────────────────────
+       Both themes share region colors — only the surface/ink layer flips. */
+    :root, [data-theme="dark"] {
+      --bg:        #18181a;   /* near-neutral dark, very subtle warmth */
+      --bg-deeper: #131315;
+      --card:      #1f1f22;
+      --line:      #2c2c30;
+      --line-soft: #25252a;
+      --ink:       #ebe7df;
+      --muted:     #8e8a82;
+      --accent:    #c47a5a;   /* terracotta — warmer than oxblood, not red */
+      --accent-soft: rgba(196,122,90,.10);
+      --good:      #84a87a;
+      --warn:      #c4a55f;
+      /* region colors (documentary) */
+      --west:#6188a8;  --west-soft:rgba(97,136,168,.10);
+      --mena:#b88a5e; --mena-soft:rgba(184,138,94,.10);
+      --gulf:#b89460; --gulf-soft:rgba(184,148,96,.10);
+      --isr: #8c7e9c; --isr-soft: rgba(140,126,156,.10);
+      --neut:#8a807a; --neut-soft:rgba(138,128,122,.10);
     }
-    body { background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
-    .ar { font-family:'IBM Plex Sans Arabic','Inter',sans-serif; direction:rtl; text-align:right; line-height:1.55; }
-    .card { background:var(--card); border:1px solid var(--line); transition:border-color .15s; }
-    .card:hover { border-color:#3a3a44; }
-    .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 0 rgba(255,91,58,.7); animation:pulse 2s infinite; }
-    @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,91,58,.7)} 70%{box-shadow:0 0 0 12px rgba(255,91,58,0)} 100%{box-shadow:0 0 0 0 rgba(255,91,58,0)} }
-    .bar { height:4px; background:#26262e; border-radius:999px; overflow:hidden; }
+    [data-theme="light"] {
+      --bg:        #f0e8d6;   /* warmer cream — more saturated */
+      --bg-deeper: #e6dec8;
+      --card:      #faf3e3;   /* cream card, NOT pure white */
+      --line:      #d3c8b0;
+      --line-soft: #e1d6bd;
+      --ink:       #1f1c16;
+      --muted:     #756b58;
+      --accent:    #a8553b;
+      --accent-soft: rgba(168,85,59,.08);
+      --good:      #5e8455;
+      --warn:      #8a6f3d;
+      --west:#42617e;  --west-soft:rgba(66,97,126,.10);
+      --mena:#9a6f48; --mena-soft:rgba(154,111,72,.10);
+      --gulf:#8d7240; --gulf-soft:rgba(141,114,64,.10);
+      --isr: #635674; --isr-soft: rgba(99,86,116,.10);
+      --neut:#6b6258; --neut-soft:rgba(107,98,88,.10);
+    }
+    body { background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; transition: background-color .2s, color .2s; }
+    .header-bg { background: color-mix(in srgb, var(--bg) 85%, transparent); }
+    .ar { font-family: 'Tajawal', 'Noto Naskh Arabic', 'Segoe UI Arabic', system-ui, sans-serif; direction: rtl; text-align: right; line-height: 1.7; font-size: 1.05em; letter-spacing: 0; }
+    h2.ar, h3.ar { font-family: 'Noto Naskh Arabic', 'Tajawal', serif; line-height: 1.55; }
+    .card { background:var(--card); border:1px solid var(--line); transition:border-color .15s, background-color .2s; }
+    .card:hover { border-color:var(--accent); }
+    .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%{box-shadow:0 0 0 0 var(--accent-soft)} 70%{box-shadow:0 0 0 12px rgba(0,0,0,0)} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0)} }
+    .bar { height:4px; background:var(--line-soft); border-radius:999px; overflow:hidden; }
     .bar > span { display:block; height:100%; }
-    .skeleton { background:linear-gradient(90deg,#15151a,#1d1d24,#15151a); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+    .skeleton { background:linear-gradient(90deg,var(--card),var(--line-soft),var(--card)); background-size:200% 100%; animation:shimmer 1.4s infinite; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    .chip { background:#15151a; border:1px solid var(--line); color:var(--muted); padding:.35rem .75rem; border-radius:999px; font-size:.75rem; transition:all .15s; cursor:pointer; user-select:none; }
-    .chip:hover { color:var(--ink); border-color:#3a3a44; }
-    .chip.active { background:rgba(255,91,58,.12); border-color:var(--accent); color:var(--ink); }
-    .badge-num { background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.4); color:var(--warn); padding:.15rem .45rem; border-radius:6px; font-size:.7rem; font-weight:600; letter-spacing:.02em; }
-    .badge-cross { background:rgba(255,91,58,.12); border:1px solid rgba(255,91,58,.4); color:var(--accent); padding:.15rem .45rem; border-radius:6px; font-size:.7rem; font-weight:600; letter-spacing:.02em; }
+    .chip { background:var(--card); border:1px solid var(--line); color:var(--muted); padding:.35rem .75rem; border-radius:999px; font-size:.75rem; transition:all .15s; cursor:pointer; user-select:none; }
+    .chip:hover { color:var(--ink); border-color:var(--accent); }
+    .chip.active { background:var(--accent-soft); border-color:var(--accent); color:var(--ink); }
+    /* Subtle badge style — same chrome, icon distinguishes meaning */
+    .badge { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .55rem; border-radius:6px; font-size:.7rem; font-weight:500; letter-spacing:.02em; line-height:1; }
+    .badge svg { width:11px; height:11px; }
+    .badge-num   { background:var(--accent-soft); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); color:var(--accent); }
+    .badge-cross { background:var(--neut-soft); border:1px solid color-mix(in srgb, var(--ink) 18%, transparent); color:var(--ink); }
     .pill { display:inline-flex; align-items:center; gap:.25rem; padding:.15rem .5rem; border-radius:999px; font-size:.65rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
     .src-link { font-size:.75rem; color:var(--muted); text-decoration:none; display:inline-flex; align-items:center; gap:.25rem; padding-top:.75rem; }
     .src-link:hover { color:var(--accent); }
     .src-link svg { width:11px; height:11px; }
-    .conf-track { width:80px; height:6px; background:#26262e; border-radius:999px; overflow:hidden; }
+    .conf-track { width:80px; height:6px; background:var(--line-soft); border-radius:999px; overflow:hidden; }
     .conf-track > span { display:block; height:100%; background:var(--accent); }
     .card { cursor:pointer; }
     .card .open-arrow { font-size:.75rem; opacity:.5; }
-    .metric { background:#0c0c0e; border:1px solid var(--line); border-radius:8px; padding:.75rem; }
-    .metric-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
-    .metric-value { font-size:1.25rem; font-weight:600; margin-top:.15rem; }
-    .metric-meter { height:3px; background:#26262e; border-radius:999px; margin-top:.5rem; overflow:hidden; }
-    .metric-meter > span { display:block; height:100%; background:var(--accent); }
     /* ── Modal ──────────────────────────────────────────────────────── */
     .modal-backdrop {
-      position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(4px);
+      position:fixed; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(4px);
       display:none; align-items:flex-start; justify-content:center; z-index:50;
       padding:2rem 1rem; overflow-y:auto;
     }
+    [data-theme="light"] .modal-backdrop { background:rgba(34,29,24,.40); }
     .modal-backdrop.open { display:flex; }
     .modal {
       background:var(--card); border:1px solid var(--line); border-radius:16px;
@@ -71,7 +112,7 @@
       display:inline-flex; align-items:center; justify-content:center;
       cursor:pointer; transition:all .15s;
     }
-    .modal-close:hover { color:var(--ink); border-color:#3a3a44; }
+    .modal-close:hover { color:var(--ink); border-color:var(--accent); }
     .tabs { display:flex; gap:.25rem; padding:0 1.5rem; border-bottom:1px solid var(--line); margin-top:1.5rem; overflow-x:auto; }
     .tab {
       background:transparent; border:none; color:var(--muted); cursor:pointer;
@@ -83,10 +124,15 @@
     .tab-content { padding:1.5rem; }
     .tab-content > section { display:none; }
     .tab-content > section.active { display:block; }
-    .article-body { color:var(--ink); line-height:1.65; font-size:1rem; }
+    .article-body { color:var(--ink); line-height:1.65; font-size:1rem; opacity:.92; }
+    .metric { background:var(--bg-deeper); border:1px solid var(--line); border-radius:8px; padding:.75rem; }
+    .metric-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+    .metric-value { font-size:1.25rem; font-weight:600; margin-top:.15rem; color:var(--ink); }
+    .metric-meter { height:3px; background:var(--line-soft); border-radius:999px; margin-top:.5rem; overflow:hidden; }
+    .metric-meter > span { display:block; height:100%; background:var(--accent); }
     /* perspective spectrum bar */
-    .spectrum { display:flex; height:6px; border-radius:999px; overflow:hidden; background:#26262e; }
-    .spectrum > div { flex:1; opacity:.25; }
+    .spectrum { display:flex; height:6px; border-radius:999px; overflow:hidden; background:var(--line-soft); }
+    .spectrum > div { flex:1; opacity:.20; }
     .spectrum > div.on { opacity:1; }
     details summary { cursor:pointer; list-style:none; }
     details summary::-webkit-details-marker { display:none; }
@@ -95,7 +141,7 @@
   </style>
 </head>
 <body class="min-h-screen">
-  <header class="border-b border-[var(--line)] sticky top-0 z-10 backdrop-blur bg-[rgba(10,10,11,.85)]">
+  <header class="border-b border-[var(--line)] sticky top-0 z-10 backdrop-blur header-bg">
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="pulse-dot"></span>
@@ -105,9 +151,13 @@
         <span class="text-xs uppercase tracking-widest text-[var(--muted)] hidden sm:inline">live</span>
       </div>
       <nav class="flex items-center gap-4 text-sm text-[var(--muted)]">
-        <a href="#methodology" class="hover:text-white transition hidden sm:inline">Methodology</a>
-        <button id="lang-toggle" class="hover:text-white transition">العربية</button>
-        <a href="https://github.com/daniehben/CrisisLens" class="hover:text-white transition">GitHub</a>
+        <a href="#methodology" class="hover:text-[color:var(--ink)] transition hidden sm:inline">Methodology</a>
+        <button id="lang-toggle" class="hover:text-[color:var(--ink)] transition">العربية</button>
+        <button id="theme-toggle" class="hover:text-[color:var(--ink)] transition inline-flex items-center" title="Toggle theme">
+          <!-- icon set by JS based on current theme -->
+          <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+        </button>
+        <a href="https://github.com/daniehben/CrisisLens" class="hover:text-[color:var(--ink)] transition">GitHub</a>
       </nav>
     </div>
   </header>
@@ -121,9 +171,9 @@
       CrisisLens reads Arabic, Western, and Israeli reporting on the same crisis events and surfaces moments where sources contradict each other — different casualty counts, opposing quotes, conflicting facts.
     </p>
     <div id="stats" class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--muted)]">
-      <span><span id="stat-conflicts" class="text-white font-semibold">…</span> contradictions</span>
-      <span><span id="stat-shown" class="text-white font-semibold">…</span> shown</span>
-      <span><span id="stat-cross" class="text-white font-semibold">…</span> cross-perspective</span>
+      <span><span id="stat-conflicts" class="text-[color:var(--ink)] font-semibold">…</span> contradictions</span>
+      <span><span id="stat-shown" class="text-[color:var(--ink)] font-semibold">…</span> shown</span>
+      <span><span id="stat-cross" class="text-[color:var(--ink)] font-semibold">…</span> cross-perspective</span>
       <button id="refresh" class="ml-auto chip" title="Refresh">↻ Refresh</button>
     </div>
   </section>
@@ -145,6 +195,9 @@
 
   <main class="max-w-6xl mx-auto px-6 pb-20">
     <div id="feed" class="grid gap-5"></div>
+    <div id="cold-hint" class="hidden text-center text-[var(--muted)] py-6 text-sm">
+      <p>Waking up the API — first request after a quiet period can take ~50s on free hosting.</p>
+    </div>
     <div id="empty" class="hidden text-center text-[var(--muted)] py-20">
       <p>No contradictions match these filters.</p>
     </div>
@@ -154,12 +207,12 @@
   </main>
 
   <!-- ── Methodology ──────────────────────────────────────────────────────── -->
-  <section id="methodology" class="border-t border-[var(--line)] bg-[#0c0c0e]">
+  <section id="methodology" class="border-t border-[var(--line)] bg-[color:var(--bg-deeper)]">
     <div class="max-w-6xl mx-auto px-6 py-12">
       <h3 class="text-2xl font-bold mb-2">How CrisisLens works</h3>
       <p class="text-[var(--muted)] max-w-3xl mb-8">
         Every claim below is implemented in code you can read on
-        <a href="https://github.com/daniehben/CrisisLens" class="underline hover:text-white">GitHub</a>.
+        <a href="https://github.com/daniehben/CrisisLens" class="underline hover:text-[color:var(--ink)]">GitHub</a>.
         We're showing our work because trust in news aggregation has to be earned.
       </p>
 
@@ -231,7 +284,7 @@
       </p>
 
       <details class="mt-8">
-        <summary class="text-sm text-[var(--muted)] hover:text-white inline-flex items-center gap-2">
+        <summary class="text-sm text-[var(--muted)] hover:text-[color:var(--ink)] inline-flex items-center gap-2">
           <span class="chev">▾</span> What CrisisLens is <em>not</em>
         </summary>
         <div class="text-sm text-[var(--muted)] max-w-3xl mt-3 leading-relaxed">
@@ -244,7 +297,7 @@
   <footer class="border-t border-[var(--line)]">
     <div class="max-w-6xl mx-auto px-6 py-6 text-xs text-[var(--muted)] flex justify-between flex-wrap gap-2">
       <span>Built for the moments that matter.</span>
-      <span>API: <a class="hover:text-white" href="https://crisislens-api.onrender.com/api/v1/conflicts">/api/v1/conflicts</a></span>
+      <span>API: <a class="hover:text-[color:var(--ink)]" href="https://crisislens-api.onrender.com/api/v1/conflicts">/api/v1/conflicts</a></span>
     </div>
   </footer>
 
@@ -254,6 +307,18 @@
   </div>
 
   <script>
+  // ── Inline icons (no emojis) ────────────────────────────────────────────
+  const ICONS = {
+    // ≠ — three lines: top horizontal, bottom horizontal, diagonal slash
+    notEqual: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M16 5l-8 14"/></svg>`,
+    // diverging arrows — left and right pointing outward from center
+    split: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18"/></svg>`,
+    // sun (light theme indicator)
+    sun: `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>`,
+    // moon (dark theme indicator)
+    moon: `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`,
+  };
+
   // ── Source perspective map ──────────────────────────────────────────────
   // Maps source code → category. Color tokens come from CSS variables.
   // (See docs/BACKLOG.md to migrate this to the DB once we have a sources page.)
@@ -287,10 +352,15 @@
 
   // ── State ───────────────────────────────────────────────────────────────
   let cache = null;
+  let profiles = {};        // loaded from source-profiles.json
   let preferAr  = localStorage.getItem('crisislens.lang') === 'ar';
   let langFilter = 'all';
   let sortMode   = 'score';
   let sourceFilter = null;
+
+  // Source profiles are already in flight from the inline <head> script.
+  // Just await it.
+  (window.__CL_PROFILES || Promise.resolve({})).then(data => { profiles = data || {}; });
 
   applyLang();
 
@@ -417,10 +487,10 @@
             <span class="text-[var(--muted)] uppercase tracking-widest">Contradiction</span>
             <div class="flex items-center gap-2">
               <div class="conf-track"><span style="width:${conf}%"></span></div>
-              <span class="text-white font-semibold">${conf}%</span>
+              <span class="text-[color:var(--ink)] font-semibold">${conf}%</span>
             </div>
-            ${numeric ? `<span class="badge-num">🔢 numeric mismatch</span>` : ''}
-            ${cross ? `<span class="badge-cross">✕ cross-perspective</span>` : ''}
+            ${numeric ? `<span class="badge badge-num">${ICONS.notEqual}numeric mismatch</span>` : ''}
+            ${cross ? `<span class="badge badge-cross">${ICONS.split}cross-perspective</span>` : ''}
           </div>
           <span class="text-[var(--muted)] inline-flex items-center gap-2">
             ${timeAgo(c.detected_at)}
@@ -526,6 +596,44 @@
     if (location.hash.startsWith('#c')) history.replaceState(null, '', location.pathname);
   }
 
+  function profileBlock(code) {
+    const prof = profiles[code];
+    if (!prof) return '';
+    const refs = (prof.references || []).map(r =>
+      `<a href="${r.url}" target="_blank" rel="noopener" class="text-xs hover:text-[color:var(--accent)] transition" style="color:var(--muted);">↗ ${r.label}</a>`
+    ).join('<span class="mx-2 text-[color:var(--line)]">·</span>');
+    const patterns = (prof.documented_patterns || []).map(p => `<li>${p}</li>`).join('');
+    return `
+      <details class="mt-8 pt-6 border-t border-[color:var(--line)]" open>
+        <summary class="flex items-center justify-between cursor-pointer mb-4">
+          <span class="text-sm font-semibold uppercase tracking-widest text-[color:var(--muted)]">About this source</span>
+          <span class="text-xs text-[color:var(--muted)]">${prof.country || ''}${prof.founded ? ' · est. ' + prof.founded : ''}</span>
+        </summary>
+        <div class="grid sm:grid-cols-2 gap-4 mb-5">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-1">Ownership &amp; funding</div>
+            <p class="text-sm leading-relaxed">${prof.ownership || '—'}</p>
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-1">Editorial reputation</div>
+            <p class="text-sm leading-relaxed">${prof.editorial_summary || '—'}</p>
+          </div>
+        </div>
+        ${prof.context_for_crisislens ? `
+          <div class="mb-5">
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-1">Why it matters here</div>
+            <p class="text-sm leading-relaxed">${prof.context_for_crisislens}</p>
+          </div>` : ''}
+        ${patterns ? `
+          <div class="mb-5">
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-2">Documented coverage patterns</div>
+            <ul class="text-sm leading-relaxed list-disc pl-5 space-y-1">${patterns}</ul>
+          </div>` : ''}
+        ${refs ? `<div class="text-xs flex flex-wrap items-center gap-y-1">${refs}</div>` : ''}
+      </details>
+    `;
+  }
+
   function articleSection(c, side) {
     const code = c[`source_${side}`];
     const name = c[`source_${side}_name`] || code;
@@ -555,6 +663,7 @@
           read full article on ${host(url)}
           <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14L21 3M19 14v7H3V5h7"/></svg>
         </a>` : ''}
+        ${profileBlock(code)}
       </section>
     `;
   }
@@ -615,9 +724,9 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap text-xs mb-2">
             <span class="text-[var(--muted)] uppercase tracking-widest">Contradiction</span>
-            <span class="text-white font-semibold">${Math.round(parseFloat(c.contradiction_score)*100)}%</span>
-            ${numeric ? `<span class="badge-num">🔢 numeric mismatch</span>` : ''}
-            ${cross ? `<span class="badge-cross">✕ cross-perspective</span>` : ''}
+            <span class="text-[color:var(--ink)] font-semibold">${Math.round(parseFloat(c.contradiction_score)*100)}%</span>
+            ${numeric ? `<span class="badge badge-num">${ICONS.notEqual}numeric mismatch</span>` : ''}
+            ${cross ? `<span class="badge badge-cross">${ICONS.split}cross-perspective</span>` : ''}
           </div>
           <div class="text-sm text-[var(--muted)]">
             ${c.source_1} <span style="color:${persp(c.source_1).color}">●</span>
@@ -679,20 +788,56 @@
   async function load() {
     feedEl.innerHTML = skeleton() + skeleton() + skeleton();
     document.getElementById('error').classList.add('hidden');
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/conflicts?limit=100`);
-      if (!res.ok) throw new Error('http ' + res.status);
-      cache = await res.json();
-      document.getElementById('stat-conflicts').textContent = cache.length;
-      renderSourceChips();
-      render();
-      // If the URL already points to a specific conflict (shared link), open it.
-      handleHash();
-    } catch {
+
+    // Reuse the in-flight fetch from the <head> script if it exists.
+    // If the user clicked Refresh later, fall back to a fresh fetch.
+    let dataPromise = window.__CL_DATA;
+    if (!dataPromise) {
+      dataPromise = fetch(`${API_BASE}/api/v1/conflicts?limit=100`).then(r => r.ok ? r.json() : null).catch(() => null);
+    }
+    window.__CL_DATA = null;  // consume — next refresh will refetch
+
+    // Show a "still waking up" hint after 5s — Render free-tier cold start can
+    // take 50+ seconds. Better to tell the user than leave them hanging.
+    const slowHint = setTimeout(() => {
+      const e = document.getElementById('cold-hint');
+      if (e) e.classList.remove('hidden');
+    }, 5000);
+
+    const data = await dataPromise;
+    clearTimeout(slowHint);
+    document.getElementById('cold-hint')?.classList.add('hidden');
+
+    if (!data) {
       document.getElementById('error').classList.remove('hidden');
       feedEl.innerHTML = '';
+      return;
     }
+
+    cache = data;
+    document.getElementById('stat-conflicts').textContent = cache.length;
+    renderSourceChips();
+    render();
+    handleHash();
   }
+
+  // ── Theme toggle ────────────────────────────────────────────────────────
+  const themeBtn  = document.getElementById('theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeIcon.innerHTML = t === 'dark' ? ICONS.moon : ICONS.sun;
+    themeBtn.title = `Switch to ${t === 'dark' ? 'light' : 'dark'} mode`;
+  }
+  // Initial theme: stored choice → system pref → default dark
+  let theme = localStorage.getItem('crisislens.theme');
+  if (!theme) theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  applyTheme(theme);
+  themeBtn.onclick = () => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('crisislens.theme', theme);
+    applyTheme(theme);
+  };
 
   // ── Wire up controls ────────────────────────────────────────────────────
   langBtn.onclick = () => {

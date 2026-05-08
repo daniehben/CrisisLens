@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CrisisLens — Palette Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background:#0a0a0b; color:#f5f5f7; font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+    .palette { padding:2.5rem 0; border-bottom:1px solid #26262e; }
+    .swatch { width:48px; height:48px; border-radius:10px; }
+    .swatch-row { display:flex; gap:.75rem; align-items:center; }
+    .pill { display:inline-flex; align-items:center; gap:.25rem; padding:.15rem .55rem; border-radius:999px; font-size:.65rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+    .pmeta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.7rem; opacity:.6; }
+    .bar { height:4px; background:#26262e; border-radius:999px; overflow:hidden; }
+    .bar > span { display:block; height:100%; }
+    .spectrum { display:flex; height:6px; border-radius:999px; overflow:hidden; background:#26262e; }
+    .spectrum > div { flex:1; opacity:.25; }
+    .spectrum > div.on { opacity:1; }
+    .badge-num   { padding:.15rem .45rem; border-radius:6px; font-size:.7rem; font-weight:600; }
+    .badge-cross { padding:.15rem .45rem; border-radius:6px; font-size:.7rem; font-weight:600; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="max-w-6xl mx-auto px-6 py-8">
+    <h1 class="text-2xl font-semibold">CrisisLens — Palette Preview</h1>
+    <p class="text-sm text-[#8a8a96] mt-2 max-w-2xl">
+      Same conflict card rendered with four softer palette directions. Pick the one you want and tell me — I'll roll it into the main site. The current production palette is shown at the top for comparison.
+    </p>
+  </header>
+
+  <!-- We render the same card 5 times, swapping CSS variables per palette block. -->
+  <main class="max-w-6xl mx-auto px-6 pb-20" id="root"></main>
+
+  <script>
+    // ── Palette definitions ──────────────────────────────────────────────
+    // Each palette overrides region colors + the accent (orange dot, badges).
+    // Soft = fill background of source side. Strong = pill text bg, bar fill.
+    const PALETTES = [
+      {
+        id: 'current',
+        name: '0 · Current (for reference)',
+        why: 'Where you are now. Saturated, modern-tech vibe but loud for a crisis-news context.',
+        accent: '#ff5b3a',
+        ink: '#f5f5f7',
+        regions: {
+          mena:    { strong:'#f59e0b', soft:'rgba(245,158,11,.14)' },
+          gulf:    { strong:'#fbbf24', soft:'rgba(251,191,36,.14)' },
+          western: { strong:'#3b82f6', soft:'rgba(59,130,246,.14)' },
+          israeli: { strong:'#a78bfa', soft:'rgba(167,139,250,.14)' },
+        },
+      },
+      {
+        id: 'editorial',
+        name: '1 · Editorial Muted',
+        why: 'NYT / Guardian-inspired earth tones. Lower saturation, magazine-like. Communicates seriousness without shouting.',
+        accent: '#c66b54',
+        ink: '#ededee',
+        regions: {
+          mena:    { strong:'#c8946a', soft:'rgba(200,148,106,.10)' },
+          gulf:    { strong:'#c4a55f', soft:'rgba(196,165,95,.10)' },
+          western: { strong:'#7c97b2', soft:'rgba(124,151,178,.10)' },
+          israeli: { strong:'#9a8eb1', soft:'rgba(154,142,177,.10)' },
+        },
+      },
+      {
+        id: 'documentary',
+        name: '2 · Documentary',
+        why: 'Photojournalism palette — earthy, restrained, deeply serious. Reads as "trustworthy reporting" in the way of long-form magazines like Harper\'s or The Atlantic print.',
+        accent: '#b04a3a',
+        ink: '#ececeb',
+        regions: {
+          mena:    { strong:'#b58559', soft:'rgba(181,133,89,.10)' },
+          gulf:    { strong:'#a8884c', soft:'rgba(168,136,76,.10)' },
+          western: { strong:'#5b7a96', soft:'rgba(91,122,150,.10)' },
+          israeli: { strong:'#7c6e8a', soft:'rgba(124,110,138,.10)' },
+        },
+      },
+      {
+        id: 'tonal',
+        name: '3 · Soft Tonal (low-saturation)',
+        why: 'Closest to your current palette but with about half the saturation. Familiar feel, more elegant. Probably the smallest visual jump from where you are now.',
+        accent: '#d56b54',
+        ink: '#f0f0f1',
+        regions: {
+          mena:    { strong:'#b88a55', soft:'rgba(184,138,85,.10)' },
+          gulf:    { strong:'#b39a5e', soft:'rgba(179,154,94,.10)' },
+          western: { strong:'#7090b3', soft:'rgba(112,144,179,.10)' },
+          israeli: { strong:'#9489ab', soft:'rgba(148,137,171,.10)' },
+        },
+      },
+      {
+        id: 'minimal',
+        name: '4 · Minimalist (mostly mono + one accent)',
+        why: 'Region distinction by intensity, not color. Makes the contradiction itself the visual hero. Linear / Things 3 / Apple News style. Ships fast, looks expensive.',
+        accent: '#e07b5e',
+        ink: '#f5f5f7',
+        regions: {
+          mena:    { strong:'#a8a098', soft:'rgba(168,160,152,.08)' },
+          gulf:    { strong:'#bcb098', soft:'rgba(188,176,152,.08)' },
+          western: { strong:'#9aa6b2', soft:'rgba(154,166,178,.08)' },
+          israeli: { strong:'#a89eaf', soft:'rgba(168,158,175,.08)' },
+        },
+      },
+    ];
+
+    const CARD = {
+      detected_at: 'May 2, 2026 14:00 UTC',
+      contradiction_pct: 82,
+      source_1: { code: 'AJE', region: 'mena',    label: 'Pan-Arab',    headline: 'Israeli air strikes kill 10 people in southern Lebanon', trust: 80 },
+      source_2: { code: 'AP',  region: 'western', label: 'Western',     headline: 'Israeli airstrikes in southern Lebanon kill 7',           trust: 80 },
+    };
+
+    function spectrumBar(p, c) {
+      const order = ['mena','gulf','western','israeli'];
+      const r1 = c.source_1.region, r2 = c.source_2.region;
+      return `
+        <div class="spectrum">
+          ${order.map(r => {
+            const on = (r === r1 || r === r2) ? 'on' : '';
+            return `<div class="${on}" style="background:${p.regions[r].strong}"></div>`;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function side(p, s) {
+      const reg = p.regions[s.region];
+      return `
+        <article class="flex-1 min-w-0 rounded-lg p-4 -m-1" style="background:${reg.soft}">
+          <header class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-xs font-semibold uppercase tracking-wider">${s.code}</span>
+              <span class="pill" style="background:${reg.strong};color:#0a0a0b">${s.label}</span>
+            </div>
+            <span class="text-xs" style="color:#8a8a96">${s.trust}%</span>
+          </header>
+          <div class="bar mb-4"><span style="width:${s.trust}%;background:${reg.strong}"></span></div>
+          <h3 class="text-lg sm:text-xl font-bold leading-snug" style="color:${p.ink}">${s.headline}</h3>
+        </article>
+      `;
+    }
+
+    function paletteBlock(p) {
+      const swatches = ['mena','gulf','western','israeli'].map(k => `
+        <div class="flex flex-col items-center gap-1">
+          <div class="swatch" style="background:${p.regions[k].strong}"></div>
+          <span class="pmeta">${p.regions[k].strong}</span>
+        </div>
+      `).join('');
+
+      return `
+        <section class="palette">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap mb-4">
+            <h2 class="text-xl font-semibold">${p.name}</h2>
+            <span class="pmeta">accent ${p.accent}</span>
+          </div>
+          <p class="text-sm max-w-3xl mb-5" style="color:#8a8a96">${p.why}</p>
+
+          <div class="swatch-row mb-6">${swatches}</div>
+
+          <div class="card rounded-xl p-5 sm:p-6" style="background:#15151a;border:1px solid #26262e">
+            <div class="flex items-center justify-between mb-5 gap-3 flex-wrap text-xs">
+              <div class="flex items-center gap-3 flex-wrap">
+                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:${p.accent}"></span>
+                <span style="color:#8a8a96" class="uppercase tracking-widest">Contradiction</span>
+                <span style="color:${p.ink}" class="font-semibold">${CARD.contradiction_pct}%</span>
+                <span class="badge-num" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#f59e0b">🔢 numeric mismatch</span>
+                <span class="badge-cross" style="background:${p.accent}22;border:1px solid ${p.accent}66;color:${p.accent}">✕ cross-perspective</span>
+              </div>
+              <span style="color:#8a8a96">2h ago</span>
+            </div>
+            <div class="mb-5">${spectrumBar(p, CARD)}</div>
+            <div class="flex flex-col md:flex-row gap-4 md:gap-5">
+              ${side(p, CARD.source_1)}
+              <div class="md:flex md:items-center md:justify-center hidden">
+                <div class="text-2xl" style="color:#8a8a96">⇋</div>
+              </div>
+              ${side(p, CARD.source_2)}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    document.getElementById('root').innerHTML = PALETTES.map(paletteBlock).join('');
+  </script>
+</body>
+</html>

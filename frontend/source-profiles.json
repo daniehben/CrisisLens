@@ -1,0 +1,170 @@
+{
+  "_meta": {
+    "version": 1,
+    "last_reviewed": "2026-05",
+    "notes": "Source profiles seeded with publicly-documented ownership and editorial information. These are starting points — community contributions and updates welcome. Each profile aims to describe documented patterns rather than make editorial judgments. References are publicly accessible.",
+    "contributing": "https://github.com/daniehben/CrisisLens"
+  },
+  "AJA": {
+    "name": "Al Jazeera",
+    "country": "Qatar",
+    "founded": 1996,
+    "ownership": "Owned by the Al Jazeera Media Network, which is funded by the Qatari government via the Qatar Investment Authority. Editorial independence is asserted in the network's charter, but the funding relationship is a long-running point of debate among media analysts.",
+    "editorial_summary": "Largest pan-Arab broadcaster. The Arabic service often takes more direct framings than its English sister channel and is widely watched across the MENA region. Has been intermittently banned in Egypt, Saudi Arabia, and the UAE during the 2017–2021 Qatar diplomatic crisis.",
+    "context_for_crisislens": "On Israel-Palestine and conflicts involving Gulf rivals (Saudi Arabia, UAE), Al Jazeera Arabic typically gives more space and sympathetic framing to Palestinian, Iranian, and resistance-axis perspectives than Western or Gulf-aligned outlets. This is well-documented in academic media studies.",
+    "documented_patterns": [
+      "Heavy live-coverage of Gaza and Lebanon strikes, often with on-ground Arabic-speaking correspondents",
+      "Frequently first to publish casualty figures from Hamas-run Gaza Health Ministry",
+      "Critical coverage of Saudi and Emirati foreign policy"
+    ],
+    "references": [
+      { "label": "Al Jazeera Network — About", "url": "https://network.aljazeera.com/about-us" },
+      { "label": "Reuters Institute on Al Jazeera funding", "url": "https://reutersinstitute.politics.ox.ac.uk/" },
+      { "label": "Al Jazeera bans during Qatar blockade — BBC", "url": "https://www.bbc.com/news/world-middle-east-40159080" }
+    ]
+  },
+  "AJE": {
+    "name": "Al Jazeera English",
+    "country": "Qatar",
+    "founded": 2006,
+    "ownership": "Same parent as Al Jazeera Arabic — Al Jazeera Media Network, funded via the Qatari state. Editorial leadership has historically included senior staff hired from BBC, CNN, and other Western outlets.",
+    "editorial_summary": "Targets a global English-speaking audience. Editorial line is generally less polemical than the Arabic service, but consistently more sympathetic to Palestinian and Global South perspectives than Western mainstream peers. Has won multiple Peabody, Emmy, and DuPont awards.",
+    "context_for_crisislens": "Useful as a counter-balance to Western wire services on MENA conflict coverage. Will often surface stories before AP/Reuters move them, particularly on Israeli military operations.",
+    "documented_patterns": [
+      "Faster than Western wires on Gaza casualty reports, sometimes citing Gaza Health Ministry directly",
+      "Kills of its own journalists (Shireen Abu Akleh, 2022; Wael Dahdouh's family, 2023) have featured prominently in coverage",
+      "Critiqued by some Western analysts as under-emphasizing Hamas's role"
+    ],
+    "references": [
+      { "label": "AllSides bias rating — Al Jazeera", "url": "https://www.allsides.com/news-source/al-jazeera-media-bias" },
+      { "label": "Media Bias/Fact Check — Al Jazeera", "url": "https://mediabiasfactcheck.com/al-jazeera/" },
+      { "label": "Shireen Abu Akleh killing — UN OHCHR statement", "url": "https://www.ohchr.org/en/press-releases/2022/06/un-human-rights-office-statement-killing-shireen-abu-akleh" }
+    ]
+  },
+  "BBC": {
+    "name": "BBC News",
+    "country": "United Kingdom",
+    "founded": 1922,
+    "ownership": "Public service broadcaster, governed by Royal Charter, funded primarily by the UK television license fee. Operationally independent from the UK government but subject to a charter-based oversight model.",
+    "editorial_summary": "One of the most-cited international news brands. AllSides rates 'Lean Left'; Media Bias/Fact Check rates 'Left-Center'. Editorial guidelines emphasize impartiality, accuracy, and 'due weight' to all sides.",
+    "context_for_crisislens": "On Israel-Palestine specifically, the BBC has commissioned two major internal reviews of its own coverage: the Balen Report (2004, never published) and the Bridcut Report (2006). Both reviews and subsequent academic studies have found patterns of coverage imbalance in different directions, and the BBC has been criticized from both pro-Israel and pro-Palestine perspectives — a useful signal of its centrist position.",
+    "documented_patterns": [
+      "Cautious, hedge-heavy framing on contested casualty numbers ('the Hamas-run Health Ministry says...')",
+      "Strong international-correspondent presence; often first Western outlet to verify on-ground claims",
+      "Subject to ongoing complaints about under- or over-emphasis from advocacy groups on multiple sides"
+    ],
+    "references": [
+      { "label": "AllSides — BBC News", "url": "https://www.allsides.com/news-source/bbc-news-media-bias" },
+      { "label": "BBC Editorial Guidelines", "url": "https://www.bbc.co.uk/editorialguidelines/" },
+      { "label": "Bridcut Report (2006) — Wikipedia summary", "url": "https://en.wikipedia.org/wiki/BBC_Trust" }
+    ]
+  },
+  "WP": {
+    "name": "The Washington Post",
+    "country": "United States",
+    "founded": 1877,
+    "ownership": "Privately owned by Nash Holdings, controlled by Amazon founder Jeff Bezos since 2013. Editorial board operates independently from owner-level decisions, though the funding source has drawn ongoing scrutiny.",
+    "editorial_summary": "AllSides rates 'Lean Left'; Media Bias/Fact Check rates 'Left-Center'. Strong investigative reporting tradition. Editorial board's foreign policy stances generally align with mainstream Atlanticist consensus.",
+    "context_for_crisislens": "Strong original reporting on US foreign policy decisions, often first to break leaks from the State Department, Pentagon, and intelligence community. Coverage of Israel-Palestine has been a topic of internal disagreement among staff during the 2023–2024 Gaza war.",
+    "documented_patterns": [
+      "Heavy use of US official anonymous sources",
+      "Fact-checker desk widely cited",
+      "Internal staff letters during Gaza war (2023–2024) raised concerns about coverage framing"
+    ],
+    "references": [
+      { "label": "AllSides — Washington Post", "url": "https://www.allsides.com/news-source/washington-post-media-bias" },
+      { "label": "Bezos ownership announcement (2013)", "url": "https://www.washingtonpost.com/national/washington-post-to-be-sold-to-jeff-bezos/2013/08/05/ca537c9e-fe0c-11e2-9711-3708310f6f4d_story.html" },
+      { "label": "WP staff letter on Gaza coverage (Nov 2023)", "url": "https://www.theguardian.com/world/2023/nov/10/journalists-condemn-israeli-killings-palestinian-reporters" }
+    ]
+  },
+  "AP": {
+    "name": "Associated Press",
+    "country": "United States",
+    "founded": 1846,
+    "ownership": "Cooperative, not-for-profit news agency owned by its member newspapers and broadcasters. No single editorial owner. Revenue from licensing wire content to thousands of publications globally.",
+    "editorial_summary": "AllSides rates 'Center'; Media Bias/Fact Check rates 'Least Biased'. The AP Stylebook is the de facto industry standard for US English news writing. Coverage style is typically terse, source-attributed, and avoids editorializing.",
+    "context_for_crisislens": "Functions as a baseline reference. AP wire copy is often the lowest-bias initial framing for breaking events. Notable incident: AP's Gaza office in the al-Jalaa Tower was destroyed by an IDF airstrike on May 15, 2021 — Israel and AP have publicly disputed the rationale.",
+    "documented_patterns": [
+      "Conservative on numbers — typically reports 'at least N' rather than precise casualty totals until verified",
+      "Multiple sources required for most factual claims, slowing initial reporting",
+      "Strong global stringer network including Arabic-speaking correspondents"
+    ],
+    "references": [
+      { "label": "AllSides — Associated Press", "url": "https://www.allsides.com/news-source/associated-press-media-bias" },
+      { "label": "AP News Values & Principles", "url": "https://www.ap.org/about/news-values-and-principles/" },
+      { "label": "Al-Jalaa Tower destruction (2021) — AP statement", "url": "https://apnews.com/article/middle-east-business-international-news-57c0ddf6e842dd2b34e8c6c2c9d92e9c" }
+    ]
+  },
+  "JRP": {
+    "name": "The Jerusalem Post",
+    "country": "Israel",
+    "founded": 1932,
+    "ownership": "Privately owned by the Jerusalem Post Group, controlled by Israeli businessman Eli Azur since 2014. Originally founded as 'The Palestine Post' under British Mandate-era Palestine.",
+    "editorial_summary": "English-language Israeli newspaper of record. Editorial line is generally aligned with mainstream Israeli political consensus — supportive of Israeli state security framing, critical of Hamas, Hezbollah, and Iran. Less explicitly partisan than Israel Hayom but more establishment than Haaretz.",
+    "context_for_crisislens": "Essential as a representative Israeli mainstream perspective in our pipeline. Casualty figures, IDF official statements, and Israeli political reactions are typically reported here first in English. Editorial framing is consistently from an Israeli-government-aligned vantage point.",
+    "documented_patterns": [
+      "Casualty counts usually align with IDF official figures",
+      "Frequent op-eds from Israeli political and military establishment figures",
+      "Coverage of West Bank and Gaza incidents typically led with Israeli-side context"
+    ],
+    "references": [
+      { "label": "Jerusalem Post — About", "url": "https://www.jpost.com/help-and-info/about-us" },
+      { "label": "Media Bias/Fact Check — Jerusalem Post", "url": "https://mediabiasfactcheck.com/the-jerusalem-post/" },
+      { "label": "Eli Azur acquisition (2014)", "url": "https://www.haaretz.com/2014-04-09/ty-article/.premium/eli-azur-buys-jerusalem-post/0000017f-e0e8-d75c-a7ff-fdfa4cd80000" }
+    ]
+  },
+  "DW": {
+    "name": "Deutsche Welle Arabic",
+    "country": "Germany",
+    "founded": 1953,
+    "ownership": "Germany's international public broadcaster, fully funded by the German federal government. Operates under the Deutsche Welle Act, designed to convey Germany's political, cultural, and economic perspectives globally.",
+    "editorial_summary": "Mandate explicitly includes promoting German interests and democratic values abroad. Generally aligned with mainstream German foreign policy positions. The Arabic service launched in 2002 and has been one of DW's most-resourced language operations.",
+    "context_for_crisislens": "Provides European-state perspective in Arabic — useful contrast to both Pan-Arab and US-led narratives. On Israel, DW reflects the strongly pro-Israel German official position (a constitutional commitment rooted in Germany's post-Holocaust 'Staatsräson'). Has been criticized in 2022 for firing several Arab journalists over alleged antisemitic social media posts, raising debate about editorial space for Palestinian perspectives.",
+    "documented_patterns": [
+      "Closely tracks German diplomatic positions",
+      "Strong on EU policy and German political coverage",
+      "2022 dismissals of Arab journalists prompted ongoing debate about coverage diversity"
+    ],
+    "references": [
+      { "label": "DW — About", "url": "https://www.dw.com/en/about-dw/profile/s-30688" },
+      { "label": "DW dismissals controversy (2022)", "url": "https://www.theguardian.com/world/2022/feb/07/germanys-public-broadcaster-deutsche-welle-fires-five-arabic-language-journalists" },
+      { "label": "German 'Staatsräson' on Israel — Bundestag", "url": "https://www.bundestag.de/" }
+    ]
+  },
+  "F24": {
+    "name": "France 24 Arabic",
+    "country": "France",
+    "founded": 2006,
+    "ownership": "French international news broadcaster, owned by France Médias Monde, fully funded by the French government. Mandate is to project French perspectives and cultural influence internationally — particularly in Francophone Africa and the Middle East.",
+    "editorial_summary": "Editorial line generally aligned with French foreign policy. Strong correspondent presence in North Africa (Maghreb), Lebanon, and West Africa given France's historical ties. Less ideologically driven than Al Jazeera, more state-aligned than BBC.",
+    "context_for_crisislens": "Provides Francophone-Maghreb perspective often missing from Anglo-American coverage. On Lebanon, Algeria, Tunisia, and Sahel conflicts, France 24 frequently has on-the-ground reporting that lags or competes with Al Jazeera Arabic.",
+    "documented_patterns": [
+      "Strong Maghreb and Sahel coverage",
+      "Aligns broadly with French government positions on Russia, China, and the Middle East",
+      "Less prominent on Gulf and Iran stories than other Arabic-language broadcasters"
+    ],
+    "references": [
+      { "label": "France 24 — About", "url": "https://www.france24.com/en/about-us/" },
+      { "label": "France Médias Monde — corporate", "url": "https://www.francemediasmonde.com/en/" },
+      { "label": "France's foreign policy and media — Reuters Institute", "url": "https://reutersinstitute.politics.ox.ac.uk/our-research/digital-news-report" }
+    ]
+  },
+  "ARB": {
+    "name": "Al Arabiya",
+    "country": "Saudi Arabia / United Arab Emirates",
+    "founded": 2003,
+    "ownership": "Owned by MBC Group, headquartered in Riyadh, Saudi Arabia. Saudi Arabian government acquired effective control of MBC Group in 2018, after the Ritz-Carlton 'anti-corruption' detentions of former owner Waleed Al Ibrahim.",
+    "editorial_summary": "Founded explicitly as a Saudi-aligned counter to Al Jazeera. Editorial line consistently aligned with Saudi and broader Gulf foreign policy positions: critical of Iran, Hezbollah, Hamas, Qatar (during the 2017–2021 blockade), and supportive of Egyptian and Emirati state actions.",
+    "context_for_crisislens": "The most reliable proxy for the Saudi state perspective in Arabic-language news. On Iran, Yemen (Houthis), and Hamas, Al Arabiya's framing typically tracks Saudi government positions. Provides important counter-balance to Pan-Arab (AJ) framings.",
+    "documented_patterns": [
+      "Strongly critical of Iran's regional posture",
+      "Sympathetic to Saudi-led coalition framing on Yemen war",
+      "Aligned with UAE-Saudi position during the 2017–2021 Qatar blockade"
+    ],
+    "references": [
+      { "label": "Al Arabiya — About", "url": "https://english.alarabiya.net/about-us" },
+      { "label": "MBC Group ownership change (2018) — FT", "url": "https://www.ft.com/content/d5b4eaaa-12f3-11e9-a581-4ff78404524e" },
+      { "label": "Media Bias/Fact Check — Al Arabiya", "url": "https://mediabiasfactcheck.com/al-arabiya/" }
+    ]
+  }
+}
