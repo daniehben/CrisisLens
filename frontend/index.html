@@ -5,26 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CrisisLens — Where the news disagrees</title>
   <meta name="description" content="Real-time contradictions in crisis reporting across Arabic and English news sources.">
+  <meta property="og:title" content="CrisisLens — Where the news disagrees">
+  <meta property="og:description" content="Real-time contradictions in Arabic + English crisis reporting.">
+  <meta property="og:type" content="website">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root { --bg: #0a0a0b; --card: #15151a; --line: #26262e; --ink: #f5f5f7; --muted: #8a8a96; --accent: #ff5b3a; --good: #4ade80; }
-    body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; }
+    :root { --bg:#0a0a0b; --card:#15151a; --line:#26262e; --ink:#f5f5f7; --muted:#8a8a96; --accent:#ff5b3a; --good:#4ade80; --warn:#f59e0b; }
+    body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
     .ar { font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif; direction: rtl; text-align: right; line-height: 1.55; }
-    .card { background: var(--card); border: 1px solid var(--line); }
-    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(255,91,58,.7); animation: pulse 2s infinite; }
+    .card { background: var(--card); border: 1px solid var(--line); transition: border-color .15s; }
+    .card:hover { border-color: #3a3a44; }
+    .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 0 rgba(255,91,58,.7); animation:pulse 2s infinite; }
     @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,91,58,.7)} 70%{box-shadow:0 0 0 12px rgba(255,91,58,0)} 100%{box-shadow:0 0 0 0 rgba(255,91,58,0)} }
-    .bar { height: 4px; background: #26262e; border-radius: 999px; overflow: hidden; }
-    .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #ff5b3a, #ffb23a); }
-    .skeleton { background: linear-gradient(90deg,#15151a,#1d1d24,#15151a); background-size:200% 100%; animation: shimmer 1.4s infinite; }
+    .bar { height:4px; background:#26262e; border-radius:999px; overflow:hidden; }
+    .bar > span { display:block; height:100%; background:linear-gradient(90deg, #ff5b3a, #ffb23a); }
+    .skeleton { background:linear-gradient(90deg,#15151a,#1d1d24,#15151a); background-size:200% 100%; animation:shimmer 1.4s infinite; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .chip { background:#15151a; border:1px solid var(--line); color:var(--muted); padding:.35rem .75rem; border-radius:999px; font-size:.75rem; transition:all .15s; cursor:pointer; user-select:none; }
+    .chip:hover { color:var(--ink); border-color:#3a3a44; }
+    .chip.active { background:rgba(255,91,58,.12); border-color:var(--accent); color:var(--ink); }
+    .badge-num { background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.4); color:var(--warn); padding:.15rem .45rem; border-radius:6px; font-size:.7rem; font-weight:600; letter-spacing:.02em; }
+    .src-link { font-size:.75rem; color:var(--muted); text-decoration:none; display:inline-flex; align-items:center; gap:.25rem; padding-top:.75rem; }
+    .src-link:hover { color:var(--accent); }
+    .src-link svg { width:11px; height:11px; }
+    .conf-track { width:80px; height:6px; background:#26262e; border-radius:999px; overflow:hidden; }
+    .conf-track > span { display:block; height:100%; background:var(--accent); }
   </style>
 </head>
 <body class="min-h-screen">
-  <header class="border-b border-[var(--line)]">
-    <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+  <header class="border-b border-[var(--line)] sticky top-0 z-10 backdrop-blur bg-[rgba(10,10,11,.85)]">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="pulse-dot"></span>
         <h1 class="text-xl font-semibold tracking-tight">
@@ -39,26 +52,42 @@
     </div>
   </header>
 
-  <section class="max-w-6xl mx-auto px-6 pt-12 pb-8">
+  <section class="max-w-6xl mx-auto px-6 pt-12 pb-6">
     <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight max-w-3xl">
       When the news disagrees, you see it first.
     </h2>
     <p class="text-[var(--muted)] mt-3 max-w-2xl">
-      CrisisLens reads Arabic and English reporting on the same events and surfaces moments where sources contradict each other — different casualty counts, opposing quotes, conflicting facts.
+      CrisisLens reads Arabic and English reporting on the same events and surfaces the moments where sources contradict each other — different casualty counts, opposing quotes, conflicting facts.
     </p>
-    <div id="stats" class="mt-6 flex flex-wrap gap-6 text-sm text-[var(--muted)]">
-      <span><span id="stat-conflicts" class="text-white font-semibold">…</span> contradictions detected</span>
-      <span>updated every 15 minutes</span>
+    <div id="stats" class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--muted)]">
+      <span><span id="stat-conflicts" class="text-white font-semibold">…</span> contradictions</span>
+      <span><span id="stat-shown" class="text-white font-semibold">…</span> shown</span>
+      <span class="hidden sm:inline">updated every 15 min</span>
+      <button id="refresh" class="ml-auto chip" title="Refresh">↻ Refresh</button>
     </div>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-6 pb-6">
+    <div class="flex flex-wrap gap-2 items-center">
+      <span class="text-xs uppercase tracking-widest text-[var(--muted)] mr-1">Lang</span>
+      <button class="chip filter-lang active" data-lang="all">All</button>
+      <button class="chip filter-lang" data-lang="ar">العربية</button>
+      <button class="chip filter-lang" data-lang="en">English</button>
+      <span class="text-xs uppercase tracking-widest text-[var(--muted)] ml-4 mr-1">Sort</span>
+      <button class="chip filter-sort active" data-sort="score">Strongest</button>
+      <button class="chip filter-sort" data-sort="recent">Most Recent</button>
+      <button class="chip filter-sort" data-sort="numeric">Numeric Disagreement</button>
+    </div>
+    <div id="source-chips" class="flex flex-wrap gap-2 mt-3"></div>
   </section>
 
   <main class="max-w-6xl mx-auto px-6 pb-20">
     <div id="feed" class="grid gap-5"></div>
     <div id="empty" class="hidden text-center text-[var(--muted)] py-20">
-      <p>No contradictions to show yet. Worker is still ingesting.</p>
+      <p>No contradictions match these filters.</p>
     </div>
     <div id="error" class="hidden text-center text-[var(--accent)] py-20">
-      <p>Couldn't reach the API. Try again in a minute — free-tier services sleep when idle.</p>
+      <p>Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.</p>
     </div>
   </main>
 
@@ -70,130 +99,219 @@
   </footer>
 
   <script>
-    const API_BASE = 'https://crisislens-api.onrender.com';
-    const feed = document.getElementById('feed');
-    const langBtn = document.getElementById('lang-toggle');
+  const API_BASE = 'https://crisislens-api.onrender.com';
+  const feedEl    = document.getElementById('feed');
+  const langBtn   = document.getElementById('lang-toggle');
+  const sourceChipsEl = document.getElementById('source-chips');
 
-    let preferAr = localStorage.getItem('crisislens.lang') === 'ar';
-    applyLang();
+  // ── State ───────────────────────────────────────────────────────────────
+  let cache = null;
+  let preferAr  = localStorage.getItem('crisislens.lang') === 'ar';
+  let langFilter = 'all';
+  let sortMode   = 'score';
+  let sourceFilter = null;
 
-    langBtn.onclick = () => {
-      preferAr = !preferAr;
-      localStorage.setItem('crisislens.lang', preferAr ? 'ar' : 'en');
-      applyLang();
-      render(); // re-render with new language preference
-    };
+  applyLang();
 
-    function applyLang() {
-      langBtn.textContent = preferAr ? 'English' : 'العربية';
-    }
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  function applyLang() { langBtn.textContent = preferAr ? 'English' : 'العربية'; }
+  function trustLabel(t) {
+    const v = parseFloat(t);
+    if (v >= 0.85) return 'High';
+    if (v >= 0.65) return 'Medium';
+    if (v >= 0.40) return 'Low';
+    return 'Unverified';
+  }
+  function timeAgo(iso) {
+    if (!iso) return '';
+    const s = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (s < 60) return 'just now';
+    if (s < 3600) return `${Math.floor(s/60)}m ago`;
+    if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+    return `${Math.floor(s/86400)}d ago`;
+  }
+  function host(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); }
+    catch { return ''; }
+  }
 
-    function trustLabel(t) {
-      const v = parseFloat(t);
-      if (v >= 0.85) return 'High';
-      if (v >= 0.65) return 'Medium';
-      if (v >= 0.40) return 'Low';
-      return 'Unverified';
-    }
+  // Detect numeric disagreement: both headlines contain numbers, but no shared number.
+  // Normalizes Arabic-Indic digits → ASCII so '٧' and '7' compare equal.
+  function normalizeDigits(s) {
+    if (!s) return '';
+    return s.replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+  }
+  function extractNumbers(s) {
+    if (!s) return [];
+    const norm = normalizeDigits(s);
+    const matches = norm.match(/\b\d+(?:[.,]\d+)?\b/g) || [];
+    return matches.map(n => n.replace(',', '.'));
+  }
+  function hasNumericDisagreement(c) {
+    const a = extractNumbers(c.headline_1_en) .concat(extractNumbers(c.headline_1_ar));
+    const b = extractNumbers(c.headline_2_en) .concat(extractNumbers(c.headline_2_ar));
+    if (!a.length || !b.length) return false;
+    const setA = new Set(a), setB = new Set(b);
+    let shared = 0;
+    setA.forEach(x => { if (setB.has(x)) shared++; });
+    return shared === 0; // any number on each side, none in common
+  }
 
-    function timeAgo(iso) {
-      if (!iso) return '';
-      const s = (Date.now() - new Date(iso).getTime()) / 1000;
-      if (s < 60) return 'just now';
-      if (s < 3600) return `${Math.floor(s/60)}m ago`;
-      if (s < 86400) return `${Math.floor(s/3600)}h ago`;
-      return `${Math.floor(s/86400)}d ago`;
-    }
+  function pickHeadline(c, side) {
+    const en = c[`headline_${side}_en`];
+    const ar = c[`headline_${side}_ar`];
+    const primary   = preferAr ? (ar || en) : (en || ar);
+    const secondary = preferAr ? (en || '') : (ar || '');
+    return { primary, secondary };
+  }
 
-    function pickHeadline(c, side) {
-      const en = c[`headline_${side}_en`];
-      const ar = c[`headline_${side}_ar`];
-      const primary = preferAr ? (ar || en) : (en || ar);
-      const secondary = preferAr ? (en || '') : (ar || '');
-      return { primary, secondary, primaryIsAr: preferAr ? !!ar : !ar && !!ar };
-    }
+  function sideBlock(c, side) {
+    const code = c[`source_${side}`];
+    const trust = c[`trust_score_${side}`];
+    const trustPct = Math.round(parseFloat(trust) * 100);
+    const url = side === '1' ? c.url_a : c.url_b;
+    const { primary, secondary } = pickHeadline(c, side);
+    const dirClass = preferAr ? 'ar' : '';
+    return `
+      <article class="flex-1 min-w-0">
+        <header class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-[var(--ink)]">${code || '—'}</span>
+          <span class="text-xs text-[var(--muted)]">${trustLabel(trust)} trust · ${trustPct}%</span>
+        </header>
+        <div class="bar mb-4"><span style="width:${trustPct}%"></span></div>
+        <h3 class="text-lg font-semibold leading-snug ${dirClass}">${primary || '—'}</h3>
+        ${secondary ? `<p class="text-sm text-[var(--muted)] mt-2 ${preferAr ? '' : 'ar'}">${secondary}</p>` : ''}
+        ${url ? `<a class="src-link" href="${url}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14L21 3M19 14v7H3V5h7"/></svg>
+          read on ${host(url)}
+        </a>` : ''}
+      </article>
+    `;
+  }
 
-    function sideBlock(c, side) {
-      const code = c[`source_${side}`];
-      const trust = c[`trust_score_${side}`];
-      const trustPct = Math.round(parseFloat(trust) * 100);
-      const url = side === '1' ? c.url_a : c.url_b;
-      const { primary, secondary } = pickHeadline(c, side);
-      const dirClass = preferAr ? 'ar' : '';
-      return `
-        <article class="flex-1 min-w-0">
-          <header class="flex items-center justify-between mb-3">
-            <span class="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">${code || '—'}</span>
-            <span class="text-xs text-[var(--muted)]">${trustLabel(trust)} trust · ${trustPct}%</span>
-          </header>
-          <div class="bar mb-4"><span style="width:${trustPct}%"></span></div>
-          <h3 class="text-lg font-semibold leading-snug ${dirClass}">${primary || '—'}</h3>
-          ${secondary ? `<p class="text-sm text-[var(--muted)] mt-2 ${preferAr ? '' : 'ar'}">${secondary}</p>` : ''}
-        </article>
-      `;
-    }
-
-    function card(c) {
-      const conf = Math.round(parseFloat(c.contradiction_score) * 100);
-      const score = parseFloat(c.weighted_score).toFixed(2);
-      return `
-        <div class="card rounded-xl p-6">
-          <div class="flex items-center justify-between mb-5 text-xs">
+  function card(c) {
+    const conf = Math.round(parseFloat(c.contradiction_score) * 100);
+    const numeric = hasNumericDisagreement(c);
+    return `
+      <div class="card rounded-xl p-5 sm:p-6">
+        <div class="flex items-center justify-between mb-5 gap-3 flex-wrap text-xs">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--accent)"></span>
+            <span class="text-[var(--muted)] uppercase tracking-widest">Contradiction</span>
             <div class="flex items-center gap-2">
-              <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--accent)"></span>
-              <span class="text-[var(--muted)] uppercase tracking-widest">Contradiction</span>
-              <span class="text-white font-semibold">${conf}% confidence</span>
+              <div class="conf-track"><span style="width:${conf}%"></span></div>
+              <span class="text-white font-semibold">${conf}%</span>
             </div>
-            <span class="text-[var(--muted)]">${timeAgo(c.detected_at)}</span>
+            ${numeric ? `<span class="badge-num">🔢 numeric mismatch</span>` : ''}
           </div>
-          <div class="flex flex-col md:flex-row gap-6 md:gap-8">
-            ${sideBlock(c, '1')}
-            <div class="md:flex md:items-center md:justify-center hidden">
-              <div class="text-2xl text-[var(--muted)]">⇋</div>
-            </div>
-            ${sideBlock(c, '2')}
-          </div>
+          <span class="text-[var(--muted)]">${timeAgo(c.detected_at)}</span>
         </div>
-      `;
-    }
-
-    function skeleton() {
-      return `
-        <div class="card rounded-xl p-6">
-          <div class="h-3 w-48 skeleton rounded mb-6"></div>
-          <div class="grid md:grid-cols-2 gap-8">
-            <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
-            <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
+        <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+          ${sideBlock(c, '1')}
+          <div class="md:flex md:items-center md:justify-center hidden">
+            <div class="text-2xl text-[var(--muted)]">⇋</div>
           </div>
-        </div>`;
-    }
+          ${sideBlock(c, '2')}
+        </div>
+      </div>
+    `;
+  }
 
-    let cache = null;
-    async function load() {
-      feed.innerHTML = skeleton() + skeleton() + skeleton();
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/conflicts?limit=30`);
-        if (!res.ok) throw new Error('http ' + res.status);
-        cache = await res.json();
-        document.getElementById('stat-conflicts').textContent = cache.length;
-        render();
-      } catch (e) {
-        document.getElementById('error').classList.remove('hidden');
-        feed.innerHTML = '';
-      }
-    }
+  function skeleton() {
+    return `
+      <div class="card rounded-xl p-6">
+        <div class="h-3 w-48 skeleton rounded mb-6"></div>
+        <div class="grid md:grid-cols-2 gap-8">
+          <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
+          <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
+        </div>
+      </div>`;
+  }
 
-    function render() {
-      if (!cache) return;
-      if (!cache.length) {
-        document.getElementById('empty').classList.remove('hidden');
-        feed.innerHTML = '';
-        return;
-      }
-      feed.innerHTML = cache.map(card).join('');
+  // ── Filtering / sorting / rendering ─────────────────────────────────────
+  function rowMatches(c) {
+    if (sourceFilter && c.source_1 !== sourceFilter && c.source_2 !== sourceFilter) return false;
+    if (langFilter === 'ar' && !(c.headline_1_ar || c.headline_2_ar)) return false;
+    if (langFilter === 'en' && !(c.headline_1_en || c.headline_2_en)) return false;
+    return true;
+  }
+  function sortRows(rows) {
+    const arr = [...rows];
+    if (sortMode === 'recent') {
+      arr.sort((a, b) => new Date(b.detected_at) - new Date(a.detected_at));
+    } else if (sortMode === 'numeric') {
+      arr.sort((a, b) => Number(hasNumericDisagreement(b)) - Number(hasNumericDisagreement(a))
+                       || parseFloat(b.weighted_score) - parseFloat(a.weighted_score));
+    } else {
+      arr.sort((a, b) => parseFloat(b.weighted_score) - parseFloat(a.weighted_score));
     }
+    return arr;
+  }
+  function renderSourceChips() {
+    if (!cache) return;
+    const counts = {};
+    for (const c of cache) {
+      counts[c.source_1] = (counts[c.source_1] || 0) + 1;
+      counts[c.source_2] = (counts[c.source_2] || 0) + 1;
+    }
+    const codes = Object.keys(counts).sort();
+    sourceChipsEl.innerHTML =
+      `<span class="text-xs uppercase tracking-widest text-[var(--muted)] mr-1 self-center">Source</span>` +
+      `<button class="chip ${!sourceFilter ? 'active' : ''}" data-src="">All</button>` +
+      codes.map(c => `<button class="chip ${sourceFilter===c?'active':''}" data-src="${c}">${c} <span class="opacity-60">${counts[c]}</span></button>`).join('');
+    sourceChipsEl.querySelectorAll('button').forEach(b => {
+      b.onclick = () => { sourceFilter = b.dataset.src || null; renderSourceChips(); render(); };
+    });
+  }
+  function render() {
+    if (!cache) return;
+    const filtered = sortRows(cache.filter(rowMatches));
+    document.getElementById('stat-shown').textContent = filtered.length;
+    document.getElementById('empty').classList.toggle('hidden', filtered.length > 0);
+    feedEl.innerHTML = filtered.map(card).join('');
+  }
 
-    load();
+  async function load() {
+    feedEl.innerHTML = skeleton() + skeleton() + skeleton();
+    document.getElementById('error').classList.add('hidden');
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/conflicts?limit=100`);
+      if (!res.ok) throw new Error('http ' + res.status);
+      cache = await res.json();
+      document.getElementById('stat-conflicts').textContent = cache.length;
+      renderSourceChips();
+      render();
+    } catch {
+      document.getElementById('error').classList.remove('hidden');
+      feedEl.innerHTML = '';
+    }
+  }
+
+  // ── Wire up controls ────────────────────────────────────────────────────
+  langBtn.onclick = () => {
+    preferAr = !preferAr;
+    localStorage.setItem('crisislens.lang', preferAr ? 'ar' : 'en');
+    applyLang();
+    render();
+  };
+  document.getElementById('refresh').onclick = load;
+
+  document.querySelectorAll('.filter-lang').forEach(b => {
+    b.onclick = () => {
+      langFilter = b.dataset.lang;
+      document.querySelectorAll('.filter-lang').forEach(x => x.classList.toggle('active', x === b));
+      render();
+    };
+  });
+  document.querySelectorAll('.filter-sort').forEach(b => {
+    b.onclick = () => {
+      sortMode = b.dataset.sort;
+      document.querySelectorAll('.filter-sort').forEach(x => x.classList.toggle('active', x === b));
+      render();
+    };
+  });
+
+  load();
   </script>
 </body>
 </html>
