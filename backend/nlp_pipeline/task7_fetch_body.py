@@ -26,11 +26,11 @@ from backend.shared.database import get_db_connection
 log = logging.getLogger(__name__)
 
 # Targets per cycle. Bigger batches = longer cycles + more 429 risk.
-BATCH_SIZE = 30
+BATCH_SIZE = 60
 MIN_EXISTING_BODY = 250        # only fetch if current snippet shorter than this
 MAX_BODY_CHARS    = 1500       # truncation target for storage
 FETCH_TIMEOUT_S   = 10
-LOOKBACK_DAYS     = 7          # don't backfill ancient articles
+LOOKBACK_DAYS     = 14         # backfill 2 weeks of history
 
 HEADERS = {
     "User-Agent": (
@@ -135,13 +135,28 @@ def run_task7():
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
+            # Prioritize articles that are actually being shown in conflicts or
+            # candidate pairs — those are the ones the user clicks into.
+            # Then fall back to newest articles within the lookback window.
             cur.execute("""
-                SELECT article_id, url
-                FROM articles
-                WHERE url IS NOT NULL
-                  AND fetched_at > NOW() - INTERVAL '%s days'
-                  AND (body_snippet IS NULL OR LENGTH(body_snippet) < %s)
-                ORDER BY article_id DESC
+                WITH in_use AS (
+                    SELECT article_a_id AS article_id FROM conflicts
+                    UNION
+                    SELECT article_b_id FROM conflicts
+                    UNION
+                    SELECT article_id_1 FROM article_pairs
+                    UNION
+                    SELECT article_id_2 FROM article_pairs
+                )
+                SELECT a.article_id, a.url
+                FROM articles a
+                LEFT JOIN in_use u ON u.article_id = a.article_id
+                WHERE a.url IS NOT NULL
+                  AND a.fetched_at > NOW() - INTERVAL '%s days'
+                  AND (a.body_snippet IS NULL OR LENGTH(a.body_snippet) < %s)
+                ORDER BY
+                    CASE WHEN u.article_id IS NOT NULL THEN 0 ELSE 1 END,
+                    a.article_id DESC
                 LIMIT %s
             """, (LOOKBACK_DAYS, MIN_EXISTING_BODY, BATCH_SIZE))
             rows = cur.fetchall()
