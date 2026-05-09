@@ -6,6 +6,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from backend.ingestion_worker.worker import run_worker
+from backend.nlp_pipeline.task7_fetch_body import run_task7
 from backend.nlp_pipeline.task8_translate import run_task8
 from backend.nlp_pipeline.task9_embed import run_task9
 from backend.nlp_pipeline.task10_pairs import run_task10
@@ -48,6 +49,7 @@ def start_health_server():
 
 def run_ingestion_and_nlp():
     run_worker()
+    run_task7()   # fetch full bodies before translation/embedding
     run_task8()
     run_task9()
     run_task10()
