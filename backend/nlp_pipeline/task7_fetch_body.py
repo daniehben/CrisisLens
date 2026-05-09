@@ -18,6 +18,7 @@ import logging
 from typing import Optional
 
 import httpx
+import trafilatura
 from bs4 import BeautifulSoup
 
 from backend.shared.database import get_db_connection
@@ -65,7 +66,24 @@ def _node_text(node) -> str:
 
 
 def _extract_body(html: str) -> Optional[str]:
-    """Best-effort article body extraction. Returns None if nothing useful found."""
+    """Article body extraction. Tries trafilatura (purpose-built for news)
+    first, then falls back to BeautifulSoup heuristics for edge cases."""
+    # 1) trafilatura — much better than handrolled heuristics for news sites
+    try:
+        text = trafilatura.extract(
+            html,
+            favor_recall=True,        # err on the side of including more content
+            include_comments=False,
+            include_tables=False,
+        )
+        if text:
+            text = " ".join(text.split())
+            if len(text) >= 200:
+                return text
+    except Exception:
+        pass
+
+    # 2) Fallback — BS4 with cluster-of-paragraphs heuristic
     try:
         soup = BeautifulSoup(html, "html.parser")
     except Exception:
@@ -77,7 +95,6 @@ def _extract_body(html: str) -> Optional[str]:
         if _is_junk(t):
             t.decompose()
 
-    # 1) Try semantic / known article containers
     for selector in ["article", "main", '[itemprop="articleBody"]',
                      ".article-body", ".story-body", ".article__content",
                      ".post-content", ".entry-content"]:
@@ -87,7 +104,6 @@ def _extract_body(html: str) -> Optional[str]:
             if len(text) >= 200:
                 return text
 
-    # 2) Fall back: all <p> tags
     paragraphs = soup.find_all("p")
     if not paragraphs:
         return None
