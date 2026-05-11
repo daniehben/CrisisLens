@@ -68,19 +68,18 @@ def _node_text(node) -> str:
 def _extract_body(html: str) -> Optional[str]:
     """Article body extraction. Tries trafilatura (purpose-built for news)
     first, then falls back to BeautifulSoup heuristics for edge cases."""
-    # 1) trafilatura — favor_precision drops nav/related/promo clutter that
-    # was leaking into the output (e.g., "Recommended Stories list of 3...")
+    # 1) trafilatura — balanced mode. favor_precision was discarding too much
+    # Arabic content. The LLM summary in task7.5 cleans residual junk anyway.
     try:
         text = trafilatura.extract(
             html,
-            favor_precision=True,
             include_comments=False,
             include_tables=False,
             include_links=False,
         )
         if text:
             text = " ".join(text.split())
-            if len(text) >= 200:
+            if len(text) >= 150:
                 return text
     except Exception:
         pass

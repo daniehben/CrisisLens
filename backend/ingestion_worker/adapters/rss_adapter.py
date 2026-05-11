@@ -27,7 +27,9 @@ RSS_SOURCES = {
         'trust_weight': 0.80,  # German state broadcaster
     },
     'F24': {
-        'url': 'https://www.france24.com/ar/rss',
+        # Direct france24.com blocks Render Frankfurt IPs (403). Route through
+        # Google News like ARB.
+        'url': 'https://news.google.com/rss/search?q=site:france24.com/ar&hl=ar&gl=FR&ceid=FR:ar',
         'language': 'ar',
         'trust_weight': 0.80,  # French international broadcaster
     },
