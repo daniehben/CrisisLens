@@ -21,7 +21,7 @@ def get_all_adapters():
                  'TAS', 'PTV', 'RTA',
                  'ANA',
                  'GG', 'GZ', 'CJ', 'EI', 'AW', 'CRA', 'DSN',   # indie voices
-                 'YT_BP', 'YT_DN', 'YT_GZ', 'YT_RT']:           # YouTube commentary
+                 'YT_BP', 'YT_DN', 'YT_RT']:                    # YouTube commentary (YT_GZ disabled — bad channel ID)
         adapters.append(RSSAdapter(code))
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
         adapters.append(NewsAPIAdapter(code))

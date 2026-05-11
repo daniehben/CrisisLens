@@ -46,9 +46,9 @@ RSS_SOURCES = {
         'trust_weight': 0.55,  # US-based Palestinian-rights advocacy
     },
     'WAF': {
-        # WAFA — Official Palestinian News Agency. Replaces MAN (Maan) which
-        # is no longer indexed reliably. Direct RSS is best when available.
-        'url': 'https://english.wafa.ps/rss',
+        # WAFA — Official Palestinian News Agency. Direct /rss returns 404,
+        # routing through Google News.
+        'url': 'https://news.google.com/rss/search?q=site:wafa.ps+OR+site:english.wafa.ps&hl=en&gl=PS&ceid=PS:en',
         'language': 'en',
         'trust_weight': 0.65,
     },
@@ -110,8 +110,8 @@ RSS_SOURCES = {
         'trust_weight': 0.55,
     },
     'AW': {
-        # Antiwar.com — libertarian anti-war
-        'url': 'https://www.antiwar.com/rss.xml',
+        # Antiwar.com — direct RSS returned 0 entries; routing via Google News
+        'url': 'https://news.google.com/rss/search?q=site:antiwar.com&hl=en&gl=US&ceid=US:en',
         'language': 'en',
         'trust_weight': 0.45,
     },
@@ -142,12 +142,11 @@ RSS_SOURCES = {
         'language': 'en',
         'trust_weight': 0.50,
     },
-    'YT_GZ': {
-        # The Grayzone YouTube
-        'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UCEYW0qHEYCsHpkkjwUWxlFw',
-        'language': 'en',
-        'trust_weight': 0.35,
-    },
+    # YT_GZ disabled — channel ID was wrong (404). Grayzone content already
+    # ingested via their website RSS (code: GZ).
+    # 'YT_GZ': {
+    #     'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=...',
+    # },
     'YT_RT': {
         # The Real News Network
         'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UCYwlraEwuFB4ZqASowjoM0g',
