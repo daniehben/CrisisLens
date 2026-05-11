@@ -45,9 +45,10 @@ RSS_SOURCES = {
         'language': 'en',
         'trust_weight': 0.55,  # US-based Palestinian-rights advocacy
     },
-    'MAN': {
-        # Maan News (Palestinian agency) — Google News route for resiliency
-        'url': 'https://news.google.com/rss/search?q=site:maannews.net+OR+site:maannews.com&hl=en&gl=PS&ceid=PS:en',
+    'WAF': {
+        # WAFA — Official Palestinian News Agency. Replaces MAN (Maan) which
+        # is no longer indexed reliably. Direct RSS is best when available.
+        'url': 'https://english.wafa.ps/rss',
         'language': 'en',
         'trust_weight': 0.65,
     },
