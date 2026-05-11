@@ -6,6 +6,7 @@ from backend.ingestion_worker.db_writer import write_batch
 from backend.ingestion_worker.adapters.rss_adapter import RSSAdapter
 from backend.ingestion_worker.adapters.newsapi_adapter import NewsAPIAdapter
 from backend.ingestion_worker.adapters.telegram_adapter import TelegramAdapter
+from backend.ingestion_worker.adapters.telegram_web_adapter import TelegramWebAdapter
 
 
 # Cap concurrent fetches so we don't hammer NewsAPI and trip its 100 req/day quota
@@ -16,15 +17,15 @@ MAX_CONCURRENT_FETCHES = 6
 def get_all_adapters():
     adapters = []
     for code in ['AJA', 'DW', 'F24', 'ARB',
-                 'MND', 'MAN', 'AKH',          # Palestinian perspective
-                 'TAS', 'PTV', 'RTA',          # State counter-Western
-                 'ANA']:                        # Turkish
+                 'MND', 'MAN', 'AKH',
+                 'TAS', 'PTV', 'RTA',
+                 'ANA']:
         adapters.append(RSSAdapter(code))
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
         adapters.append(NewsAPIAdapter(code))
-    # Telegram temporarily disabled on Render - fix in next iteration
-    # for code in ['BNO', 'AJA+', 'AJE+', 'REU', 'BBC+', 'WM', 'SI']:
-    #     adapters.append(TelegramAdapter(code))
+    # Telegram channels via public web view (no MTProto, no bot, no auth)
+    for code in ['BNO', 'AJA+', 'AJE+', 'REU', 'BBC+', 'MAYE', 'WM', 'SI']:
+        adapters.append(TelegramWebAdapter(code))
     return adapters
 
 

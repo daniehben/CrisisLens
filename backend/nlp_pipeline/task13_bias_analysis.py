@@ -62,6 +62,9 @@ REGION = {
     "TAS": "Iranian state", "PTV": "Iranian state",
     "RTA": "Russian state",
     "ANA": "Turkish state",
+    "BNO": "Aggregator", "REU": "Western", "BBC+": "Western", "AJE+": "Pan-Arab",
+    "AJA+": "Pan-Arab", "MAYE": "Resistance",
+    "WM": "OSINT (unverified)", "SI": "Unverified",
 }
 
 
