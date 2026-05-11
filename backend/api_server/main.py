@@ -153,6 +153,7 @@ def get_conflicts(
                 SELECT
                     c.conflict_id,
                     c.conflict_type,
+                    c.bias_analysis,
                     c.weighted_score AS conflict_score,
                     c.weighted_score,
                     c.nli_confidence AS contradiction_score,
@@ -163,6 +164,7 @@ def get_conflicts(
                     a1.headline_en     AS headline_1_en,
                     a1.headline_ar     AS headline_1_ar,
                     a1.body_snippet    AS body_1,
+                    a1.summary         AS summary_1,
                     a1.published_at    AS published_1,
                     a1.url             AS url_a,
                     s1.code            AS source_1,
@@ -174,6 +176,7 @@ def get_conflicts(
                     a2.headline_en     AS headline_2_en,
                     a2.headline_ar     AS headline_2_ar,
                     a2.body_snippet    AS body_2,
+                    a2.summary         AS summary_2,
                     a2.published_at    AS published_2,
                     a2.url             AS url_b,
                     s2.code            AS source_2,

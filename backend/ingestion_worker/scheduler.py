@@ -7,11 +7,13 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from backend.ingestion_worker.worker import run_worker
 from backend.nlp_pipeline.task7_fetch_body import run_task7
+from backend.nlp_pipeline.task7_5_summarize import run_task7_5
 from backend.nlp_pipeline.task8_translate import run_task8
 from backend.nlp_pipeline.task9_embed import run_task9
 from backend.nlp_pipeline.task10_pairs import run_task10
 from backend.nlp_pipeline.task11_nli import run_task11
 from backend.nlp_pipeline.task12_conflicts import run_task12
+from backend.nlp_pipeline.task13_bias_analysis import run_task13
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -49,12 +51,14 @@ def start_health_server():
 
 def run_ingestion_and_nlp():
     run_worker()
-    run_task7()   # fetch full bodies before translation/embedding
+    run_task7()      # fetch full bodies
+    run_task7_5()    # LLM-clean & summarize bodies (Groq)
     run_task8()
     run_task9()
     run_task10()
     run_task11()
     run_task12()
+    run_task13()     # LLM bias analysis per new conflict (Groq)
     
     
 def main():

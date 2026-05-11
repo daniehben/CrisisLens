@@ -68,13 +68,15 @@ def _node_text(node) -> str:
 def _extract_body(html: str) -> Optional[str]:
     """Article body extraction. Tries trafilatura (purpose-built for news)
     first, then falls back to BeautifulSoup heuristics for edge cases."""
-    # 1) trafilatura — much better than handrolled heuristics for news sites
+    # 1) trafilatura — favor_precision drops nav/related/promo clutter that
+    # was leaking into the output (e.g., "Recommended Stories list of 3...")
     try:
         text = trafilatura.extract(
             html,
-            favor_recall=True,        # err on the side of including more content
+            favor_precision=True,
             include_comments=False,
             include_tables=False,
+            include_links=False,
         )
         if text:
             text = " ".join(text.split())
