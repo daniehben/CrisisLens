@@ -46,6 +46,8 @@
       --pal: #7a9466; --pal-soft: rgba(122,148,102,.10);
       --res: #a06b5a; --res-soft: rgba(160,107,90,.10);
       --tur: #4f8a8b; --tur-soft: rgba(79,138,139,.10);
+      --indie:#9a7b95; --indie-soft: rgba(154,123,149,.10);  /* dusty purple */
+      --yt:  #b86b6b; --yt-soft:    rgba(184,107,107,.10);   /* muted red — YouTube */
       --neut:#8a807a; --neut-soft:rgba(138,128,122,.10);
     }
     [data-theme="light"] {
@@ -67,6 +69,8 @@
       --pal: #5e7748; --pal-soft: rgba(94,119,72,.10);
       --res: #855343; --res-soft: rgba(133,83,67,.10);
       --tur: #3a6e6f; --tur-soft: rgba(58,110,111,.10);
+      --indie:#785a72; --indie-soft: rgba(120,90,114,.10);
+      --yt:  #985454; --yt-soft:    rgba(152,84,84,.10);
       --neut:#6b6258; --neut-soft:rgba(107,98,88,.10);
     }
     body { background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; transition: background-color .2s, color .2s; }
@@ -296,6 +300,14 @@
           <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Turkish</div>
           <div class="text-sm">Anadolu Agency</div>
         </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--indie)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Indie</div>
+          <div class="text-sm">Glenn Greenwald · The Grayzone · Caitlin Johnstone · Antiwar · The Cradle · Drop Site News</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--yt)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">YouTube commentary</div>
+          <div class="text-sm">Breaking Points · Democracy Now! · The Grayzone · The Real News</div>
+        </div>
       </div>
       <p class="text-xs text-[var(--muted)] mt-4 max-w-3xl">
         These categories describe regional/editorial provenance, not political stance — we make no claim that all sources within a category agree. The point of CrisisLens is to make disagreement visible, including disagreement <em>within</em> a category.
@@ -369,8 +381,21 @@
     'BBC+': { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
     WM:     { label: 'OSINT',         region: 'neutral',    color: 'var(--neut)', soft: 'var(--neut-soft)' },
     SI:     { label: 'Unverified',    region: 'neutral',    color: 'var(--neut)', soft: 'var(--neut-soft)' },
+    // Indie voices
+    GG:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    GZ:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    CJ:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    EI:     { label: 'Palestinian',   region: 'palestinian',color: 'var(--pal)',  soft: 'var(--pal-soft)'  },
+    AW:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    CRA:    { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    DSN:    { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    // YouTube commentary
+    YT_BP:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
+    YT_DN:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
+    YT_GZ:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
+    YT_RT:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
   };
-  const REGION_ORDER = ['mena', 'gulf', 'palestinian', 'resistance', 'western', 'israeli', 'turkish'];
+  const REGION_ORDER = ['mena', 'gulf', 'palestinian', 'resistance', 'western', 'israeli', 'turkish', 'indie', 'youtube'];
 
   function persp(code) {
     return PERSPECTIVE[code] || { label: 'Unaligned', region: 'neutral', color: 'var(--neut)', soft: 'var(--neut-soft)' };
@@ -453,7 +478,8 @@
       mena: 'var(--mena)', gulf: 'var(--gulf)',
       palestinian: 'var(--pal)', resistance: 'var(--res)',
       western: 'var(--west)', israeli: 'var(--isr)',
-      turkish: 'var(--tur)', neutral: 'var(--neut)',
+      turkish: 'var(--tur)', indie: 'var(--indie)',
+      youtube: 'var(--yt)', neutral: 'var(--neut)',
     };
     return `
       <div class="spectrum">

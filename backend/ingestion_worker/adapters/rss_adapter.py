@@ -84,6 +84,76 @@ RSS_SOURCES = {
         'language': 'ar',
         'trust_weight': 0.70,  # State-owned but professional
     },
+    # ── Independent voices (Substack / blogs) ──────────────────────────────
+    'GG': {
+        # Glenn Greenwald — investigative, anti-establishment
+        'url': 'https://greenwald.substack.com/feed',
+        'language': 'en',
+        'trust_weight': 0.50,
+    },
+    'GZ': {
+        # The Grayzone — Max Blumenthal, Aaron Maté
+        'url': 'https://thegrayzone.com/feed/',
+        'language': 'en',
+        'trust_weight': 0.40,
+    },
+    'CJ': {
+        # Caitlin Johnstone — Australian anti-imperialist
+        'url': 'https://caitlinjohnstone.substack.com/feed',
+        'language': 'en',
+        'trust_weight': 0.35,
+    },
+    'EI': {
+        # Electronic Intifada — Palestinian advocacy
+        'url': 'https://electronicintifada.net/rss.xml',
+        'language': 'en',
+        'trust_weight': 0.55,
+    },
+    'AW': {
+        # Antiwar.com — libertarian anti-war
+        'url': 'https://www.antiwar.com/rss.xml',
+        'language': 'en',
+        'trust_weight': 0.45,
+    },
+    'CRA': {
+        # The Cradle — West Asia focused
+        'url': 'https://thecradle.co/feed/',
+        'language': 'en',
+        'trust_weight': 0.45,
+    },
+    'DSN': {
+        # Drop Site News — Ryan Grim, ex-Intercept
+        'url': 'https://www.dropsitenews.com/feed',
+        'language': 'en',
+        'trust_weight': 0.55,
+    },
+    # ── YouTube commentary channels via RSS ────────────────────────────────
+    # YouTube exposes per-channel RSS at:
+    #   https://www.youtube.com/feeds/videos.xml?channel_id=<UC...>
+    'YT_BP': {
+        # Breaking Points (Krystal Ball & Saagar Enjeti)
+        'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UCDRIjKy6eZOvKtOELtTdeUA',
+        'language': 'en',
+        'trust_weight': 0.35,
+    },
+    'YT_DN': {
+        # Democracy Now!
+        'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UCzuqE7-t13O4NIDYJfakrhw',
+        'language': 'en',
+        'trust_weight': 0.50,
+    },
+    'YT_GZ': {
+        # The Grayzone YouTube
+        'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UCEYW0qHEYCsHpkkjwUWxlFw',
+        'language': 'en',
+        'trust_weight': 0.35,
+    },
+    'YT_RT': {
+        # The Real News Network
+        'url': 'https://www.youtube.com/feeds/videos.xml?channel_id=UCYwlraEwuFB4ZqASowjoM0g',
+        'language': 'en',
+        'trust_weight': 0.45,
+    },
 }
 
 # Mimic a real browser to avoid being blocked

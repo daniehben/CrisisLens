@@ -19,7 +19,9 @@ def get_all_adapters():
     for code in ['AJA', 'DW', 'F24', 'ARB',
                  'MND', 'WAF', 'AKH',
                  'TAS', 'PTV', 'RTA',
-                 'ANA']:
+                 'ANA',
+                 'GG', 'GZ', 'CJ', 'EI', 'AW', 'CRA', 'DSN',   # indie voices
+                 'YT_BP', 'YT_DN', 'YT_GZ', 'YT_RT']:           # YouTube commentary
         adapters.append(RSSAdapter(code))
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
         adapters.append(NewsAPIAdapter(code))

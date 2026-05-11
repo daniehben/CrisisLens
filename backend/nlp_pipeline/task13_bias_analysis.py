@@ -65,6 +65,12 @@ REGION = {
     "BNO": "Aggregator", "REU": "Western", "BBC+": "Western", "AJE+": "Pan-Arab",
     "AJA+": "Pan-Arab", "MAYE": "Resistance",
     "WM": "OSINT (unverified)", "SI": "Unverified",
+    "GG": "Independent journalist", "GZ": "Independent (Grayzone)",
+    "CJ": "Independent commentator", "AW": "Independent (antiwar)",
+    "CRA": "Independent (Cradle)", "DSN": "Independent (Drop Site)",
+    "EI": "Palestinian",
+    "YT_BP": "YouTube commentary", "YT_DN": "YouTube (Democracy Now)",
+    "YT_GZ": "YouTube (Grayzone)", "YT_RT": "YouTube (Real News)",
 }
 
 
