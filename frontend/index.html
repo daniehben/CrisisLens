@@ -43,6 +43,9 @@
       --mena:#b88a5e; --mena-soft:rgba(184,138,94,.10);
       --gulf:#b89460; --gulf-soft:rgba(184,148,96,.10);
       --isr: #8c7e9c; --isr-soft: rgba(140,126,156,.10);
+      --pal: #7a9466; --pal-soft: rgba(122,148,102,.10);
+      --res: #a06b5a; --res-soft: rgba(160,107,90,.10);
+      --tur: #4f8a8b; --tur-soft: rgba(79,138,139,.10);
       --neut:#8a807a; --neut-soft:rgba(138,128,122,.10);
     }
     [data-theme="light"] {
@@ -61,6 +64,9 @@
       --mena:#9a6f48; --mena-soft:rgba(154,111,72,.10);
       --gulf:#8d7240; --gulf-soft:rgba(141,114,64,.10);
       --isr: #635674; --isr-soft: rgba(99,86,116,.10);
+      --pal: #5e7748; --pal-soft: rgba(94,119,72,.10);
+      --res: #855343; --res-soft: rgba(133,83,67,.10);
+      --tur: #3a6e6f; --tur-soft: rgba(58,110,111,.10);
       --neut:#6b6258; --neut-soft:rgba(107,98,88,.10);
     }
     body { background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; transition: background-color .2s, color .2s; }
@@ -261,7 +267,7 @@
       </div>
 
       <h4 class="font-semibold mt-10 mb-3">How sources are categorized</h4>
-      <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--west)">
           <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Western</div>
           <div class="text-sm">BBC · AP · Washington Post · Deutsche Welle · France 24</div>
@@ -277,6 +283,18 @@
         <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--isr)">
           <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Israeli</div>
           <div class="text-sm">The Jerusalem Post</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--pal)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Palestinian</div>
+          <div class="text-sm">Mondoweiss · Ma'an News Agency</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--res)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Counter-Western state media</div>
+          <div class="text-sm">Al-Akhbar · Tasnim · Press TV · RT Arabic</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--tur)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Turkish</div>
+          <div class="text-sm">Anadolu Agency</div>
         </div>
       </div>
       <p class="text-xs text-[var(--muted)] mt-4 max-w-3xl">
@@ -323,20 +341,27 @@
   // Maps source code → category. Color tokens come from CSS variables.
   // (See docs/BACKLOG.md to migrate this to the DB once we have a sources page.)
   const PERSPECTIVE = {
-    AJA:    { label: 'Pan-Arab',     region: 'mena',    color: 'var(--mena)', soft: 'var(--mena-soft)' },
-    AJE:    { label: 'Pan-Arab',     region: 'mena',    color: 'var(--mena)', soft: 'var(--mena-soft)' },
-    'AJA+': { label: 'Pan-Arab',     region: 'mena',    color: 'var(--mena)', soft: 'var(--mena-soft)' },
-    ARB:    { label: 'Gulf',         region: 'gulf',    color: 'var(--gulf)', soft: 'var(--gulf-soft)' },
-    ASH:    { label: 'Gulf',         region: 'gulf',    color: 'var(--gulf)', soft: 'var(--gulf-soft)' },
-    TNA:    { label: 'Pan-Arab',     region: 'mena',    color: 'var(--mena)', soft: 'var(--mena-soft)' },
-    BBC:    { label: 'Western',      region: 'western', color: 'var(--west)', soft: 'var(--west-soft)' },
-    AP:     { label: 'Western',      region: 'western', color: 'var(--west)', soft: 'var(--west-soft)' },
-    WP:     { label: 'Western',      region: 'western', color: 'var(--west)', soft: 'var(--west-soft)' },
-    DW:     { label: 'Western (DE)', region: 'western', color: 'var(--west)', soft: 'var(--west-soft)' },
-    F24:    { label: 'Western (FR)', region: 'western', color: 'var(--west)', soft: 'var(--west-soft)' },
-    JRP:    { label: 'Israeli',      region: 'israeli', color: 'var(--isr)',  soft: 'var(--isr-soft)' },
+    AJA:    { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    AJE:    { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    'AJA+': { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    TNA:    { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    ARB:    { label: 'Gulf',          region: 'gulf',       color: 'var(--gulf)', soft: 'var(--gulf-soft)' },
+    ASH:    { label: 'Gulf',          region: 'gulf',       color: 'var(--gulf)', soft: 'var(--gulf-soft)' },
+    BBC:    { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    AP:     { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    WP:     { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    DW:     { label: 'Western (DE)',  region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    F24:    { label: 'Western (FR)',  region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    JRP:    { label: 'Israeli',       region: 'israeli',    color: 'var(--isr)',  soft: 'var(--isr-soft)'  },
+    MND:    { label: 'Palestinian',   region: 'palestinian',color: 'var(--pal)',  soft: 'var(--pal-soft)'  },
+    MAN:    { label: 'Palestinian',   region: 'palestinian',color: 'var(--pal)',  soft: 'var(--pal-soft)'  },
+    AKH:    { label: 'Lebanese',      region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    TAS:    { label: 'Iranian state', region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    PTV:    { label: 'Iranian state', region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    RTA:    { label: 'Russian state', region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    ANA:    { label: 'Turkish state', region: 'turkish',    color: 'var(--tur)',  soft: 'var(--tur-soft)'  },
   };
-  const REGION_ORDER = ['mena', 'gulf', 'western', 'israeli'];
+  const REGION_ORDER = ['mena', 'gulf', 'palestinian', 'resistance', 'western', 'israeli', 'turkish'];
 
   function persp(code) {
     return PERSPECTIVE[code] || { label: 'Unaligned', region: 'neutral', color: 'var(--neut)', soft: 'var(--neut-soft)' };
@@ -415,15 +440,17 @@
   function spectrumBar(c) {
     const r1 = persp(c.source_1).region;
     const r2 = persp(c.source_2).region;
+    const REGION_COLOR = {
+      mena: 'var(--mena)', gulf: 'var(--gulf)',
+      palestinian: 'var(--pal)', resistance: 'var(--res)',
+      western: 'var(--west)', israeli: 'var(--isr)',
+      turkish: 'var(--tur)', neutral: 'var(--neut)',
+    };
     return `
       <div class="spectrum">
         ${REGION_ORDER.map(r => {
           const on = (r === r1 || r === r2) ? 'on' : '';
-          const color = r === 'mena' ? 'var(--mena)' :
-                        r === 'gulf' ? 'var(--gulf)' :
-                        r === 'western' ? 'var(--west)' :
-                        r === 'israeli' ? 'var(--isr)' : 'var(--neut)';
-          return `<div class="${on}" style="background:${color}"></div>`;
+          return `<div class="${on}" style="background:${REGION_COLOR[r] || 'var(--neut)'}"></div>`;
         }).join('')}
       </div>`;
   }

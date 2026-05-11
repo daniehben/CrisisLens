@@ -35,11 +35,53 @@ RSS_SOURCES = {
     },
     'ARB': {
         # Direct alarabiya.net feed blocks Render Frankfurt IPs (403).
-        # Route through Google News which indexes Al Arabiya articles
-        # and is much harder to IP-block.
         'url': 'https://news.google.com/rss/search?q=site:alarabiya.net&hl=ar&gl=SA&ceid=SA:ar',
         'language': 'ar',
         'trust_weight': 0.65,  # Saudi-aligned
+    },
+    # ── Palestinian perspective ────────────────────────────────────────────
+    'MND': {
+        'url': 'https://mondoweiss.net/feed/',
+        'language': 'en',
+        'trust_weight': 0.55,  # US-based Palestinian-rights advocacy
+    },
+    'MAN': {
+        # Maan News (Palestinian agency) — Google News route for resiliency
+        'url': 'https://news.google.com/rss/search?q=site:maannews.net+OR+site:maannews.com&hl=en&gl=PS&ceid=PS:en',
+        'language': 'en',
+        'trust_weight': 0.65,
+    },
+    'AKH': {
+        # Al-Akhbar (Lebanese, anti-Western framing)
+        'url': 'https://news.google.com/rss/search?q=site:al-akhbar.com&hl=ar&gl=LB&ceid=LB:ar',
+        'language': 'ar',
+        'trust_weight': 0.55,
+    },
+    # ── State media counter-Western perspective ────────────────────────────
+    'TAS': {
+        # Tasnim (Iranian state, Arabic edition)
+        'url': 'https://news.google.com/rss/search?q=site:tasnimnews.com/ar&hl=ar&gl=IR&ceid=IR:ar',
+        'language': 'ar',
+        'trust_weight': 0.40,
+    },
+    'PTV': {
+        # Press TV (Iranian state, English)
+        'url': 'https://news.google.com/rss/search?q=site:presstv.ir&hl=en&gl=IR&ceid=IR:en',
+        'language': 'en',
+        'trust_weight': 0.40,
+    },
+    'RTA': {
+        # RT Arabic (Russian state, Arabic) — banned in EU but Google News still indexes
+        'url': 'https://news.google.com/rss/search?q=site:arabic.rt.com&hl=ar&gl=RU&ceid=RU:ar',
+        'language': 'ar',
+        'trust_weight': 0.35,
+    },
+    # ── Turkish ────────────────────────────────────────────────────────────
+    'ANA': {
+        # Anadolu Agency (Turkish state, Arabic)
+        'url': 'https://www.aa.com.tr/ar/rss/default?cat=guncel',
+        'language': 'ar',
+        'trust_weight': 0.70,  # State-owned but professional
     },
 }
 

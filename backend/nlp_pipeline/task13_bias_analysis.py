@@ -57,6 +57,11 @@ REGION = {
     "BBC": "Western", "AP": "Western", "WP": "Western",
     "DW": "Western (DE)", "F24": "Western (FR)",
     "JRP": "Israeli",
+    "MND": "Palestinian", "MAN": "Palestinian",
+    "AKH": "Lebanese / Resistance",
+    "TAS": "Iranian state", "PTV": "Iranian state",
+    "RTA": "Russian state",
+    "ANA": "Turkish state",
 }
 
 
