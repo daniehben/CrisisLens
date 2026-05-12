@@ -9,9 +9,9 @@ from backend.ingestion_worker.adapters.telegram_adapter import TelegramAdapter
 from backend.ingestion_worker.adapters.telegram_web_adapter import TelegramWebAdapter
 
 
-# Cap concurrent fetches so we don't hammer NewsAPI and trip its 100 req/day quota
-# all at once (each NewsAPI source is one separate API call).
-MAX_CONCURRENT_FETCHES = 6
+# Cap concurrent fetches. Tradeoff: higher = faster cycle, lower = less memory.
+# Render free tier is 512MB; each adapter holds HTML + parsed feed in memory.
+MAX_CONCURRENT_FETCHES = 3
 
 
 def get_all_adapters():

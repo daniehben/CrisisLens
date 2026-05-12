@@ -18,11 +18,13 @@ import logging
 import psycopg2.extras
 
 from backend.shared.database import get_db_connection
-from backend.shared.groq_client import chat_json, SMART_MODEL
+from backend.shared.groq_client import chat_json, FAST_MODEL, SMART_MODEL
 
 log = logging.getLogger(__name__)
 
-BATCH_SIZE = 10
+# 5 per cycle: 70B daily cap is 1,000 → plenty of headroom.
+# Kept low because 70B has tight RPM and each call ~600 tokens.
+BATCH_SIZE = 5
 
 PROMPT = """Two news outlets reported on the same event but the headlines \
 contradict each other. Compare their coverage and output STRICT JSON with \
@@ -129,7 +131,11 @@ def run_task13():
                 )
 
                 analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=600)
+                # If smart model rate-limited or unavailable, fall back to fast.
+                if not analysis:
+                    analysis = chat_json(prompt, model=FAST_MODEL, max_tokens=600)
                 if not analysis or "claims_a" not in analysis:
+                    log.warning(f"[Task13] Conflict {r['conflict_id']}: no usable analysis from either model")
                     failed += 1
                     continue
 

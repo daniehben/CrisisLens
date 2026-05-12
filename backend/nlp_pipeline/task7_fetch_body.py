@@ -14,6 +14,7 @@ The fetch path uses a browser-like User-Agent and a short timeout. Render
 Frankfurt IPs are blocked by some publishers (see CLAUDE.md) — those just
 silently fail and we keep the original short snippet.
 """
+import gc
 import logging
 from typing import Optional
 
@@ -26,11 +27,11 @@ from backend.shared.database import get_db_connection
 log = logging.getLogger(__name__)
 
 # Targets per cycle. Bigger batches = longer cycles + more 429 risk.
-BATCH_SIZE = 60
-MIN_EXISTING_BODY = 250        # only fetch if current snippet shorter than this
-MAX_BODY_CHARS    = 1500       # truncation target for storage
+BATCH_SIZE = 25                # lowered from 60 — free-tier memory ceiling
+MIN_EXISTING_BODY = 250
+MAX_BODY_CHARS    = 1500
 FETCH_TIMEOUT_S   = 10
-LOOKBACK_DAYS     = 14         # backfill 2 weeks of history
+LOOKBACK_DAYS     = 14
 
 HEADERS = {
     "User-Agent": (
@@ -182,7 +183,12 @@ def run_task7():
                     (body[:MAX_BODY_CHARS], article_id),
                 )
                 enriched += 1
+                # Drop the body reference each iteration to bound peak memory
+                del body
             conn.commit()
+
+    # Reclaim parser/lxml internals before the next task
+    gc.collect()
 
     log.info(f"[Task7] Complete — {enriched} enriched, {failed} failed/blocked")
     return enriched
