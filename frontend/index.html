@@ -1,19 +1,21 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" dir="ltr" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CrisisLens — Redesign Prototype</title>
+  <title>CrisisLens — Where the news disagrees</title>
+  <meta name="description" content="Real-time contradictions across Arabic, Western, and Israeli reporting on the same crisis events.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://crisislens-api.onrender.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Noto+Naskh+Arabic:wght@600;700&family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     window.__CL_API = 'https://crisislens-api.onrender.com';
     window.__CL_DATA = fetch(window.__CL_API + '/api/v1/conflicts?limit=100').then(r => r.ok ? r.json() : null).catch(() => null);
   </script>
   <style>
-    /* ── PALETTE: Near-monochrome + single red accent ────────────────── */
+    /* ── PALETTE ─────────────────────────────────────────────────────── */
     :root, [data-theme="dark"] {
       --bg:          #0f0f10;
       --bg-card:     #161618;
@@ -24,120 +26,86 @@
       --ink-soft:    #d0ccc4;
       --muted:       #6b6760;
       --muted-2:     #4a4845;
-      --accent:      #c0392b;   /* deep red — contradiction only */
+      --accent:      #c0392b;
       --accent-soft: rgba(192,57,43,.12);
-      --accent-glow: rgba(192,57,43,.06);
-      /* region dots — tiny only, no fills */
-      --r-west: #6c8fa8;
-      --r-mena: #b8895e;
-      --r-gulf: #b89460;
-      --r-isr:  #8c7e9c;
-      --r-pal:  #7a9466;
-      --r-res:  #a06b5a;
-      --r-tur:  #4f8a8b;
-      --r-inde: #9a7b95;
-      --r-neut: #6b6760;
+      --r-west: #6c8fa8; --r-mena: #b8895e; --r-gulf: #b89460;
+      --r-isr:  #8c7e9c; --r-pal:  #7a9466; --r-res:  #a06b5a;
+      --r-tur:  #4f8a8b; --r-inde: #9a7b95; --r-neut: #6b6760;
     }
     [data-theme="light"] {
-      --bg:          #f5f0e8;
-      --bg-card:     #faf6ee;
-      --bg-featured: #f0ebe0;
-      --line:        #ddd8ce;
-      --line-soft:   #e8e2d8;
-      --ink:         #1a1816;
-      --ink-soft:    #2e2b27;
-      --muted:       #7a7268;
-      --muted-2:     #a09890;
-      --accent:      #b0301f;
-      --accent-soft: rgba(176,48,31,.10);
-      --accent-glow: rgba(176,48,31,.04);
-      --r-west: #456a85;
-      --r-mena: #9a6e42;
-      --r-gulf: #8d7240;
-      --r-isr:  #635674;
-      --r-pal:  #5e7748;
-      --r-res:  #855343;
-      --r-tur:  #3a6e6f;
-      --r-inde: #785a72;
-      --r-neut: #7a7268;
+      --bg:          #f5f0e8; --bg-card: #faf6ee; --bg-featured: #f0ebe0;
+      --line:        #ddd8ce; --line-soft: #e8e2d8;
+      --ink:         #1a1816; --ink-soft:  #2e2b27;
+      --muted:       #7a7268; --muted-2:   #a09890;
+      --accent:      #b0301f; --accent-soft: rgba(176,48,31,.10);
+      --r-west: #456a85; --r-mena: #9a6e42; --r-gulf: #8d7240;
+      --r-isr:  #635674; --r-pal:  #5e7748; --r-res:  #855343;
+      --r-tur:  #3a6e6f; --r-inde: #785a72; --r-neut: #7a7268;
     }
 
     * { box-sizing: border-box; }
 
+    /* ── Base ────────────────────────────────────────────────────────── */
     body {
-      background: var(--bg);
-      color: var(--ink);
+      background: var(--bg); color: var(--ink);
       font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       transition: background .2s, color .2s;
       min-height: 100vh;
     }
+    /* Arabic mode: Tajawal for body, Noto Naskh for headings */
+    [dir="rtl"] body { font-family: 'Tajawal', system-ui, sans-serif; }
+    [dir="rtl"] .card-hl,
+    [dir="rtl"] .modal-hl  { font-family: 'Noto Naskh Arabic', serif; }
 
-    /* ── Typography ─────────────────────────────────────────── */
-    .headline {
+    /* ── Typography ──────────────────────────────────────────────────── */
+    .card-hl {
       font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 700;
-      line-height: 1.25;
-      letter-spacing: -0.01em;
+      font-weight: 700; line-height: 1.28; color: var(--ink);
     }
-    .headline-lg { font-size: 1.35rem; }
-    .headline-sm { font-size: 1.1rem; }
-    .ar {
-      font-family: 'Tajawal', system-ui, sans-serif;
-      direction: rtl; text-align: right;
-      line-height: 1.7; font-size: 1.05em;
+    .featured-card .card-hl { font-size: 1.2rem; }
+    .feed-card    .card-hl  { font-size: 1.0rem; }
+    .modal-hl {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin-bottom: .75rem;
     }
 
-    /* ── Header ─────────────────────────────────────────────── */
+    /* ── Header ──────────────────────────────────────────────────────── */
     .header {
       position: sticky; top: 0; z-index: 20;
-      background: var(--bg);
-      border-bottom: 1px solid var(--line);
+      background: var(--bg); border-bottom: 1px solid var(--line);
     }
     .header-inner {
-      max-width: 1200px; margin: 0 auto;
-      padding: .9rem 1.5rem;
+      max-width: 1200px; margin: 0 auto; padding: .9rem 1.5rem;
       display: flex; align-items: center; justify-content: space-between;
     }
     .wordmark {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 1.25rem; font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--ink);
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink);
     }
+    [dir="rtl"] .wordmark { font-family: 'Noto Naskh Arabic', serif; letter-spacing: 0; }
     .wordmark span { color: var(--accent); }
     .live-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--accent);
-      animation: livepulse 2s infinite;
-      display: inline-block; margin-right: .4rem;
+      width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+      animation: livepulse 2s infinite; display: inline-block;
     }
-    @keyframes livepulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: .35; }
-    }
+    @keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:.3} }
     .nav-btn {
       background: none; border: none; cursor: pointer;
       color: var(--muted); font-size: .8rem;
-      padding: .3rem .5rem; border-radius: 4px;
-      transition: color .15s;
+      padding: .3rem .5rem; border-radius: 4px; transition: color .15s;
     }
     .nav-btn:hover { color: var(--ink); }
 
-    /* ── Category Nav ───────────────────────────────────────── */
+    /* ── Category Nav ────────────────────────────────────────────────── */
     .cat-nav {
-      border-bottom: 1px solid var(--line);
-      background: var(--bg);
+      border-bottom: 1px solid var(--line); background: var(--bg);
       position: sticky; top: 49px; z-index: 19;
     }
     .cat-nav-inner {
-      max-width: 1200px; margin: 0 auto;
-      padding: 0 1.5rem;
-      display: flex; align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      overflow-x: auto;
-      scrollbar-width: none;
+      max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      overflow-x: auto; scrollbar-width: none;
     }
     .cat-nav-inner::-webkit-scrollbar { display: none; }
     .cat-tabs { display: flex; gap: 0; }
@@ -145,183 +113,121 @@
       background: none; border: none; cursor: pointer;
       color: var(--muted); font-size: .78rem; font-weight: 600;
       letter-spacing: .06em; text-transform: uppercase;
-      padding: .85rem 1rem;
-      border-bottom: 2px solid transparent;
-      white-space: nowrap;
-      transition: color .15s, border-color .15s;
+      padding: .85rem 1rem; border-bottom: 2px solid transparent;
+      white-space: nowrap; transition: color .15s, border-color .15s;
     }
+    [dir="rtl"] .cat-tab { letter-spacing: 0; font-size: .85rem; }
     .cat-tab:hover { color: var(--ink-soft); }
-    .cat-tab.active {
-      color: var(--ink);
-      border-bottom-color: var(--accent);
-    }
-    .cat-controls {
-      display: flex; align-items: center; gap: .5rem;
-      flex-shrink: 0;
-    }
+    .cat-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+    .cat-controls { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
     .ctrl-chip {
-      background: none;
-      border: 1px solid var(--line);
-      color: var(--muted);
-      font-size: .72rem; font-weight: 500;
-      padding: .3rem .65rem; border-radius: 999px;
-      cursor: pointer; white-space: nowrap;
-      transition: all .15s;
+      background: none; border: 1px solid var(--line); color: var(--muted);
+      font-size: .72rem; font-weight: 500; padding: .3rem .65rem; border-radius: 999px;
+      cursor: pointer; white-space: nowrap; transition: all .15s;
     }
+    [dir="rtl"] .ctrl-chip { font-size: .78rem; }
     .ctrl-chip:hover { color: var(--ink); border-color: var(--muted-2); }
-    .ctrl-chip.active {
-      color: var(--ink);
-      border-color: var(--ink-soft);
-      background: var(--line-soft);
-    }
+    .ctrl-chip.active { color: var(--ink); border-color: var(--ink-soft); background: var(--line-soft); }
 
-    /* ── Page Content ───────────────────────────────────────── */
+    /* ── Page ────────────────────────────────────────────────────────── */
     .page { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 5rem; }
 
-    /* ── Stats Wire ─────────────────────────────────────────── */
+    /* ── Stats Wire ──────────────────────────────────────────────────── */
     .wire {
-      padding: .7rem 0;
-      font-size: .72rem;
-      color: var(--muted);
+      padding: .7rem 0; font-size: .72rem; color: var(--muted);
       border-bottom: 1px solid var(--line-soft);
       display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
     }
+    [dir="rtl"] .wire { font-size: .8rem; }
     .wire strong { color: var(--ink-soft); font-weight: 600; }
     .wire-sep { color: var(--line); }
     .wire-refresh {
-      background: none; border: none; color: var(--muted);
-      cursor: pointer; font-size: .72rem; margin-left: auto;
-      transition: color .15s;
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: .72rem; margin-inline-start: auto; transition: color .15s;
     }
+    [dir="rtl"] .wire-refresh { font-size: .8rem; }
     .wire-refresh:hover { color: var(--ink); }
 
-    /* ── Section Labels ─────────────────────────────────────── */
+    /* ── Section Labels ──────────────────────────────────────────────── */
     .section-label {
-      font-size: .65rem; font-weight: 700;
-      letter-spacing: .12em; text-transform: uppercase;
-      color: var(--accent);
+      font-size: .65rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--accent);
       padding: 1.75rem 0 .75rem;
       display: flex; align-items: center; gap: .75rem;
     }
-    .section-label::after {
-      content: '';
-      flex: 1; height: 1px;
-      background: var(--line);
-    }
+    [dir="rtl"] .section-label { letter-spacing: 0; font-size: .8rem; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
-    /* ── Featured Cards (2-up) ──────────────────────────────── */
+    /* ── Featured Grid ───────────────────────────────────────────────── */
     .featured-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1px;
-      background: var(--line);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1px; background: var(--line);
+      border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
       margin-bottom: .25rem;
     }
-    @media (max-width: 700px) {
-      .featured-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 700px) { .featured-grid { grid-template-columns: 1fr; } }
     .featured-card {
-      background: var(--bg-featured);
-      padding: 1.5rem;
-      cursor: pointer;
-      transition: background .15s;
-      position: relative;
+      background: var(--bg-featured); padding: 1.5rem; cursor: pointer;
+      transition: background .15s; position: relative;
     }
     .featured-card::before {
-      content: '';
-      position: absolute; left: 0; top: 0; bottom: 0;
-      width: 3px; background: var(--accent); opacity: 0;
-      transition: opacity .15s;
+      content: ''; position: absolute; top: 0; bottom: 0;
+      inset-inline-start: 0; width: 3px;
+      background: var(--accent); opacity: 0; transition: opacity .15s;
     }
     .featured-card:hover { background: var(--bg-card); }
     .featured-card:hover::before { opacity: 1; }
 
-    /* ── Feed Grid ──────────────────────────────────────────── */
+    /* ── Feed Grid ───────────────────────────────────────────────────── */
     .feed-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1px;
-      background: var(--line);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1px; background: var(--line);
+      border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
     }
-    @media (max-width: 700px) {
-      .feed-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 700px) { .feed-grid { grid-template-columns: 1fr; } }
     .feed-card {
-      background: var(--bg-card);
-      padding: 1.25rem 1.35rem;
-      cursor: pointer;
-      transition: background .15s;
-      position: relative;
+      background: var(--bg-card); padding: 1.25rem 1.35rem;
+      cursor: pointer; transition: background .15s; position: relative;
     }
     .feed-card::before {
-      content: '';
-      position: absolute; left: 0; top: 0; bottom: 0;
-      width: 3px; background: var(--accent); opacity: 0;
-      transition: opacity .15s;
+      content: ''; position: absolute; top: 0; bottom: 0;
+      inset-inline-start: 0; width: 3px;
+      background: var(--accent); opacity: 0; transition: opacity .15s;
     }
     .feed-card:hover { background: var(--line-soft); }
     .feed-card:hover::before { opacity: 1; }
 
-    /* ── Card internals ─────────────────────────────────────── */
+    /* ── Card Internals ──────────────────────────────────────────────── */
     .card-sources {
       display: flex; align-items: center; gap: .35rem;
-      font-size: .72rem; color: var(--muted); font-weight: 500;
-      margin-bottom: .8rem;
+      font-size: .72rem; color: var(--muted); font-weight: 500; margin-bottom: .8rem;
     }
-    .src-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      display: inline-block; flex-shrink: 0;
-    }
+    [dir="rtl"] .card-sources { font-size: .8rem; }
+    .src-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
     .vs-slash { color: var(--line); }
-    .card-time { margin-left: auto; font-size: .68rem; color: var(--muted-2); }
-
-    .card-headline-wrap {
-      display: flex; flex-direction: column; gap: .65rem;
-      margin-bottom: .9rem;
-    }
-    .card-hl {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 700;
-      line-height: 1.28;
-      color: var(--ink);
-    }
-    .featured-card .card-hl { font-size: 1.2rem; }
-    .feed-card    .card-hl { font-size: 1.0rem; }
-
-    .card-divider {
-      height: 1px; background: var(--line-soft); margin: 0;
-    }
-
-    .card-footer {
-      display: flex; align-items: center; gap: .6rem;
-      flex-wrap: wrap;
-    }
+    .card-time { font-size: .68rem; color: var(--muted-2); margin-inline-start: auto; }
+    .card-headline-wrap { display: flex; flex-direction: column; gap: .65rem; margin-bottom: .9rem; }
+    .card-divider { height: 1px; background: var(--line-soft); }
+    .card-footer { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
     .badge {
       display: inline-flex; align-items: center; gap: .25rem;
       padding: .18rem .5rem; border-radius: 5px;
-      font-size: .65rem; font-weight: 600;
-      letter-spacing: .03em;
-      border: 1px solid var(--line);
-      color: var(--muted);
+      font-size: .65rem; font-weight: 600; letter-spacing: .03em;
+      border: 1px solid var(--line); color: var(--muted);
     }
-    .badge svg { width: 9px; height: 9px; }
+    [dir="rtl"] .badge { font-size: .72rem; letter-spacing: 0; }
+    .badge svg { width: 9px; height: 9px; flex-shrink: 0; }
     .badge-numeric { border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
-    .conf-wrap { margin-left: auto; display: flex; align-items: center; gap: .4rem; }
+    .conf-wrap { margin-inline-start: auto; display: flex; align-items: center; gap: .4rem; }
     .conf-bar { width: 52px; height: 3px; background: var(--line); border-radius: 999px; overflow: hidden; }
     .conf-bar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
-    .conf-pct { font-size: .68rem; font-weight: 600; color: var(--ink-soft); min-width: 2.2rem; text-align: right; }
+    .conf-pct { font-size: .68rem; font-weight: 600; color: var(--ink-soft); min-width: 2.2rem; text-align: end; }
 
-    /* ── Skeleton ───────────────────────────────────────────── */
+    /* ── Skeleton ────────────────────────────────────────────────────── */
     .skel { background: linear-gradient(90deg, var(--bg-card), var(--line-soft), var(--bg-card)); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 4px; }
     @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
 
-    /* ── Modal ──────────────────────────────────────────────── */
+    /* ── Modal ───────────────────────────────────────────────────────── */
     .modal-wrap {
       position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.6); backdrop-filter: blur(5px);
@@ -335,40 +241,71 @@
       animation: fadeUp .18s ease-out;
     }
     @keyframes fadeUp { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
-    .modal-head { padding: 1.5rem 1.5rem .5rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-    .modal-close { background: none; border: 1px solid var(--line); color: var(--muted); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .8rem; flex-shrink: 0; transition: all .15s; }
+    .modal-head {
+      padding: 1.5rem 1.5rem .5rem;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    }
+    .modal-close {
+      background: none; border: 1px solid var(--line); color: var(--muted);
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: .8rem; flex-shrink: 0; transition: all .15s;
+    }
     .modal-close:hover { color: var(--ink); border-color: var(--muted-2); }
-    .modal-tabs { display: flex; padding: 0 1.5rem; border-bottom: 1px solid var(--line); gap: .1rem; overflow-x: auto; }
-    .modal-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: .8rem 1.1rem; font-size: .8rem; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; transition: all .15s; }
+    .modal-tabs {
+      display: flex; padding: 0 1.5rem; border-bottom: 1px solid var(--line);
+      gap: .1rem; overflow-x: auto;
+    }
+    .modal-tab {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      padding: .8rem 1.1rem; font-size: .8rem; font-weight: 600;
+      color: var(--muted); cursor: pointer; white-space: nowrap; transition: all .15s;
+    }
+    [dir="rtl"] .modal-tab { font-size: .88rem; }
     .modal-tab:hover { color: var(--ink-soft); }
     .modal-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
     .modal-body { padding: 1.5rem; }
     .modal-pane { display: none; }
     .modal-pane.active { display: block; }
-    .modal-hl { font-family: 'Playfair Display', Georgia, serif; font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin-bottom: .75rem; }
-    .modal-meta { font-size: .75rem; color: var(--muted); display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .modal-meta {
+      font-size: .75rem; color: var(--muted);
+      display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.25rem;
+    }
+    [dir="rtl"] .modal-meta { font-size: .82rem; }
     .modal-article-body { font-size: .95rem; line-height: 1.68; color: var(--ink-soft); }
-    .modal-src-chip { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 600; padding: .25rem .65rem; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-soft); }
-    .read-link { display: inline-flex; align-items: center; gap: .35rem; font-size: .78rem; color: var(--muted); text-decoration: none; margin-top: 1rem; padding: .45rem .9rem; border: 1px solid var(--line); border-radius: 6px; transition: all .15s; }
+    [dir="rtl"] .modal-article-body { font-size: 1.02rem; line-height: 1.85; }
+    .modal-src-chip {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .72rem; font-weight: 600; padding: .25rem .65rem;
+      border-radius: 999px; border: 1px solid var(--line); color: var(--ink-soft);
+    }
+    .read-link {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .78rem; color: var(--muted); text-decoration: none;
+      margin-top: 1rem; padding: .45rem .9rem; border: 1px solid var(--line);
+      border-radius: 6px; transition: all .15s;
+    }
     .read-link:hover { color: var(--ink); border-color: var(--muted-2); }
+    [dir="rtl"] .read-link svg { transform: scaleX(-1); }
     .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1.25rem; }
     @media (max-width: 600px) { .cmp-grid { grid-template-columns: 1fr; } }
-    .cmp-block { padding: 1rem; border: 1px solid var(--line); border-radius: 8px; border-left-width: 3px; }
+    .cmp-block { padding: 1rem; border: 1px solid var(--line); border-radius: 8px; border-inline-start-width: 3px; }
     .cmp-src { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .5rem; }
+    [dir="rtl"] .cmp-src { letter-spacing: 0; font-size: .78rem; }
     .cmp-text { font-size: .88rem; line-height: 1.6; color: var(--ink-soft); }
-    .metric-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-top: 1.25rem; }
+    .metric-row { display: grid; grid-template-columns: repeat(4,1fr); gap: .6rem; margin-top: 1.25rem; }
     @media (max-width: 600px) { .metric-row { grid-template-columns: 1fr 1fr; } }
     .metric { background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: .75rem; }
     .metric-lbl { font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    [dir="rtl"] .metric-lbl { letter-spacing: 0; font-size: .7rem; }
     .metric-val { font-size: 1.2rem; font-weight: 700; color: var(--ink); margin: .15rem 0 .35rem; }
     .metric-bar { height: 2px; background: var(--line); border-radius: 999px; overflow: hidden; }
     .metric-bar span { display: block; height: 100%; background: var(--accent); }
     .sub-label { font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 .6rem; }
+    [dir="rtl"] .sub-label { letter-spacing: 0; font-size: .78rem; }
 
-    /* ── Empty / Error / Cold ───────────────────────────────── */
+    /* ── Utility ─────────────────────────────────────────────────────── */
     .msg-box { text-align: center; padding: 5rem 1rem; color: var(--muted); font-size: .88rem; }
-
-    /* ── Scrollbar ──────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
@@ -376,13 +313,13 @@
 </head>
 <body>
 
-  <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+  <!-- HEADER -->
   <header class="header">
     <div class="header-inner">
       <div style="display:flex;align-items:center;gap:.5rem">
         <span class="live-dot"></span>
         <span class="wordmark">Crisis<span>Lens</span></span>
-        <span style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-left:.2rem;">BETA</span>
+        <span id="beta-label" style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-inline-start:.2rem;">BETA</span>
       </div>
       <nav style="display:flex;align-items:center;gap:.25rem">
         <button class="nav-btn" id="lang-btn">العربية</button>
@@ -394,7 +331,7 @@
     </div>
   </header>
 
-  <!-- ══ CATEGORY NAV ════════════════════════════════════════════════════ -->
+  <!-- CATEGORY NAV -->
   <nav class="cat-nav">
     <div class="cat-nav-inner">
       <div class="cat-tabs" id="cat-tabs">
@@ -416,76 +353,150 @@
     </div>
   </nav>
 
-  <!-- ══ PAGE BODY ════════════════════════════════════════════════════════ -->
+  <!-- PAGE -->
   <div class="page">
 
-    <!-- Stats wire -->
     <div class="wire">
       <span class="live-dot" style="width:5px;height:5px"></span>
-      <strong id="stat-total">—</strong> contradictions detected
+      <strong id="stat-total">—</strong> <span id="stat-lbl-contradictions">contradictions detected</span>
       <span class="wire-sep">·</span>
-      <strong id="stat-cross">—</strong> cross-perspective
+      <strong id="stat-cross">—</strong> <span id="stat-lbl-cross">cross-perspective</span>
       <span class="wire-sep">·</span>
-      <span id="stat-shown">—</span> matching filters
+      <span id="stat-shown">—</span> <span id="stat-lbl-shown">matching filters</span>
       <button class="wire-refresh" id="refresh-btn">↻ Refresh</button>
     </div>
 
-    <!-- Loading -->
+    <!-- Loading skeletons -->
     <div id="loading-view">
-      <div class="section-label">Most Disputed · Now</div>
+      <div class="section-label" id="featured-skeleton-label">Most Disputed · Now</div>
       <div class="featured-grid" style="margin-bottom:1.5rem">
         <div class="featured-card"><div class="skel" style="height:12px;width:60%;margin-bottom:1rem"></div><div class="skel" style="height:20px;margin-bottom:.5rem"></div><div class="skel" style="height:20px;width:80%"></div></div>
         <div class="featured-card"><div class="skel" style="height:12px;width:60%;margin-bottom:1rem"></div><div class="skel" style="height:20px;margin-bottom:.5rem"></div><div class="skel" style="height:20px;width:80%"></div></div>
       </div>
-      <div class="section-label">All Contradictions</div>
-      <div class="feed-grid">
-        ${Array(6).fill(0).map(()=>`<div class="feed-card"><div class="skel" style="height:10px;width:55%;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:75%;margin-bottom:.9rem"></div><div class="skel" style="height:1px;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:65%"></div></div>`).join('')}
+      <div class="section-label">—</div>
+      <div class="feed-grid" id="skeleton-feed">
+        <div class="feed-card"><div class="skel" style="height:10px;width:55%;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:75%;margin-bottom:.9rem"></div><div class="skel" style="height:1px;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:65%"></div></div>
+        <div class="feed-card"><div class="skel" style="height:10px;width:55%;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:75%;margin-bottom:.9rem"></div><div class="skel" style="height:1px;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:65%"></div></div>
+        <div class="feed-card"><div class="skel" style="height:10px;width:55%;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:75%;margin-bottom:.9rem"></div><div class="skel" style="height:1px;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:65%"></div></div>
+        <div class="feed-card"><div class="skel" style="height:10px;width:55%;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:75%;margin-bottom:.9rem"></div><div class="skel" style="height:1px;margin-bottom:.9rem"></div><div class="skel" style="height:16px;margin-bottom:.4rem"></div><div class="skel" style="height:16px;width:65%"></div></div>
       </div>
     </div>
 
-    <!-- Cold start hint -->
-    <div id="cold-hint" style="display:none" class="msg-box">
-      <p>Waking up the API — first request after quiet period can take ~50 seconds on free hosting.</p>
-    </div>
+    <div id="cold-hint" style="display:none" class="msg-box"></div>
 
-    <!-- Main view -->
     <div id="main-view" style="display:none">
-      <div class="section-label">Most Disputed · Now</div>
+      <div class="section-label" id="featured-label">Most Disputed · Now</div>
       <div class="featured-grid" id="featured-grid"></div>
-
       <div class="section-label" id="feed-label">All Contradictions</div>
       <div class="feed-grid" id="feed-grid"></div>
-      <div id="empty-msg" class="msg-box" style="display:none">No contradictions match these filters.</div>
+      <div id="empty-msg" class="msg-box" style="display:none"></div>
     </div>
 
-    <!-- Error -->
-    <div id="error-view" style="display:none" class="msg-box">
-      <p style="color:var(--accent)">Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.</p>
-    </div>
+    <div id="error-view" style="display:none" class="msg-box"></div>
 
   </div>
 
-  <!-- ══ MODAL ════════════════════════════════════════════════════════════ -->
+  <!-- MODAL -->
   <div id="modal-wrap" class="modal-wrap">
     <div class="modal-box" id="modal-box"></div>
   </div>
 
   <script>
-  // ── Constants ────────────────────────────────────────────────────────
-  const API = 'https://crisislens-api.onrender.com';
-
-  const TOPICS = {
-    all:       null,
-    palestine: ['palestine','gaza','west bank','hamas','rafah','idf','settler','jenin','ramallah','fatah','plo'],
-    iran:      ['iran','tehran','khamenei','irgc','nuclear','sanctions','rouhani','raisi','persian'],
-    lebanon:   ['lebanon','beirut','hezbollah','nasrallah','south lebanon','litani'],
-    syria:     ['syria','damascus','aleppo','idlib','hts','al-jolani','rebel'],
-    yemen:     ['yemen','houthi','sanaa','hodeidah','red sea'],
-    ukraine:   ['ukraine','kyiv','russia','zelensky','nato','donbas','kherson','odesa','putin'],
-    finance:   ['oil','dollar','gdp','inflation','sanctions','economy','barrel','brent','opec','markets','currency'],
+  // ── Translations ────────────────────────────────────────────────────
+  const STRINGS = {
+    en: {
+      beta: 'BETA',
+      lang_toggle: 'العربية',
+      wordmark: 'CrisisLens',
+      cat_all: 'All', cat_palestine: 'Palestine', cat_iran: 'Iran',
+      cat_lebanon: 'Lebanon', cat_syria: 'Syria', cat_yemen: 'Yemen',
+      cat_ukraine: 'Ukraine', cat_finance: 'Finance',
+      ctrl_all_langs: 'All langs', ctrl_ar: 'عربي',
+      ctrl_strongest: 'Strongest', ctrl_recent: 'Recent',
+      stat_contradictions: 'contradictions detected',
+      stat_cross: 'cross-perspective',
+      stat_shown: 'matching filters',
+      refresh: '↻ Refresh',
+      featured_label: 'Most Disputed · Now',
+      feed_label_all: 'All Contradictions',
+      feed_label_topic: t => t.charAt(0).toUpperCase() + t.slice(1) + ' — Contradictions',
+      badge_numeric: 'numeric',
+      badge_cross: 'cross-perspective',
+      contradiction_label: 'Contradiction',
+      vs: 'vs',
+      tab_comparison: 'Comparison',
+      trust_high: 'High', trust_mid: 'Mid', trust_low: 'Low', trust_unv: 'Unverified',
+      trust_suffix: 'trust',
+      read_article: domain => `Read full article on ${domain}`,
+      no_body: 'No body available — read the full article at the source.',
+      bias_pending: 'Bias analysis is generated on the next ingestion cycle.',
+      what_each_says: 'What each side says',
+      factual_disagreement: 'Factual disagreement',
+      framing_difference: 'Framing difference',
+      signal_breakdown: 'Signal breakdown',
+      m_contradiction: 'Contradiction', m_similarity: 'Similarity',
+      m_score: 'Final score', m_trust: 'Trust spread',
+      detected: 'Detected', conflict_id: 'ID', conflict_type: 'Type',
+      cold_hint: 'Waking up the API — first request after quiet period can take ~50 seconds on free hosting.',
+      error_msg: "Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.",
+      empty_msg: 'No contradictions match these filters.',
+      r_mena: 'Pan-Arab', r_gulf: 'Gulf', r_west: 'Western', r_isr: 'Israeli',
+      r_pal: 'Palestinian', r_res: 'Resistance media', r_tur: 'Turkish',
+      r_inde: 'Independent', r_neut: 'Unaligned',
+    },
+    ar: {
+      beta: 'تجريبي',
+      lang_toggle: 'English',
+      wordmark: 'كرايسيس لنز',
+      cat_all: 'الكل', cat_palestine: 'فلسطين', cat_iran: 'إيران',
+      cat_lebanon: 'لبنان', cat_syria: 'سوريا', cat_yemen: 'اليمن',
+      cat_ukraine: 'أوكرانيا', cat_finance: 'الاقتصاد',
+      ctrl_all_langs: 'كل اللغات', ctrl_ar: 'عربي',
+      ctrl_strongest: 'الأقوى', ctrl_recent: 'الأحدث',
+      stat_contradictions: 'تناقض رُصد',
+      stat_cross: 'متعدد المصادر',
+      stat_shown: 'مطابق للفلاتر',
+      refresh: '↻ تحديث',
+      featured_label: 'الأكثر جدلاً · الآن',
+      feed_label_all: 'جميع التناقضات',
+      feed_label_topic: t => {
+        const m = { palestine:'فلسطين', iran:'إيران', lebanon:'لبنان', syria:'سوريا', yemen:'اليمن', ukraine:'أوكرانيا', finance:'الاقتصاد' };
+        return (m[t] || t) + ' — تناقضات';
+      },
+      badge_numeric: 'تناقض رقمي',
+      badge_cross: 'تعدد المصادر',
+      contradiction_label: 'تناقض',
+      vs: 'مقابل',
+      tab_comparison: 'مقارنة',
+      trust_high: 'عالية', trust_mid: 'متوسطة', trust_low: 'منخفضة', trust_unv: 'غير موثق',
+      trust_suffix: 'موثوقية',
+      read_article: domain => `اقرأ المقال كاملاً على ${domain}`,
+      no_body: 'لا يوجد نص متاح — اقرأ المقال كاملاً من المصدر.',
+      bias_pending: 'يتم إنشاء تحليل التحيز في دورة الاستيعاب التالية.',
+      what_each_says: 'ما يقوله كل طرف',
+      factual_disagreement: 'خلاف في الحقائق',
+      framing_difference: 'اختلاف في الإطار',
+      signal_breakdown: 'تفاصيل الإشارة',
+      m_contradiction: 'تناقض', m_similarity: 'تشابه',
+      m_score: 'النتيجة', m_trust: 'توزع الموثوقية',
+      detected: 'رُصد', conflict_id: 'رقم', conflict_type: 'نوع',
+      cold_hint: 'جاري تشغيل الخادم — قد تستغرق الطلبات الأولى ما يصل إلى ٥٠ ثانية.',
+      error_msg: 'تعذّر الوصول إلى الخادم. الخدمات المجانية تتوقف أحياناً — حاول مرة أخرى بعد دقيقة.',
+      empty_msg: 'لا توجد تناقضات تطابق هذه الفلاتر.',
+      r_mena: 'عربي', r_gulf: 'خليجي', r_west: 'غربي', r_isr: 'إسرائيلي',
+      r_pal: 'فلسطيني', r_res: 'إعلام المقاومة', r_tur: 'تركي',
+      r_inde: 'مستقل', r_neut: 'محايد',
+    }
   };
 
-  const REGION = {
+  function t(key, arg) {
+    const lang = preferAr ? 'ar' : 'en';
+    const val = STRINGS[lang][key] ?? STRINGS.en[key] ?? key;
+    return typeof val === 'function' ? val(arg) : val;
+  }
+
+  // ── Data Maps ───────────────────────────────────────────────────────
+  const REGION_MAP = {
     AJA:'mena', AJE:'mena', TNA:'mena', ARB:'gulf', ASH:'gulf',
     BBC:'west', AP:'west', WP:'west', DW:'west', F24:'west', REU:'west',
     JRP:'isr', MND:'pal', WAF:'pal', EI:'pal',
@@ -493,37 +504,51 @@
     ANA:'tur',
     GG:'inde', GZ:'inde', CJ:'inde', AW:'inde', CRA:'inde', DSN:'inde',
   };
-  const REGION_COLOR = {
+  const REGION_COLOR_MAP = {
     mena:'var(--r-mena)', gulf:'var(--r-gulf)', west:'var(--r-west)',
     isr:'var(--r-isr)', pal:'var(--r-pal)', res:'var(--r-res)',
     tur:'var(--r-tur)', inde:'var(--r-inde)', neutral:'var(--r-neut)',
   };
-  const REGION_LABEL = {
-    mena:'Pan-Arab', gulf:'Gulf', west:'Western', isr:'Israeli',
-    pal:'Palestinian', res:'Resistance media', tur:'Turkish',
-    inde:'Independent', neutral:'Unaligned',
+  const REGION_KEY_MAP = {
+    mena:'r_mena', gulf:'r_gulf', west:'r_west', isr:'r_isr',
+    pal:'r_pal', res:'r_res', tur:'r_tur', inde:'r_inde', neutral:'r_neut',
+  };
+  const TOPICS = {
+    palestine: ['palestine','gaza','west bank','hamas','rafah','idf','settler','jenin','ramallah','fatah'],
+    iran:      ['iran','tehran','khamenei','irgc','nuclear','sanctions','persian'],
+    lebanon:   ['lebanon','beirut','hezbollah','nasrallah','south lebanon'],
+    syria:     ['syria','damascus','aleppo','idlib','hts','rebel'],
+    yemen:     ['yemen','houthi','sanaa','hodeidah','red sea'],
+    ukraine:   ['ukraine','kyiv','russia','zelensky','nato','donbas','putin'],
+    finance:   ['oil','dollar','gdp','inflation','sanctions','economy','barrel','brent','opec','markets'],
   };
 
-  function regionOf(code) { return REGION[code] || 'neutral'; }
-  function regionColor(code) { return REGION_COLOR[regionOf(code)] || 'var(--r-neut)'; }
-  function regionLabel(code) { return REGION_LABEL[regionOf(code)] || 'Unaligned'; }
-  function isCross(c) { return regionOf(c.source_1) !== regionOf(c.source_2); }
-  function trustLabel(t) {
-    const v = parseFloat(t);
-    return v >= .85 ? 'High' : v >= .65 ? 'Mid' : v >= .40 ? 'Low' : 'Unverified';
+  function regionOf(code) { return REGION_MAP[code] || 'neutral'; }
+  function regionColor(code) { return REGION_COLOR_MAP[regionOf(code)] || 'var(--r-neut)'; }
+  function regionLabel(code) { return t(REGION_KEY_MAP[regionOf(code)] || 'r_neut'); }
+  function trustLabel(v) {
+    const n = parseFloat(v);
+    if (n >= .85) return t('trust_high');
+    if (n >= .65) return t('trust_mid');
+    if (n >= .40) return t('trust_low');
+    return t('trust_unv');
   }
+  function isCross(c) { return regionOf(c.source_1) !== regionOf(c.source_2); }
+
+  // ── Time / URL helpers ──────────────────────────────────────────────
   function timeAgo(iso) {
     if (!iso) return '';
     const s = (Date.now() - new Date(iso)) / 1000;
-    if (s < 60) return 'just now';
-    if (s < 3600) return `${Math.floor(s/60)}m ago`;
-    if (s < 86400) return `${Math.floor(s/3600)}h ago`;
-    return `${Math.floor(s/86400)}d ago`;
+    if (s < 60) return preferAr ? 'الآن' : 'just now';
+    if (s < 3600) return preferAr ? `منذ ${Math.floor(s/60)} د` : `${Math.floor(s/60)}m ago`;
+    if (s < 86400) return preferAr ? `منذ ${Math.floor(s/3600)} س` : `${Math.floor(s/3600)}h ago`;
+    return preferAr ? `منذ ${Math.floor(s/86400)} ي` : `${Math.floor(s/86400)}d ago`;
   }
   function host(url) { try { return new URL(url).hostname.replace(/^www\./,''); } catch { return ''; } }
   function fullDate(iso) {
     if (!iso) return '—';
-    return new Date(iso).toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+    const loc = preferAr ? 'ar-SA' : undefined;
+    return new Date(iso).toLocaleString(loc, {dateStyle:'medium', timeStyle:'short'});
   }
   function normalizeDigits(s) { return (s||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)); }
   function nums(s) { return (normalizeDigits(s).match(/\b\d+(?:[.,]\d+)?\b/g)||[]).map(n=>n.replace(',','.')); }
@@ -531,14 +556,14 @@
     const a=[...nums(c.headline_1_en),...nums(c.headline_1_ar)];
     const b=[...nums(c.headline_2_en),...nums(c.headline_2_ar)];
     if (!a.length||!b.length) return false;
-    const sa=new Set(a), sb=new Set(b); let shared=0;
-    sa.forEach(x=>{ if(sb.has(x)) shared++; });
-    return shared===0;
+    const sa=new Set(a),sb=new Set(b); let sh=0;
+    sa.forEach(x=>{ if(sb.has(x)) sh++; });
+    return sh===0;
   }
 
-  // ── State ────────────────────────────────────────────────────────────
+  // ── State ───────────────────────────────────────────────────────────
   let cache = null;
-  let preferAr = localStorage.getItem('cl.lang')==='ar';
+  let preferAr = localStorage.getItem('cl.lang') === 'ar';
   let langFilter = 'all';
   let sortMode = 'score';
   let topicFilter = 'all';
@@ -549,56 +574,45 @@
     return { primary: preferAr ? (ar||en) : (en||ar), secondary: preferAr ? (en||'') : (ar||'') };
   }
 
-  // ── Topic matching ───────────────────────────────────────────────────
+  // ── Filtering ───────────────────────────────────────────────────────
   function matchesTopic(c, topic) {
     if (!topic || topic === 'all') return true;
-    const kws = TOPICS[topic];
-    if (!kws) return true;
-    const haystack = [c.headline_1_en, c.headline_2_en, c.headline_1_ar, c.headline_2_ar]
+    const kws = TOPICS[topic]; if (!kws) return true;
+    const hay = [c.headline_1_en,c.headline_2_en,c.headline_1_ar,c.headline_2_ar]
       .filter(Boolean).join(' ').toLowerCase();
-    return kws.some(k => haystack.includes(k));
+    return kws.some(k => hay.includes(k));
   }
-
   function rowMatches(c) {
     if (!matchesTopic(c, topicFilter)) return false;
-    if (langFilter === 'ar' && !(c.headline_1_ar || c.headline_2_ar)) return false;
-    if (langFilter === 'en' && !(c.headline_1_en || c.headline_2_en)) return false;
+    if (langFilter === 'ar' && !(c.headline_1_ar||c.headline_2_ar)) return false;
+    if (langFilter === 'en' && !(c.headline_1_en||c.headline_2_en)) return false;
     return true;
   }
-
   function sortRows(rows) {
     const arr = [...rows];
-    if (sortMode === 'recent') arr.sort((a,b) => new Date(b.detected_at)-new Date(a.detected_at));
-    else arr.sort((a,b) => parseFloat(b.weighted_score)-parseFloat(a.weighted_score));
+    if (sortMode === 'recent') arr.sort((a,b)=>new Date(b.detected_at)-new Date(a.detected_at));
+    else arr.sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score));
     return arr;
   }
 
-  // ── Card builders ────────────────────────────────────────────────────
-  const ICON_NEQ = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 9h14M5 15h14M16 5l-8 14"/></svg>`;
+  // ── Icons ───────────────────────────────────────────────────────────
+  const ICON_NEQ   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 9h14M5 15h14M16 5l-8 14"/></svg>`;
   const ICON_CROSS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>`;
+  const MOON = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+  const SUN  = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>`;
 
-  function cardFooter(c) {
-    const conf = Math.round(parseFloat(c.contradiction_score) * 100);
-    const numeric = hasNumericDisagreement(c);
-    const cross = isCross(c);
-    return `
-      <div class="card-footer">
-        ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ} numeric</span>` : ''}
-        ${cross ? `<span class="badge">${ICON_CROSS} cross-perspective</span>` : ''}
-        <div class="conf-wrap">
-          <div class="conf-bar"><span style="width:${conf}%"></span></div>
-          <span class="conf-pct">${conf}%</span>
-        </div>
-      </div>`;
-  }
-
+  // ── Card builder ────────────────────────────────────────────────────
   function buildCard(c, large=false) {
     const { primary: h1 } = pickHL(c, '1');
     const { primary: h2 } = pickHL(c, '2');
-    const isAr1 = preferAr && !!c.headline_1_ar;
-    const isAr2 = preferAr && !!c.headline_2_ar;
+    const conf = Math.round(parseFloat(c.contradiction_score)*100);
+    const numeric = hasNumericDisagreement(c);
+    const cross = isCross(c);
+    // Headline direction: if preferAr use RTL class, otherwise check if we have Arabic
+    const hlClass1 = (preferAr && c.headline_1_ar) ? 'ar' : ((!preferAr && !c.headline_1_en && c.headline_1_ar) ? 'ar' : '');
+    const hlClass2 = (preferAr && c.headline_2_ar) ? 'ar' : ((!preferAr && !c.headline_2_en && c.headline_2_ar) ? 'ar' : '');
     return `
-      <div class="${large ? 'featured-card' : 'feed-card'}" data-cid="${c.conflict_id}">
+      <div class="${large?'featured-card':'feed-card'}" data-cid="${c.conflict_id}">
         <div class="card-sources">
           <span class="src-dot" style="background:${regionColor(c.source_1)}"></span>
           <span>${c.source_1}</span>
@@ -608,40 +622,42 @@
           <span class="card-time">${timeAgo(c.detected_at)}</span>
         </div>
         <div class="card-headline-wrap">
-          <div class="card-hl ${isAr1?'ar':''}">${h1 || '—'}</div>
+          <div class="card-hl ${hlClass1}">${h1||'—'}</div>
           <div class="card-divider"></div>
-          <div class="card-hl ${isAr2?'ar':''}" style="color:var(--ink-soft)">${h2 || '—'}</div>
+          <div class="card-hl ${hlClass2}" style="color:var(--ink-soft)">${h2||'—'}</div>
         </div>
-        ${cardFooter(c)}
+        <div class="card-footer">
+          ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ} ${t('badge_numeric')}</span>` : ''}
+          ${cross   ? `<span class="badge">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
+          <div class="conf-wrap">
+            <div class="conf-bar"><span style="width:${conf}%"></span></div>
+            <span class="conf-pct">${conf}%</span>
+          </div>
+        </div>
       </div>`;
   }
 
-  // ── Render ───────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────
   function render() {
     if (!cache) return;
     const filtered = sortRows(cache.filter(rowMatches));
     document.getElementById('stat-shown').textContent = filtered.length;
     document.getElementById('stat-cross').textContent = cache.filter(isCross).length;
+    document.getElementById('empty-msg').textContent = t('empty_msg');
 
-    // Featured: top 2 by weighted score from filtered set
-    const featured = [...filtered].sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score)).slice(0,2);
+    const featured = [...filtered]
+      .sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score))
+      .slice(0,2);
     document.getElementById('featured-grid').innerHTML = featured.map(c=>buildCard(c,true)).join('');
+    document.getElementById('featured-label').textContent = t('featured_label');
 
-    // Feed: rest
-    const rest = filtered.filter(c => !featured.includes(c));
-    const feedLabel = topicFilter === 'all' ? 'All Contradictions' :
-      topicFilter.charAt(0).toUpperCase() + topicFilter.slice(1) + ' — Contradictions';
-    document.getElementById('feed-label').textContent = feedLabel;
+    const rest = filtered.filter(c=>!featured.includes(c));
+    const feedLbl = topicFilter==='all' ? t('feed_label_all') : t('feed_label_topic', topicFilter);
+    document.getElementById('feed-label').textContent = feedLbl;
 
-    if (rest.length === 0) {
-      document.getElementById('feed-grid').innerHTML = '';
-      document.getElementById('empty-msg').style.display = filtered.length > 0 ? 'none' : 'block';
-    } else {
-      document.getElementById('feed-grid').innerHTML = rest.map(c=>buildCard(c,false)).join('');
-      document.getElementById('empty-msg').style.display = 'none';
-    }
+    document.getElementById('feed-grid').innerHTML = rest.map(c=>buildCard(c,false)).join('');
+    document.getElementById('empty-msg').style.display = filtered.length===0 ? 'block' : 'none';
 
-    // Wire click handlers
     document.querySelectorAll('[data-cid]').forEach(el => {
       el.addEventListener('click', e => {
         if (e.target.closest('a')) return;
@@ -650,50 +666,42 @@
     });
   }
 
-  // ── Modal ────────────────────────────────────────────────────────────
-  function openModal(id) {
-    if (!cache) return;
-    const c = cache.find(x => String(x.conflict_id) === String(id));
-    if (!c) return;
-    document.getElementById('modal-box').innerHTML = buildModal(c);
-    document.getElementById('modal-wrap').classList.add('open');
-    document.body.style.overflow = 'hidden';
-    wireModal(c);
-  }
-  function closeModal() {
-    document.getElementById('modal-wrap').classList.remove('open');
-    document.body.style.overflow = '';
-    if (location.hash.startsWith('#c')) history.replaceState(null,'',location.pathname);
-  }
-
+  // ── Modal builders ──────────────────────────────────────────────────
   function buildArticlePane(c, side) {
     const code = c[`source_${side}`];
     const name = c[`source_${side}_name`] || code;
     const trust = c[`trust_score_${side}`];
-    const url   = side === '1' ? c.url_a : c.url_b;
+    const url   = side==='1' ? c.url_a : c.url_b;
     const pub   = c[`published_${side}`];
-    const sum   = c[`summary_${side}`] || '';
-    const body  = c[`body_${side}`] || '';
-    const text  = sum || body;
+    const text  = c[`summary_${side}`] || c[`body_${side}`] || '';
+    const isSummary = !!c[`summary_${side}`];
     const { primary, secondary } = pickHL(c, side);
-    const isAr  = preferAr && !!c[`headline_${side}_ar`];
-    const rc    = regionColor(code);
-    const rl    = regionLabel(code);
+    const isAr = preferAr && !!c[`headline_${side}_ar`];
+    const rc = regionColor(code);
     return `
       <div class="modal-pane" data-pane="${side}">
         <div class="modal-meta">
-          <span class="modal-src-chip"><span style="width:7px;height:7px;border-radius:50%;background:${rc};display:inline-block"></span>${name}</span>
+          <span class="modal-src-chip">
+            <span style="width:7px;height:7px;border-radius:50%;background:${rc};display:inline-block;flex-shrink:0"></span>
+            ${name}
+          </span>
           <span style="color:var(--line)">·</span>
-          <span>${rl}</span>
+          <span>${regionLabel(code)}</span>
           <span style="color:var(--line)">·</span>
-          <span>${trustLabel(trust)} trust</span>
+          <span>${trustLabel(trust)} ${t('trust_suffix')}</span>
           <span style="color:var(--line)">·</span>
           <span>${fullDate(pub)}</span>
         </div>
-        <div class="modal-hl ${isAr?'ar':''}">${primary || '—'}</div>
+        <div class="modal-hl ${isAr?'ar':''}">${primary||'—'}</div>
         ${secondary ? `<p style="color:var(--muted);font-size:.9rem;margin-bottom:.75rem" class="${preferAr?'':'ar'}">${secondary}</p>` : ''}
-        ${text ? `<p class="modal-article-body ${isAr?'ar':''}">${text}</p>` : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-top:.75rem">No body available — read the full article at the source.</p>`}
-        ${url ? `<a class="read-link" href="${url}" target="_blank" rel="noopener">Read full article on ${host(url)} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14L21 3M19 14v7H3V5h7"/></svg></a>` : ''}
+        ${text
+          ? `<p class="modal-article-body ${isAr?'ar':''}">${text}</p>`
+          : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-top:.75rem">${t('no_body')}</p>`
+        }
+        ${url ? `<a class="read-link" href="${url}" target="_blank" rel="noopener">
+          ${t('read_article', host(url))}
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14L21 3M19 14v7H3V5h7"/></svg>
+        </a>` : ''}
       </div>`;
   }
 
@@ -709,53 +717,56 @@
     return `
       <div class="modal-pane" data-pane="cmp">
         ${ba ? `
-          <div class="sub-label">What each side says</div>
+          <div class="sub-label">${t('what_each_says')}</div>
           <div class="cmp-grid">
-            <div class="cmp-block" style="border-left-color:${c1}">
+            <div class="cmp-block" style="border-inline-start-color:${c1}">
               <div class="cmp-src" style="color:${c1}">${c.source_1} · ${regionLabel(c.source_1)}</div>
               <div class="cmp-text">${ba.claims_a||'—'}</div>
             </div>
-            <div class="cmp-block" style="border-left-color:${c2}">
+            <div class="cmp-block" style="border-inline-start-color:${c2}">
               <div class="cmp-src" style="color:${c2}">${c.source_2} · ${regionLabel(c.source_2)}</div>
               <div class="cmp-text">${ba.claims_b||'—'}</div>
             </div>
           </div>
-          ${ba.factual_disagreement ? `<div class="sub-label">Factual disagreement</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${ba.factual_disagreement}</p>` : ''}
-          ${ba.framing_difference   ? `<div class="sub-label">Framing difference</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${ba.framing_difference}</p>` : ''}
-        ` : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-bottom:1rem">Bias analysis is generated on the next ingestion cycle.</p>`}
-        <div class="sub-label">Signal breakdown</div>
+          ${ba.factual_disagreement ? `<div class="sub-label">${t('factual_disagreement')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${ba.factual_disagreement}</p>` : ''}
+          ${ba.framing_difference   ? `<div class="sub-label">${t('framing_difference')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${ba.framing_difference}</p>` : ''}
+        ` : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-bottom:1rem">${t('bias_pending')}</p>`}
+
+        <div class="sub-label">${t('signal_breakdown')}</div>
         <div class="metric-row">
-          <div class="metric"><div class="metric-lbl">Contradiction</div><div class="metric-val">${conf}%</div><div class="metric-bar"><span style="width:${conf}%"></span></div></div>
-          <div class="metric"><div class="metric-lbl">Similarity</div><div class="metric-val">${sim}%</div><div class="metric-bar"><span style="width:${sim}%;background:var(--r-west)"></span></div></div>
-          <div class="metric"><div class="metric-lbl">Final score</div><div class="metric-val">${wgt}%</div><div class="metric-bar"><span style="width:${wgt}%;background:var(--r-mena)"></span></div></div>
-          <div class="metric"><div class="metric-lbl">Trust spread</div><div class="metric-val">${t1}/${t2}</div><div class="metric-bar"><span style="width:${Math.max(t1,t2)}%"></span></div></div>
+          <div class="metric"><div class="metric-lbl">${t('m_contradiction')}</div><div class="metric-val">${conf}%</div><div class="metric-bar"><span style="width:${conf}%"></span></div></div>
+          <div class="metric"><div class="metric-lbl">${t('m_similarity')}</div><div class="metric-val">${sim}%</div><div class="metric-bar"><span style="width:${sim}%;background:var(--r-west)"></span></div></div>
+          <div class="metric"><div class="metric-lbl">${t('m_score')}</div><div class="metric-val">${wgt}%</div><div class="metric-bar"><span style="width:${wgt}%;background:var(--r-mena)"></span></div></div>
+          <div class="metric"><div class="metric-lbl">${t('m_trust')}</div><div class="metric-val">${t1}/${t2}</div><div class="metric-bar"><span style="width:${Math.max(t1,t2)}%"></span></div></div>
         </div>
         <div style="font-size:.65rem;color:var(--muted);margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem">
-          <span>Detected: <span style="color:var(--ink-soft)">${fullDate(c.detected_at)}</span></span>
-          <span>ID: <span style="color:var(--ink-soft)">#${c.conflict_id}</span></span>
-          ${c.conflict_type ? `<span>Type: <span style="color:var(--ink-soft)">${c.conflict_type}</span></span>` : ''}
+          <span>${t('detected')}: <span style="color:var(--ink-soft)">${fullDate(c.detected_at)}</span></span>
+          <span>${t('conflict_id')}: <span style="color:var(--ink-soft)">#${c.conflict_id}</span></span>
+          ${c.conflict_type ? `<span>${t('conflict_type')}: <span style="color:var(--ink-soft)">${c.conflict_type}</span></span>` : ''}
         </div>
       </div>`;
   }
 
   function buildModal(c) {
-    const n1 = c[`source_1_name`] || c.source_1;
-    const n2 = c[`source_2_name`] || c.source_2;
+    const n1 = c.source_1_name || c.source_1;
+    const n2 = c.source_2_name || c.source_2;
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
     const numeric = hasNumericDisagreement(c);
     const cross = isCross(c);
     return `
       <div class="modal-head">
         <div>
-          <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.4rem">Contradiction · ${conf}%</div>
+          <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.4rem">
+            ${t('contradiction_label')} · ${conf}%
+          </div>
           <div style="font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center">
             <span>${c.source_1} <span style="color:${regionColor(c.source_1)}">●</span></span>
-            <span style="color:var(--line)">vs</span>
+            <span style="color:var(--line)">${t('vs')}</span>
             <span>${c.source_2} <span style="color:${regionColor(c.source_2)}">●</span></span>
             <span style="color:var(--line)">·</span>
             <span>${timeAgo(c.detected_at)}</span>
-            ${numeric ? `<span class="badge badge-numeric" style="font-size:.62rem">${ICON_NEQ} numeric</span>` : ''}
-            ${cross ? `<span class="badge" style="font-size:.62rem">${ICON_CROSS} cross-perspective</span>` : ''}
+            ${numeric ? `<span class="badge badge-numeric" style="font-size:.62rem">${ICON_NEQ} ${t('badge_numeric')}</span>` : ''}
+            ${cross   ? `<span class="badge" style="font-size:.62rem">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
           </div>
         </div>
         <button class="modal-close" id="modal-close">✕</button>
@@ -763,7 +774,7 @@
       <div class="modal-tabs">
         <button class="modal-tab active" data-tab="1">${n1}</button>
         <button class="modal-tab" data-tab="2">${n2}</button>
-        <button class="modal-tab" data-tab="cmp">Comparison</button>
+        <button class="modal-tab" data-tab="cmp">${t('tab_comparison')}</button>
       </div>
       <div class="modal-body">
         ${buildArticlePane(c,'1')}
@@ -772,7 +783,7 @@
       </div>`;
   }
 
-  function wireModal(c) {
+  function wireModal() {
     document.getElementById('modal-close').onclick = closeModal;
     const panes = document.querySelectorAll('.modal-pane');
     const tabs  = document.querySelectorAll('.modal-tab');
@@ -780,35 +791,81 @@
       panes.forEach(p=>p.classList.toggle('active', p.dataset.pane===key));
       tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===key));
     }
-    tabs.forEach(t=>t.onclick=()=>activate(t.dataset.tab));
+    tabs.forEach(tab=>tab.onclick=()=>activate(tab.dataset.tab));
     activate('1');
   }
 
-  document.getElementById('modal-wrap').addEventListener('click', e => {
-    if (e.target === document.getElementById('modal-wrap')) closeModal();
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && document.getElementById('modal-wrap').classList.contains('open')) closeModal();
-  });
+  function openModal(id) {
+    if (!cache) return;
+    const c = cache.find(x=>String(x.conflict_id)===String(id));
+    if (!c) return;
+    document.getElementById('modal-box').innerHTML = buildModal(c);
+    document.getElementById('modal-wrap').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    wireModal();
+  }
+  function closeModal() {
+    document.getElementById('modal-wrap').classList.remove('open');
+    document.body.style.overflow = '';
+    if (location.hash.startsWith('#c')) history.replaceState(null,'',location.pathname);
+  }
 
+  document.getElementById('modal-wrap').addEventListener('click', e=>{
+    if (e.target===document.getElementById('modal-wrap')) closeModal();
+  });
+  document.addEventListener('keydown', e=>{
+    if (e.key==='Escape' && document.getElementById('modal-wrap').classList.contains('open')) closeModal();
+  });
   function handleHash() {
     const m = location.hash.match(/^#c(\d+)$/);
-    if (m) openModal(m[1]);
-    else closeModal();
+    if (m) openModal(m[1]); else closeModal();
   }
   window.addEventListener('hashchange', handleHash);
 
-  // ── Load data ────────────────────────────────────────────────────────
+  // ── applyLang: updates ALL static UI strings + dir attribute ────────
+  function applyLang() {
+    const html = document.documentElement;
+    html.setAttribute('lang', preferAr ? 'ar' : 'en');
+    html.setAttribute('dir',  preferAr ? 'rtl' : 'ltr');
+
+    document.getElementById('lang-btn').textContent = t('lang_toggle');
+    document.getElementById('beta-label').textContent = t('beta');
+    document.getElementById('stat-lbl-contradictions').textContent = t('stat_contradictions');
+    document.getElementById('stat-lbl-cross').textContent = t('stat_cross');
+    document.getElementById('stat-lbl-shown').textContent = t('stat_shown');
+    document.getElementById('refresh-btn').textContent = t('refresh');
+    document.getElementById('cold-hint').textContent = t('cold_hint');
+    document.getElementById('error-view').textContent = t('error_msg');
+
+    document.querySelectorAll('.cat-tab').forEach(btn => {
+      btn.textContent = t('cat_' + btn.dataset.topic);
+    });
+    document.querySelectorAll('.filter-lang').forEach(btn => {
+      if (btn.dataset.lang === 'all') btn.textContent = t('ctrl_all_langs');
+      // 'ar' button stays as Arabic label in both languages — it's a label for Arabic content
+    });
+    document.querySelectorAll('.filter-sort').forEach(btn => {
+      btn.textContent = btn.dataset.sort === 'score' ? t('ctrl_strongest') : t('ctrl_recent');
+    });
+
+    if (cache) render();
+  }
+
+  // ── Load ────────────────────────────────────────────────────────────
   async function load() {
     document.getElementById('loading-view').style.display = '';
     document.getElementById('main-view').style.display = 'none';
     document.getElementById('error-view').style.display = 'none';
     document.getElementById('cold-hint').style.display = 'none';
 
-    const slow = setTimeout(()=>{ document.getElementById('cold-hint').style.display='block'; }, 5000);
+    const slow = setTimeout(()=>{
+      const el = document.getElementById('cold-hint');
+      el.textContent = t('cold_hint');
+      el.style.display = 'block';
+    }, 5000);
 
     let promise = window.__CL_DATA;
-    if (!promise) promise = fetch(`${API}/api/v1/conflicts?limit=100`).then(r=>r.ok?r.json():null).catch(()=>null);
+    if (!promise) promise = fetch(`https://crisislens-api.onrender.com/api/v1/conflicts?limit=100`).then(r=>r.ok?r.json():null).catch(()=>null);
     window.__CL_DATA = null;
 
     const data = await promise;
@@ -817,7 +874,9 @@
     document.getElementById('loading-view').style.display = 'none';
 
     if (!data) {
-      document.getElementById('error-view').style.display = 'block';
+      const ev = document.getElementById('error-view');
+      ev.textContent = t('error_msg');
+      ev.style.display = 'block';
       return;
     }
 
@@ -828,8 +887,7 @@
     handleHash();
   }
 
-  // ── Controls ─────────────────────────────────────────────────────────
-  // Category tabs
+  // ── Controls ────────────────────────────────────────────────────────
   document.getElementById('cat-tabs').querySelectorAll('.cat-tab').forEach(btn => {
     btn.onclick = () => {
       topicFilter = btn.dataset.topic;
@@ -837,7 +895,6 @@
       render();
     };
   });
-  // Lang
   document.querySelectorAll('.filter-lang').forEach(btn => {
     btn.onclick = () => {
       langFilter = btn.dataset.lang;
@@ -845,7 +902,6 @@
       render();
     };
   });
-  // Sort
   document.querySelectorAll('.filter-sort').forEach(btn => {
     btn.onclick = () => {
       sortMode = btn.dataset.sort;
@@ -853,37 +909,32 @@
       render();
     };
   });
-  // Refresh
   document.getElementById('refresh-btn').onclick = load;
 
-  // ── Lang toggle ───────────────────────────────────────────────────────
-  const langBtn = document.getElementById('lang-btn');
-  function applyLang() { langBtn.textContent = preferAr ? 'English' : 'العربية'; }
-  applyLang();
-  langBtn.onclick = () => {
+  // Lang toggle
+  document.getElementById('lang-btn').onclick = () => {
     preferAr = !preferAr;
     localStorage.setItem('cl.lang', preferAr ? 'ar' : 'en');
     applyLang();
-    render();
   };
 
-  // ── Theme ────────────────────────────────────────────────────────────
+  // Theme
   const themeBtn  = document.getElementById('theme-btn');
   const themeIcon = document.getElementById('theme-icon');
-  const MOON = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
-  const SUN  = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>`;
-  function applyTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    themeIcon.innerHTML = t === 'dark' ? MOON : SUN;
+  function applyTheme(th) {
+    document.documentElement.setAttribute('data-theme', th);
+    themeIcon.innerHTML = th==='dark' ? MOON : SUN;
   }
   let theme = localStorage.getItem('cl.theme') || (window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
   applyTheme(theme);
   themeBtn.onclick = () => {
-    theme = theme === 'dark' ? 'light' : 'dark';
+    theme = theme==='dark' ? 'light' : 'dark';
     localStorage.setItem('cl.theme', theme);
     applyTheme(theme);
   };
 
+  // Init
+  applyLang();   // set dir + strings before data loads
   load();
   </script>
 </body>
