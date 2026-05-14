@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CrisisLens — Where the news disagrees</title>
+  <meta name="description" content="Real-time contradictions across Arabic, Western, and Israeli reporting on the same crisis events.">
+  <meta property="og:title" content="CrisisLens — Where the news disagrees">
+  <meta property="og:description" content="Real-time contradictions in crisis reporting across regional perspectives.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Open the API connection early so TLS + DNS + cold-start happens in parallel
+       with the rest of the page load instead of blocking it. -->
+  <link rel="preconnect" href="https://crisislens-api.onrender.com" crossorigin>
+  <link rel="dns-prefetch" href="https://crisislens-api.onrender.com">
+  <!-- Fire the data fetch as early as possible. The promises are stashed on
+       window so the main script can await them once it's ready. -->
+  <script>
+    window.__CL_API = 'https://crisislens-api.onrender.com';
+    window.__CL_DATA = fetch(window.__CL_API + '/api/v1/conflicts?limit=100').then(r => r.ok ? r.json() : null).catch(() => null);
+    window.__CL_PROFILES = fetch('./source-profiles.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ── Theme: Documentary ─────────────────────────────────────────────
+       Both themes share region colors — only the surface/ink layer flips. */
+    :root, [data-theme="dark"] {
+      --bg:        #18181a;   /* near-neutral dark, very subtle warmth */
+      --bg-deeper: #131315;
+      --card:      #1f1f22;
+      --line:      #2c2c30;
+      --line-soft: #25252a;
+      --ink:       #ebe7df;
+      --muted:     #8e8a82;
+      --accent:    #c47a5a;   /* terracotta — warmer than oxblood, not red */
+      --accent-soft: rgba(196,122,90,.10);
+      --good:      #84a87a;
+      --warn:      #c4a55f;
+      /* region colors (documentary) */
+      --west:#6188a8;  --west-soft:rgba(97,136,168,.10);
+      --mena:#b88a5e; --mena-soft:rgba(184,138,94,.10);
+      --gulf:#b89460; --gulf-soft:rgba(184,148,96,.10);
+      --isr: #8c7e9c; --isr-soft: rgba(140,126,156,.10);
+      --pal: #7a9466; --pal-soft: rgba(122,148,102,.10);
+      --res: #a06b5a; --res-soft: rgba(160,107,90,.10);
+      --tur: #4f8a8b; --tur-soft: rgba(79,138,139,.10);
+      --indie:#9a7b95; --indie-soft: rgba(154,123,149,.10);  /* dusty purple */
+      --yt:  #b86b6b; --yt-soft:    rgba(184,107,107,.10);   /* muted red — YouTube */
+      --neut:#8a807a; --neut-soft:rgba(138,128,122,.10);
+    }
+    [data-theme="light"] {
+      --bg:        #f0e8d6;   /* warmer cream — more saturated */
+      --bg-deeper: #e6dec8;
+      --card:      #faf3e3;   /* cream card, NOT pure white */
+      --line:      #d3c8b0;
+      --line-soft: #e1d6bd;
+      --ink:       #1f1c16;
+      --muted:     #756b58;
+      --accent:    #a8553b;
+      --accent-soft: rgba(168,85,59,.08);
+      --good:      #5e8455;
+      --warn:      #8a6f3d;
+      --west:#42617e;  --west-soft:rgba(66,97,126,.10);
+      --mena:#9a6f48; --mena-soft:rgba(154,111,72,.10);
+      --gulf:#8d7240; --gulf-soft:rgba(141,114,64,.10);
+      --isr: #635674; --isr-soft: rgba(99,86,116,.10);
+      --pal: #5e7748; --pal-soft: rgba(94,119,72,.10);
+      --res: #855343; --res-soft: rgba(133,83,67,.10);
+      --tur: #3a6e6f; --tur-soft: rgba(58,110,111,.10);
+      --indie:#785a72; --indie-soft: rgba(120,90,114,.10);
+      --yt:  #985454; --yt-soft:    rgba(152,84,84,.10);
+      --neut:#6b6258; --neut-soft:rgba(107,98,88,.10);
+    }
+    body { background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; transition: background-color .2s, color .2s; }
+    .header-bg { background: color-mix(in srgb, var(--bg) 85%, transparent); }
+    .ar { font-family: 'Tajawal', 'Noto Naskh Arabic', 'Segoe UI Arabic', system-ui, sans-serif; direction: rtl; text-align: right; line-height: 1.7; font-size: 1.05em; letter-spacing: 0; }
+    h2.ar, h3.ar { font-family: 'Noto Naskh Arabic', 'Tajawal', serif; line-height: 1.55; }
+    .card { background:var(--card); border:1px solid var(--line); transition:border-color .15s, background-color .2s; }
+    .card:hover { border-color:var(--accent); }
+    .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%{box-shadow:0 0 0 0 var(--accent-soft)} 70%{box-shadow:0 0 0 12px rgba(0,0,0,0)} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0)} }
+    .bar { height:4px; background:var(--line-soft); border-radius:999px; overflow:hidden; }
+    .bar > span { display:block; height:100%; }
+    .skeleton { background:linear-gradient(90deg,var(--card),var(--line-soft),var(--card)); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .chip { background:var(--card); border:1px solid var(--line); color:var(--muted); padding:.35rem .75rem; border-radius:999px; font-size:.75rem; transition:all .15s; cursor:pointer; user-select:none; }
+    .chip:hover { color:var(--ink); border-color:var(--accent); }
+    .chip.active { background:var(--accent-soft); border-color:var(--accent); color:var(--ink); }
+    /* Subtle badge style — same chrome, icon distinguishes meaning */
+    .badge { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .55rem; border-radius:6px; font-size:.7rem; font-weight:500; letter-spacing:.02em; line-height:1; }
+    .badge svg { width:11px; height:11px; }
+    .badge-num   { background:var(--accent-soft); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); color:var(--accent); }
+    .badge-cross { background:var(--neut-soft); border:1px solid color-mix(in srgb, var(--ink) 18%, transparent); color:var(--ink); }
+    .pill { display:inline-flex; align-items:center; gap:.25rem; padding:.15rem .5rem; border-radius:999px; font-size:.65rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+    .src-link { font-size:.75rem; color:var(--muted); text-decoration:none; display:inline-flex; align-items:center; gap:.25rem; padding-top:.75rem; }
+    .src-link:hover { color:var(--accent); }
+    .src-link svg { width:11px; height:11px; }
+    .conf-track { width:80px; height:6px; background:var(--line-soft); border-radius:999px; overflow:hidden; }
+    .conf-track > span { display:block; height:100%; background:var(--accent); }
+    .card { cursor:pointer; }
+    .card .open-arrow { font-size:.75rem; opacity:.5; }
+    /* ── Modal ──────────────────────────────────────────────────────── */
+    .modal-backdrop {
+      position:fixed; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(4px);
+      display:none; align-items:flex-start; justify-content:center; z-index:50;
+      padding:2rem 1rem; overflow-y:auto;
+    }
+    [data-theme="light"] .modal-backdrop { background:rgba(34,29,24,.40); }
+    .modal-backdrop.open { display:flex; }
+    .modal {
+      background:var(--card); border:1px solid var(--line); border-radius:16px;
+      max-width:920px; width:100%; margin:auto;
+      animation:slideUp .2s ease-out;
+    }
+    @keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .modal-header { padding:1.5rem 1.5rem 0; }
+    .modal-close {
+      background:transparent; border:1px solid var(--line); color:var(--muted);
+      width:36px; height:36px; border-radius:50%;
+      display:inline-flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:all .15s;
+    }
+    .modal-close:hover { color:var(--ink); border-color:var(--accent); }
+    .tabs { display:flex; gap:.25rem; padding:0 1.5rem; border-bottom:1px solid var(--line); margin-top:1.5rem; overflow-x:auto; }
+    .tab {
+      background:transparent; border:none; color:var(--muted); cursor:pointer;
+      padding:.85rem 1.25rem; border-bottom:2px solid transparent;
+      font-size:.85rem; font-weight:600; white-space:nowrap; transition:all .15s;
+    }
+    .tab:hover { color:var(--ink); }
+    .tab.active { color:var(--ink); border-bottom-color:var(--accent); }
+    .tab-content { padding:1.5rem; }
+    .tab-content > section { display:none; }
+    .tab-content > section.active { display:block; }
+    .article-body { color:var(--ink); line-height:1.65; font-size:1rem; opacity:.92; }
+    .metric { background:var(--bg-deeper); border:1px solid var(--line); border-radius:8px; padding:.75rem; }
+    .metric-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+    .metric-value { font-size:1.25rem; font-weight:600; margin-top:.15rem; color:var(--ink); }
+    .metric-meter { height:3px; background:var(--line-soft); border-radius:999px; margin-top:.5rem; overflow:hidden; }
+    .metric-meter > span { display:block; height:100%; background:var(--accent); }
+    /* perspective spectrum bar */
+    .spectrum { display:flex; height:6px; border-radius:999px; overflow:hidden; background:var(--line-soft); }
+    .spectrum > div { flex:1; opacity:.20; }
+    .spectrum > div.on { opacity:1; }
+    details summary { cursor:pointer; list-style:none; }
+    details summary::-webkit-details-marker { display:none; }
+    details[open] summary .chev { transform:rotate(180deg); }
+    .chev { transition:transform .15s; display:inline-block; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="border-b border-[var(--line)] sticky top-0 z-10 backdrop-blur header-bg">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="pulse-dot"></span>
+        <h1 class="text-xl font-semibold tracking-tight">
+          Crisis<span style="color:var(--accent)">Lens</span>
+        </h1>
+        <span class="text-xs uppercase tracking-widest text-[var(--muted)] hidden sm:inline">live</span>
+      </div>
+      <nav class="flex items-center gap-4 text-sm text-[var(--muted)]">
+        <a href="#methodology" class="hover:text-[color:var(--ink)] transition hidden sm:inline">Methodology</a>
+        <button id="lang-toggle" class="hover:text-[color:var(--ink)] transition">العربية</button>
+        <button id="theme-toggle" class="hover:text-[color:var(--ink)] transition inline-flex items-center" title="Toggle theme">
+          <!-- icon set by JS based on current theme -->
+          <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+        </button>
+        <a href="https://github.com/daniehben/CrisisLens" class="hover:text-[color:var(--ink)] transition">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="max-w-6xl mx-auto px-6 pt-12 pb-6">
+    <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight max-w-3xl leading-[1.05]">
+      When the news disagrees,<br/>
+      <span style="color:var(--accent)">you see it first.</span>
+    </h2>
+    <p class="text-[var(--muted)] mt-4 max-w-2xl text-base sm:text-lg">
+      CrisisLens reads Arabic, Western, and Israeli reporting on the same crisis events and surfaces moments where sources contradict each other — different casualty counts, opposing quotes, conflicting facts.
+    </p>
+    <div id="stats" class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--muted)]">
+      <span><span id="stat-conflicts" class="text-[color:var(--ink)] font-semibold">…</span> contradictions</span>
+      <span><span id="stat-shown" class="text-[color:var(--ink)] font-semibold">…</span> shown</span>
+      <span><span id="stat-cross" class="text-[color:var(--ink)] font-semibold">…</span> cross-perspective</span>
+      <button id="refresh" class="ml-auto chip" title="Refresh">↻ Refresh</button>
+    </div>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-6 pb-6">
+    <div class="flex flex-wrap gap-2 items-center">
+      <span class="text-xs uppercase tracking-widest text-[var(--muted)] mr-1">Lang</span>
+      <button class="chip filter-lang active" data-lang="all">All</button>
+      <button class="chip filter-lang" data-lang="ar">العربية</button>
+      <button class="chip filter-lang" data-lang="en">English</button>
+      <span class="text-xs uppercase tracking-widest text-[var(--muted)] ml-4 mr-1">Sort</span>
+      <button class="chip filter-sort active" data-sort="score">Strongest</button>
+      <button class="chip filter-sort" data-sort="recent">Most Recent</button>
+      <button class="chip filter-sort" data-sort="numeric">Numeric Mismatch</button>
+      <button class="chip filter-sort" data-sort="cross">Cross-Perspective</button>
+    </div>
+    <div id="source-chips" class="flex flex-wrap gap-2 mt-3"></div>
+  </section>
+
+  <main class="max-w-6xl mx-auto px-6 pb-20">
+    <div id="feed" class="grid gap-5"></div>
+    <div id="cold-hint" class="hidden text-center text-[var(--muted)] py-6 text-sm">
+      <p>Waking up the API — first request after a quiet period can take ~50s on free hosting.</p>
+    </div>
+    <div id="empty" class="hidden text-center text-[var(--muted)] py-20">
+      <p>No contradictions match these filters.</p>
+    </div>
+    <div id="error" class="hidden text-center text-[var(--accent)] py-20">
+      <p>Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.</p>
+    </div>
+  </main>
+
+  <!-- ── Methodology ──────────────────────────────────────────────────────── -->
+  <section id="methodology" class="border-t border-[var(--line)] bg-[color:var(--bg-deeper)]">
+    <div class="max-w-6xl mx-auto px-6 py-12">
+      <h3 class="text-2xl font-bold mb-2">How CrisisLens works</h3>
+      <p class="text-[var(--muted)] max-w-3xl mb-8">
+        Every claim below is implemented in code you can read on
+        <a href="https://github.com/daniehben/CrisisLens" class="underline hover:text-[color:var(--ink)]">GitHub</a>.
+        We're showing our work because trust in news aggregation has to be earned.
+      </p>
+
+      <div class="grid md:grid-cols-2 gap-5">
+        <div class="card rounded-xl p-5">
+          <h4 class="font-semibold mb-2">1. We ingest from multiple perspectives</h4>
+          <p class="text-sm text-[var(--muted)] leading-relaxed">
+            Articles arrive every 15 minutes from Pan-Arab outlets (Al Jazeera, Al Arabiya), Western mainstream (BBC, AP, Washington Post, Deutsche Welle, France 24), and Israeli sources (Jerusalem Post). Each source carries a static trust weight (0.0–1.0) reflecting editorial track record.
+          </p>
+        </div>
+
+        <div class="card rounded-xl p-5">
+          <h4 class="font-semibold mb-2">2. We translate everything into a shared space</h4>
+          <p class="text-sm text-[var(--muted)] leading-relaxed">
+            English headlines get machine-translated to Arabic; Arabic stays Arabic. Both versions are then encoded as 384-dimensional vectors with a multilingual embedding model so we can compare meaning across languages.
+          </p>
+        </div>
+
+        <div class="card rounded-xl p-5">
+          <h4 class="font-semibold mb-2">3. We pair articles likely to be about the same event</h4>
+          <p class="text-sm text-[var(--muted)] leading-relaxed">
+            For each new article we find others with cosine similarity ≥ 0.70 from a different source published within 48 hours. Those pairs are candidates for a contradiction.
+          </p>
+        </div>
+
+        <div class="card rounded-xl p-5">
+          <h4 class="font-semibold mb-2">4. We classify pairs with a multilingual NLI model</h4>
+          <p class="text-sm text-[var(--muted)] leading-relaxed">
+            Each candidate pair is sent through mDeBERTa-v3 (an open-source NLI model trained on 100+ languages) which returns probabilities for entailment / neutral / contradiction. Pairs above 55% contradiction confidence move forward.
+          </p>
+        </div>
+
+        <div class="card rounded-xl p-5">
+          <h4 class="font-semibold mb-2">5. We boost real disagreement, suppress framing differences</h4>
+          <p class="text-sm text-[var(--muted)] leading-relaxed">
+            Pairs where headlines disagree on numbers (10 vs 7 casualties) get a confidence boost. Pairs that share most key terms — the "same story, different angle" pattern — get suppressed before they can become a flagged contradiction.
+          </p>
+        </div>
+
+        <div class="card rounded-xl p-5">
+          <h4 class="font-semibold mb-2">6. We score and surface the strongest signals</h4>
+          <p class="text-sm text-[var(--muted)] leading-relaxed">
+            Final score = NLI contradiction confidence × highest-trust source. We never artificially weight perspectives — sources from any region can produce a real contradiction, and the strongest contradictions tend to show up across regions.
+          </p>
+        </div>
+      </div>
+
+      <h4 class="font-semibold mt-10 mb-3">How sources are categorized</h4>
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--west)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Western</div>
+          <div class="text-sm">BBC · AP · Washington Post · Deutsche Welle · France 24</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--mena)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Pan-Arab</div>
+          <div class="text-sm">Al Jazeera · Al Jazeera English</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--gulf)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Gulf</div>
+          <div class="text-sm">Al Arabiya</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--isr)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Israeli</div>
+          <div class="text-sm">The Jerusalem Post</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--pal)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Palestinian</div>
+          <div class="text-sm">Mondoweiss · WAFA News Agency</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--res)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Counter-Western state media</div>
+          <div class="text-sm">Al-Akhbar · Tasnim · Press TV · RT Arabic</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--tur)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Turkish</div>
+          <div class="text-sm">Anadolu Agency</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--indie)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">Indie</div>
+          <div class="text-sm">Glenn Greenwald · The Grayzone · Caitlin Johnstone · Antiwar · The Cradle · Drop Site News</div>
+        </div>
+        <div class="card rounded-lg p-4 border-l-4" style="border-left-color:var(--yt)">
+          <div class="text-xs uppercase tracking-widest text-[var(--muted)] mb-1">YouTube commentary</div>
+          <div class="text-sm">Breaking Points · Democracy Now! · The Grayzone · The Real News</div>
+        </div>
+      </div>
+      <p class="text-xs text-[var(--muted)] mt-4 max-w-3xl">
+        These categories describe regional/editorial provenance, not political stance — we make no claim that all sources within a category agree. The point of CrisisLens is to make disagreement visible, including disagreement <em>within</em> a category.
+      </p>
+
+      <details class="mt-8">
+        <summary class="text-sm text-[var(--muted)] hover:text-[color:var(--ink)] inline-flex items-center gap-2">
+          <span class="chev">▾</span> What CrisisLens is <em>not</em>
+        </summary>
+        <div class="text-sm text-[var(--muted)] max-w-3xl mt-3 leading-relaxed">
+          CrisisLens is not a fact-checker — we don't say which source is right. We surface the disagreement and let you read both sides. Some "contradictions" are actually two outlets covering the same story differently, not factually disagreeing — we work to filter those out but they slip through. When in doubt, click through to both sources and judge for yourself.
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <footer class="border-t border-[var(--line)]">
+    <div class="max-w-6xl mx-auto px-6 py-6 text-xs text-[var(--muted)] flex justify-between flex-wrap gap-2">
+      <span>Built for the moments that matter.</span>
+      <span>API: <a class="hover:text-[color:var(--ink)]" href="https://crisislens-api.onrender.com/api/v1/conflicts">/api/v1/conflicts</a></span>
+    </div>
+  </footer>
+
+  <!-- ── Detail modal ────────────────────────────────────────────────────── -->
+  <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div id="modal" class="modal" role="document"></div>
+  </div>
+
+  <script>
+  // ── Inline icons (no emojis) ────────────────────────────────────────────
+  const ICONS = {
+    // ≠ — three lines: top horizontal, bottom horizontal, diagonal slash
+    notEqual: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M16 5l-8 14"/></svg>`,
+    // diverging arrows — left and right pointing outward from center
+    split: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18"/></svg>`,
+    // sun (light theme indicator)
+    sun: `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>`,
+    // moon (dark theme indicator)
+    moon: `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`,
+  };
+
+  // ── Source perspective map ──────────────────────────────────────────────
+  // Maps source code → category. Color tokens come from CSS variables.
+  // (See docs/BACKLOG.md to migrate this to the DB once we have a sources page.)
+  const PERSPECTIVE = {
+    AJA:    { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    AJE:    { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    'AJA+': { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    TNA:    { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    ARB:    { label: 'Gulf',          region: 'gulf',       color: 'var(--gulf)', soft: 'var(--gulf-soft)' },
+    ASH:    { label: 'Gulf',          region: 'gulf',       color: 'var(--gulf)', soft: 'var(--gulf-soft)' },
+    BBC:    { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    AP:     { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    WP:     { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    DW:     { label: 'Western (DE)',  region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    F24:    { label: 'Western (FR)',  region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    JRP:    { label: 'Israeli',       region: 'israeli',    color: 'var(--isr)',  soft: 'var(--isr-soft)'  },
+    MND:    { label: 'Palestinian',   region: 'palestinian',color: 'var(--pal)',  soft: 'var(--pal-soft)'  },
+    WAF:    { label: 'Palestinian',   region: 'palestinian',color: 'var(--pal)',  soft: 'var(--pal-soft)'  },
+    AKH:    { label: 'Lebanese',      region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    TAS:    { label: 'Iranian state', region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    PTV:    { label: 'Iranian state', region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    RTA:    { label: 'Russian state', region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    MAYE:   { label: 'Resistance',    region: 'resistance', color: 'var(--res)',  soft: 'var(--res-soft)'  },
+    ANA:    { label: 'Turkish state', region: 'turkish',    color: 'var(--tur)',  soft: 'var(--tur-soft)'  },
+    // Telegram channels
+    BNO:    { label: 'Aggregator',    region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    'AJA+': { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    'AJE+': { label: 'Pan-Arab',      region: 'mena',       color: 'var(--mena)', soft: 'var(--mena-soft)' },
+    REU:    { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    'BBC+': { label: 'Western',       region: 'western',    color: 'var(--west)', soft: 'var(--west-soft)' },
+    WM:     { label: 'OSINT',         region: 'neutral',    color: 'var(--neut)', soft: 'var(--neut-soft)' },
+    SI:     { label: 'Unverified',    region: 'neutral',    color: 'var(--neut)', soft: 'var(--neut-soft)' },
+    // Indie voices
+    GG:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    GZ:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    CJ:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    EI:     { label: 'Palestinian',   region: 'palestinian',color: 'var(--pal)',  soft: 'var(--pal-soft)'  },
+    AW:     { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    CRA:    { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    DSN:    { label: 'Indie',         region: 'indie',      color: 'var(--indie)',soft: 'var(--indie-soft)'},
+    // YouTube commentary
+    YT_BP:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
+    YT_DN:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
+    YT_GZ:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
+    YT_RT:  { label: 'YouTube',       region: 'youtube',    color: 'var(--yt)',   soft: 'var(--yt-soft)'   },
+  };
+  const REGION_ORDER = ['mena', 'gulf', 'palestinian', 'resistance', 'western', 'israeli', 'turkish', 'indie', 'youtube'];
+
+  function persp(code) {
+    return PERSPECTIVE[code] || { label: 'Unaligned', region: 'neutral', color: 'var(--neut)', soft: 'var(--neut-soft)' };
+  }
+  function isCrossPerspective(c) {
+    return persp(c.source_1).region !== persp(c.source_2).region;
+  }
+
+  const API_BASE = 'https://crisislens-api.onrender.com';
+  const feedEl    = document.getElementById('feed');
+  const langBtn   = document.getElementById('lang-toggle');
+  const sourceChipsEl = document.getElementById('source-chips');
+
+  // ── State ───────────────────────────────────────────────────────────────
+  let cache = null;
+  let profiles = {};        // loaded from source-profiles.json
+  let preferAr  = localStorage.getItem('crisislens.lang') === 'ar';
+  let langFilter = 'all';
+  let sortMode   = 'score';
+  let sourceFilter = null;
+
+  // Source profiles are already in flight from the inline <head> script.
+  // Just await it.
+  (window.__CL_PROFILES || Promise.resolve({})).then(data => { profiles = data || {}; });
+
+  applyLang();
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  function applyLang() { langBtn.textContent = preferAr ? 'English' : 'العربية'; }
+  function trustLabel(t) {
+    const v = parseFloat(t);
+    if (v >= 0.85) return 'High';
+    if (v >= 0.65) return 'Medium';
+    if (v >= 0.40) return 'Low';
+    return 'Unverified';
+  }
+  function timeAgo(iso) {
+    if (!iso) return '';
+    const s = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (s < 60) return 'just now';
+    if (s < 3600) return `${Math.floor(s/60)}m ago`;
+    if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+    return `${Math.floor(s/86400)}d ago`;
+  }
+  function host(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); }
+    catch { return ''; }
+  }
+  // Numeric disagreement detector — Arabic-Indic digit aware
+  function normalizeDigits(s) {
+    if (!s) return '';
+    return s.replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+  }
+  function extractNumbers(s) {
+    if (!s) return [];
+    return (normalizeDigits(s).match(/\b\d+(?:[.,]\d+)?\b/g) || []).map(n => n.replace(',', '.'));
+  }
+  function hasNumericDisagreement(c) {
+    const a = extractNumbers(c.headline_1_en).concat(extractNumbers(c.headline_1_ar));
+    const b = extractNumbers(c.headline_2_en).concat(extractNumbers(c.headline_2_ar));
+    if (!a.length || !b.length) return false;
+    const setA = new Set(a), setB = new Set(b);
+    let shared = 0;
+    setA.forEach(x => { if (setB.has(x)) shared++; });
+    return shared === 0;
+  }
+
+  function pickHeadline(c, side) {
+    const en = c[`headline_${side}_en`];
+    const ar = c[`headline_${side}_ar`];
+    const primary   = preferAr ? (ar || en) : (en || ar);
+    const secondary = preferAr ? (en || '') : (ar || '');
+    return { primary, secondary };
+  }
+
+  function spectrumBar(c) {
+    const r1 = persp(c.source_1).region;
+    const r2 = persp(c.source_2).region;
+    const REGION_COLOR = {
+      mena: 'var(--mena)', gulf: 'var(--gulf)',
+      palestinian: 'var(--pal)', resistance: 'var(--res)',
+      western: 'var(--west)', israeli: 'var(--isr)',
+      turkish: 'var(--tur)', indie: 'var(--indie)',
+      youtube: 'var(--yt)', neutral: 'var(--neut)',
+    };
+    return `
+      <div class="spectrum">
+        ${REGION_ORDER.map(r => {
+          const on = (r === r1 || r === r2) ? 'on' : '';
+          return `<div class="${on}" style="background:${REGION_COLOR[r] || 'var(--neut)'}"></div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  function sideBlock(c, side) {
+    const code = c[`source_${side}`];
+    const trust = c[`trust_score_${side}`];
+    const trustPct = Math.round(parseFloat(trust) * 100);
+    const url = side === '1' ? c.url_a : c.url_b;
+    const { primary, secondary } = pickHeadline(c, side);
+    const dirClass = preferAr ? 'ar' : '';
+    const p = persp(code);
+    return `
+      <article class="flex-1 min-w-0 rounded-lg p-4 -m-1" style="background:${p.soft}">
+        <header class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[var(--ink)]">${code || '—'}</span>
+            <span class="pill" style="background:${p.color};color:#0a0a0b">${p.label}</span>
+          </div>
+          <span class="text-xs text-[var(--muted)]">${trustLabel(trust)} · ${trustPct}%</span>
+        </header>
+        <div class="bar mb-4"><span style="width:${trustPct}%;background:${p.color}"></span></div>
+        <h3 class="text-lg sm:text-xl font-bold leading-snug ${dirClass}">${primary || '—'}</h3>
+        ${secondary ? `<p class="text-sm text-[var(--muted)] mt-2 ${preferAr ? '' : 'ar'}">${secondary}</p>` : ''}
+        ${url ? `<a class="src-link" href="${url}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14L21 3M19 14v7H3V5h7"/></svg>
+          read on ${host(url)}
+        </a>` : ''}
+      </article>
+    `;
+  }
+
+  function fullDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  function explainConflict(c) {
+    const numeric = hasNumericDisagreement(c);
+    const cross   = isCrossPerspective(c);
+    const conf    = Math.round(parseFloat(c.contradiction_score) * 100);
+    const sim     = Math.round(parseFloat(c.similarity_score) * 100);
+    const reasons = [];
+    reasons.push(`Both articles cover related ground (${sim}% semantic similarity).`);
+    reasons.push(`A multilingual NLI model classified the pair as a contradiction with ${conf}% confidence.`);
+    if (numeric) reasons.push(`Headlines disagree on at least one numeric value — common in casualty counts, financial figures, or vote tallies.`);
+    if (cross) reasons.push(`The contradiction crosses regional perspectives (${persp(c.source_1).label} vs ${persp(c.source_2).label}), which often correlates with editorial divergence on contested events.`);
+    return reasons;
+  }
+
+  function card(c) {
+    const conf = Math.round(parseFloat(c.contradiction_score) * 100);
+    const numeric = hasNumericDisagreement(c);
+    const cross = isCrossPerspective(c);
+    return `
+      <div class="card rounded-xl p-5 sm:p-6" data-conflict="${c.conflict_id}">
+        <div class="flex items-center justify-between mb-5 gap-3 flex-wrap text-xs">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--accent)"></span>
+            <span class="text-[var(--muted)] uppercase tracking-widest">Contradiction</span>
+            <div class="flex items-center gap-2">
+              <div class="conf-track"><span style="width:${conf}%"></span></div>
+              <span class="text-[color:var(--ink)] font-semibold">${conf}%</span>
+            </div>
+            ${numeric ? `<span class="badge badge-num">${ICONS.notEqual}numeric mismatch</span>` : ''}
+            ${cross ? `<span class="badge badge-cross">${ICONS.split}cross-perspective</span>` : ''}
+          </div>
+          <span class="text-[var(--muted)] inline-flex items-center gap-2">
+            ${timeAgo(c.detected_at)}
+            <span class="open-arrow">↗</span>
+          </span>
+        </div>
+        <div class="mb-5">${spectrumBar(c)}</div>
+        <div class="flex flex-col md:flex-row gap-4 md:gap-5">
+          ${sideBlock(c, '1')}
+          <div class="md:flex md:items-center md:justify-center hidden">
+            <div class="text-2xl text-[var(--muted)]">⇋</div>
+          </div>
+          ${sideBlock(c, '2')}
+        </div>
+      </div>
+    `;
+  }
+
+  function skeleton() {
+    return `
+      <div class="card rounded-xl p-6">
+        <div class="h-3 w-48 skeleton rounded mb-6"></div>
+        <div class="grid md:grid-cols-2 gap-8">
+          <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
+          <div><div class="h-4 w-20 skeleton rounded mb-3"></div><div class="h-6 w-full skeleton rounded mb-2"></div><div class="h-6 w-3/4 skeleton rounded"></div></div>
+        </div>
+      </div>`;
+  }
+
+  // ── Filtering / sorting / rendering ─────────────────────────────────────
+  function rowMatches(c) {
+    if (sourceFilter && c.source_1 !== sourceFilter && c.source_2 !== sourceFilter) return false;
+    if (langFilter === 'ar' && !(c.headline_1_ar || c.headline_2_ar)) return false;
+    if (langFilter === 'en' && !(c.headline_1_en || c.headline_2_en)) return false;
+    return true;
+  }
+  function sortRows(rows) {
+    const arr = [...rows];
+    if (sortMode === 'recent') {
+      arr.sort((a, b) => new Date(b.detected_at) - new Date(a.detected_at));
+    } else if (sortMode === 'numeric') {
+      arr.sort((a, b) => Number(hasNumericDisagreement(b)) - Number(hasNumericDisagreement(a))
+                       || parseFloat(b.weighted_score) - parseFloat(a.weighted_score));
+    } else if (sortMode === 'cross') {
+      arr.sort((a, b) => Number(isCrossPerspective(b)) - Number(isCrossPerspective(a))
+                       || parseFloat(b.weighted_score) - parseFloat(a.weighted_score));
+    } else {
+      arr.sort((a, b) => parseFloat(b.weighted_score) - parseFloat(a.weighted_score));
+    }
+    return arr;
+  }
+
+  function renderSourceChips() {
+    if (!cache) return;
+    const counts = {};
+    for (const c of cache) {
+      counts[c.source_1] = (counts[c.source_1] || 0) + 1;
+      counts[c.source_2] = (counts[c.source_2] || 0) + 1;
+    }
+    const codes = Object.keys(counts).sort();
+    sourceChipsEl.innerHTML =
+      `<span class="text-xs uppercase tracking-widest text-[var(--muted)] mr-1 self-center">Source</span>` +
+      `<button class="chip ${!sourceFilter ? 'active' : ''}" data-src="">All</button>` +
+      codes.map(c => `<button class="chip ${sourceFilter===c?'active':''}" data-src="${c}">${c} <span class="opacity-60">${counts[c]}</span></button>`).join('');
+    sourceChipsEl.querySelectorAll('button').forEach(b => {
+      b.onclick = () => { sourceFilter = b.dataset.src || null; renderSourceChips(); render(); };
+    });
+  }
+
+  function render() {
+    if (!cache) return;
+    const filtered = sortRows(cache.filter(rowMatches));
+    document.getElementById('stat-shown').textContent = filtered.length;
+    document.getElementById('stat-cross').textContent = cache.filter(isCrossPerspective).length;
+    document.getElementById('empty').classList.toggle('hidden', filtered.length > 0);
+    feedEl.innerHTML = filtered.map(card).join('');
+
+    // Card click → push hash → triggers modal via hashchange handler.
+    feedEl.querySelectorAll('.card').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('a')) return;
+        location.hash = `c${el.dataset.conflict}`;
+      });
+    });
+  }
+
+  // ── Detail modal ────────────────────────────────────────────────────────
+  const modalBackdrop = document.getElementById('modal-backdrop');
+  const modalEl       = document.getElementById('modal');
+
+  function openModal(id) {
+    if (!cache) return;
+    const c = cache.find(x => String(x.conflict_id) === String(id));
+    if (!c) return;
+    modalEl.innerHTML = renderDetail(c);
+    modalBackdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    wireModalControls(c);
+  }
+  function closeModal() {
+    modalBackdrop.classList.remove('open');
+    document.body.style.overflow = '';
+    if (location.hash.startsWith('#c')) history.replaceState(null, '', location.pathname);
+  }
+
+  function profileBlock(code) {
+    const prof = profiles[code];
+    if (!prof) return '';
+    const refs = (prof.references || []).map(r =>
+      `<a href="${r.url}" target="_blank" rel="noopener" class="text-xs hover:text-[color:var(--accent)] transition" style="color:var(--muted);">↗ ${r.label}</a>`
+    ).join('<span class="mx-2 text-[color:var(--line)]">·</span>');
+    const patterns = (prof.documented_patterns || []).map(p => `<li>${p}</li>`).join('');
+    return `
+      <details class="mt-8 pt-6 border-t border-[color:var(--line)]" open>
+        <summary class="flex items-center justify-between cursor-pointer mb-4">
+          <span class="text-sm font-semibold uppercase tracking-widest text-[color:var(--muted)]">About this source</span>
+          <span class="text-xs text-[color:var(--muted)]">${prof.country || ''}${prof.founded ? ' · est. ' + prof.founded : ''}</span>
+        </summary>
+        <div class="grid sm:grid-cols-2 gap-4 mb-5">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-1">Ownership &amp; funding</div>
+            <p class="text-sm leading-relaxed">${prof.ownership || '—'}</p>
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-1">Editorial reputation</div>
+            <p class="text-sm leading-relaxed">${prof.editorial_summary || '—'}</p>
+          </div>
+        </div>
+        ${prof.context_for_crisislens ? `
+          <div class="mb-5">
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-1">Why it matters here</div>
+            <p class="text-sm leading-relaxed">${prof.context_for_crisislens}</p>
+          </div>` : ''}
+        ${patterns ? `
+          <div class="mb-5">
+            <div class="text-xs uppercase tracking-widest text-[color:var(--muted)] mb-2">Documented coverage patterns</div>
+            <ul class="text-sm leading-relaxed list-disc pl-5 space-y-1">${patterns}</ul>
+          </div>` : ''}
+        ${refs ? `<div class="text-xs flex flex-wrap items-center gap-y-1">${refs}</div>` : ''}
+      </details>
+    `;
+  }
+
+  function articleSection(c, side) {
+    const code = c[`source_${side}`];
+    const name = c[`source_${side}_name`] || code;
+    const trust = c[`trust_score_${side}`];
+    const trustPct = Math.round(parseFloat(trust) * 100);
+    const url = side === '1' ? c.url_a : c.url_b;
+    const summary = c[`summary_${side}`] || '';
+    const body    = c[`body_${side}`] || '';
+    const showText  = summary || body;
+    const isSummary = !!summary;
+    const published = c[`published_${side}`];
+    const { primary, secondary } = pickHeadline(c, side);
+    const dirClass = preferAr ? 'ar' : '';
+    const p = persp(code);
+    return `
+      <section data-pane="${side}">
+        <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-sm font-semibold uppercase tracking-wider">${name}</span>
+            <span class="pill" style="background:${p.color};color:#0a0a0b">${p.label}</span>
+            <span class="text-xs text-[var(--muted)]">${trustLabel(trust)} trust · ${trustPct}%</span>
+          </div>
+          <span class="text-xs text-[var(--muted)]">${fullDate(published)}</span>
+        </div>
+        <div class="bar mb-5"><span style="width:${trustPct}%;background:${p.color}"></span></div>
+        <h2 class="text-2xl sm:text-3xl font-bold leading-tight ${dirClass}">${primary || '—'}</h2>
+        ${secondary ? `<p class="text-base text-[var(--muted)] mt-2 ${preferAr ? '' : 'ar'}">${secondary}</p>` : ''}
+        ${showText ? `
+          ${isSummary ? `<div class="text-xs uppercase tracking-widest text-[var(--muted)] mt-5 mb-2">Summary</div>` : ''}
+          <p class="article-body ${isSummary ? '' : 'mt-5'} ${preferAr ? 'ar' : ''}">${showText}</p>
+        ` : `<p class="text-sm text-[var(--muted)] mt-5 italic">No body available — read the full article at the source.</p>`}
+        ${url ? `<a class="inline-flex items-center gap-2 mt-6 chip" href="${url}" target="_blank" rel="noopener">
+          read full article on ${host(url)}
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14L21 3M19 14v7H3V5h7"/></svg>
+        </a>` : ''}
+        ${profileBlock(code)}
+      </section>
+    `;
+  }
+
+  function comparisonSection(c) {
+    const conf = Math.round(parseFloat(c.contradiction_score) * 100);
+    const sim  = Math.round(parseFloat(c.similarity_score) * 100);
+    const wgt  = Math.round(parseFloat(c.weighted_score) * 100);
+    const t1   = Math.round(parseFloat(c.trust_score_1) * 100);
+    const t2   = Math.round(parseFloat(c.trust_score_2) * 100);
+    const reasons = explainConflict(c);
+    const ba = c.bias_analysis || null;
+    const p1 = persp(c.source_1);
+    const p2 = persp(c.source_2);
+    return `
+      <section data-pane="cmp">
+        <div class="mb-6">${spectrumBar(c)}</div>
+
+        ${ba ? `
+          <h4 class="text-sm font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">What each side says</h4>
+          <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <div class="rounded-lg p-4" style="background:${p1.soft};border-left:3px solid ${p1.color}">
+              <div class="text-xs uppercase tracking-wider mb-1.5 font-semibold" style="color:${p1.color}">${c.source_1} · ${p1.label}</div>
+              <p class="text-sm leading-relaxed">${ba.claims_a || '—'}</p>
+            </div>
+            <div class="rounded-lg p-4" style="background:${p2.soft};border-left:3px solid ${p2.color}">
+              <div class="text-xs uppercase tracking-wider mb-1.5 font-semibold" style="color:${p2.color}">${c.source_2} · ${p2.label}</div>
+              <p class="text-sm leading-relaxed">${ba.claims_b || '—'}</p>
+            </div>
+          </div>
+          ${ba.factual_disagreement ? `
+            <h4 class="text-sm font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Factual disagreement</h4>
+            <p class="text-sm leading-relaxed mb-5">${ba.factual_disagreement}</p>
+          ` : ''}
+          ${ba.framing_difference ? `
+            <h4 class="text-sm font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Framing difference</h4>
+            <p class="text-sm leading-relaxed mb-6">${ba.framing_difference}</p>
+          ` : ''}
+        ` : `
+          <div class="text-xs text-[var(--muted)] italic mb-6">Detailed bias analysis is generated by an LLM on the next ingestion cycle.</div>
+        `}
+
+        <h4 class="text-sm font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">Why we flagged this</h4>
+        <ul class="text-sm text-[var(--ink)] leading-relaxed space-y-1.5 list-disc pl-5 mb-6">
+          ${reasons.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+
+        <h4 class="text-sm font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">Signal breakdown</h4>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div class="metric">
+            <div class="metric-label">Contradiction</div>
+            <div class="metric-value">${conf}%</div>
+            <div class="metric-meter"><span style="width:${conf}%"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Similarity</div>
+            <div class="metric-value">${sim}%</div>
+            <div class="metric-meter"><span style="width:${sim}%;background:#60a5fa"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Final score</div>
+            <div class="metric-value">${wgt}%</div>
+            <div class="metric-meter"><span style="width:${wgt}%;background:#fbbf24"></span></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Trust spread</div>
+            <div class="metric-value">${t1}/${t2}</div>
+            <div class="metric-meter"><span style="width:${Math.max(t1,t2)}%;background:var(--good)"></span></div>
+          </div>
+        </div>
+
+        <div class="text-xs text-[var(--muted)] flex flex-wrap gap-x-6 gap-y-1 pt-2 border-t border-[var(--line)]">
+          <span>Detected: <span class="text-[var(--ink)]">${fullDate(c.detected_at)}</span></span>
+          <span>Conflict ID: <span class="text-[var(--ink)]">#${c.conflict_id}</span></span>
+          ${c.conflict_type ? `<span>Type: <span class="text-[var(--ink)]">${c.conflict_type}</span></span>` : ''}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderDetail(c) {
+    const cross = isCrossPerspective(c);
+    const numeric = hasNumericDisagreement(c);
+    return `
+      <div class="modal-header flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap text-xs mb-2">
+            <span class="text-[var(--muted)] uppercase tracking-widest">Contradiction</span>
+            <span class="text-[color:var(--ink)] font-semibold">${Math.round(parseFloat(c.contradiction_score)*100)}%</span>
+            ${numeric ? `<span class="badge badge-num">${ICONS.notEqual}numeric mismatch</span>` : ''}
+            ${cross ? `<span class="badge badge-cross">${ICONS.split}cross-perspective</span>` : ''}
+          </div>
+          <div class="text-sm text-[var(--muted)]">
+            ${c.source_1} <span style="color:${persp(c.source_1).color}">●</span>
+            <span class="mx-2">vs</span>
+            ${c.source_2} <span style="color:${persp(c.source_2).color}">●</span>
+            <span class="mx-2">·</span>
+            ${timeAgo(c.detected_at)}
+          </div>
+        </div>
+        <button class="modal-close" id="modal-close-btn" aria-label="Close">✕</button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="1">${c.source_1}</button>
+        <button class="tab" data-tab="2">${c.source_2}</button>
+        <button class="tab" data-tab="cmp">Bias Comparison</button>
+      </div>
+
+      <div class="tab-content">
+        ${articleSection(c, '1')}
+        ${articleSection(c, '2')}
+        ${comparisonSection(c)}
+      </div>
+    `;
+  }
+
+  function wireModalControls(c) {
+    document.getElementById('modal-close-btn').onclick = closeModal;
+
+    const panes = modalEl.querySelectorAll('.tab-content > section');
+    const tabs  = modalEl.querySelectorAll('.tab');
+    function activatePane(key) {
+      panes.forEach(p => p.classList.toggle('active', p.dataset.pane === key));
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === key));
+    }
+    tabs.forEach(t => t.onclick = () => activatePane(t.dataset.tab));
+
+    // Default: open on the source #1 article (left tab).
+    activatePane('1');
+  }
+
+  // Click outside the modal closes it
+  modalBackdrop.addEventListener('click', e => {
+    if (e.target === modalBackdrop) closeModal();
+  });
+  // Esc closes
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) closeModal();
+  });
+
+  // Hash routing — opens the modal for #c<id>. Keeps the URL shareable.
+  function handleHash() {
+    const m = location.hash.match(/^#c(\d+)$/);
+    if (m) openModal(m[1]);
+    else closeModal();
+  }
+  window.addEventListener('hashchange', handleHash);
+
+  async function load() {
+    feedEl.innerHTML = skeleton() + skeleton() + skeleton();
+    document.getElementById('error').classList.add('hidden');
+
+    // Reuse the in-flight fetch from the <head> script if it exists.
+    // If the user clicked Refresh later, fall back to a fresh fetch.
+    let dataPromise = window.__CL_DATA;
+    if (!dataPromise) {
+      dataPromise = fetch(`${API_BASE}/api/v1/conflicts?limit=100`).then(r => r.ok ? r.json() : null).catch(() => null);
+    }
+    window.__CL_DATA = null;  // consume — next refresh will refetch
+
+    // Show a "still waking up" hint after 5s — Render free-tier cold start can
+    // take 50+ seconds. Better to tell the user than leave them hanging.
+    const slowHint = setTimeout(() => {
+      const e = document.getElementById('cold-hint');
+      if (e) e.classList.remove('hidden');
+    }, 5000);
+
+    const data = await dataPromise;
+    clearTimeout(slowHint);
+    document.getElementById('cold-hint')?.classList.add('hidden');
+
+    if (!data) {
+      document.getElementById('error').classList.remove('hidden');
+      feedEl.innerHTML = '';
+      return;
+    }
+
+    cache = data;
+    document.getElementById('stat-conflicts').textContent = cache.length;
+    renderSourceChips();
+    render();
+    handleHash();
+  }
+
+  // ── Theme toggle ────────────────────────────────────────────────────────
+  const themeBtn  = document.getElementById('theme-toggle');
+  const themeIcon = document.getElementById('theme-icon');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeIcon.innerHTML = t === 'dark' ? ICONS.moon : ICONS.sun;
+    themeBtn.title = `Switch to ${t === 'dark' ? 'light' : 'dark'} mode`;
+  }
+  // Initial theme: stored choice → system pref → default dark
+  let theme = localStorage.getItem('crisislens.theme');
+  if (!theme) theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  applyTheme(theme);
+  themeBtn.onclick = () => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('crisislens.theme', theme);
+    applyTheme(theme);
+  };
+
+  // ── Wire up controls ────────────────────────────────────────────────────
+  langBtn.onclick = () => {
+    preferAr = !preferAr;
+    localStorage.setItem('crisislens.lang', preferAr ? 'ar' : 'en');
+    applyLang();
+    render();
+  };
+  document.getElementById('refresh').onclick = load;
+  document.querySelectorAll('.filter-lang').forEach(b => {
+    b.onclick = () => {
+      langFilter = b.dataset.lang;
+      document.querySelectorAll('.filter-lang').forEach(x => x.classList.toggle('active', x === b));
+      render();
+    };
+  });
+  document.querySelectorAll('.filter-sort').forEach(b => {
+    b.onclick = () => {
+      sortMode = b.dataset.sort;
+      document.querySelectorAll('.filter-sort').forEach(x => x.classList.toggle('active', x === b));
+      render();
+    };
+  });
+
+  load();
+  </script>
+</body>
+</html>
