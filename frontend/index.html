@@ -332,6 +332,36 @@
     .sub-label { font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 .6rem; }
     [dir="rtl"] .sub-label { letter-spacing: 0; font-size: .78rem; }
 
+    /* ── Search Bar ──────────────────────────────────────────────────── */
+    .search-bar {
+      background: var(--bg); border-bottom: 1px solid var(--line);
+      max-height: 0; overflow: hidden;
+      transition: max-height .22s ease, padding .22s ease;
+    }
+    .search-bar.open { max-height: 72px; }
+    .search-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .search-input {
+      flex: 1; background: none; border: none; outline: none;
+      font-family: inherit; font-size: .95rem; color: var(--ink);
+      padding: 1rem 0; caret-color: var(--accent);
+    }
+    [dir="rtl"] .search-input { font-family: 'Tajawal', sans-serif; font-size: 1rem; }
+    .search-input::placeholder { color: var(--muted-2); }
+    .search-clear {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted-2); font-size: .8rem; padding: .3rem;
+      transition: color .15s; display: none;
+    }
+    .search-clear.visible { display: block; }
+    .search-clear:hover { color: var(--muted); }
+    .search-count {
+      font-size: .72rem; color: var(--muted); white-space: nowrap; flex-shrink: 0;
+    }
+    [dir="rtl"] .search-count { font-size: .8rem; }
+
     /* ── Hero Banner ─────────────────────────────────────────────────── */
     .hero-banner {
       background: var(--bg-featured);
@@ -478,6 +508,9 @@
         <span id="beta-label" style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-inline-start:.2rem;">BETA</span>
       </div>
       <nav style="display:flex;align-items:center;gap:.25rem">
+        <button class="nav-btn" id="search-btn" title="Search" style="display:flex;align-items:center;gap:.3rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
         <button class="nav-btn" id="lang-btn">العربية</button>
         <button class="nav-btn" id="theme-btn" title="Toggle theme">
           <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
@@ -486,6 +519,16 @@
       </nav>
     </div>
   </header>
+
+  <!-- SEARCH BAR -->
+  <div id="search-bar" class="search-bar">
+    <div class="search-inner">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search-input" class="search-input" type="search" autocomplete="off" spellcheck="false">
+      <span id="search-count" class="search-count" style="display:none"></span>
+      <button id="search-clear" class="search-clear" aria-label="Clear search">✕</button>
+    </div>
+  </div>
 
   <!-- HERO BANNER -->
   <div id="hero-banner" class="hero-banner">
@@ -617,6 +660,8 @@
       cold_hint_sub: 'Free-tier hosting sleeps after inactivity. Should be ready in ~30 seconds.',
       error_msg: "Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.",
       empty_msg: 'No contradictions match these filters.',
+      search_placeholder: 'Search headlines…',
+      search_empty: q => `No results for "${q}"`,
       hero_tag: 'What is this?',
       hero_tagline: 'The same event. Two narratives. You decide.',
       hero_desc: 'CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.',
@@ -674,6 +719,8 @@
       cold_hint_sub: 'الاستضافة المجانية تتوقف عند عدم الاستخدام. ستكون جاهزة خلال ~٣٠ ثانية.',
       error_msg: 'تعذّر الوصول إلى الخادم. الخدمات المجانية تتوقف أحياناً — حاول مرة أخرى بعد دقيقة.',
       empty_msg: 'لا توجد تناقضات تطابق هذه الفلاتر.',
+      search_placeholder: 'ابحث في العناوين…',
+      search_empty: q => `لا نتائج لـ "${q}"`,
       hero_tag: 'ما هذا؟',
       hero_tagline: 'الحدث نفسه. روايتان. أنتَ القاضي.',
       hero_desc: 'كرايسيس لنز يرصد التناقضات بين كبرى وسائل الإعلام حين تتعارض في تغطية الحدث ذاته — من مصادر عربية وغربية وإسرائيلية وغيرها في الوقت الفعلي. انقر على أي بطاقة لرؤية المقارنة الكاملة.',
@@ -771,6 +818,7 @@
   let langFilter = 'all';
   let sortMode = 'score';
   let topicFilter = 'all';
+  let searchQuery = '';
 
   function pickHL(c, side) {
     const en = c[`headline_${side}_en`];
@@ -790,6 +838,13 @@
     if (!matchesTopic(c, topicFilter)) return false;
     if (langFilter === 'ar' && !(c.headline_1_ar||c.headline_2_ar)) return false;
     if (langFilter === 'en' && !(c.headline_1_en||c.headline_2_en)) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const hay = [c.headline_1_en, c.headline_2_en, c.headline_1_ar, c.headline_2_ar,
+                   c.source_1_name, c.source_2_name]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   }
   function sortRows(rows) {
@@ -850,7 +905,17 @@
     const filtered = sortRows(cache.filter(rowMatches));
     document.getElementById('stat-shown').textContent = filtered.length;
     document.getElementById('stat-cross').textContent = cache.filter(isCross).length;
-    document.getElementById('empty-msg').textContent = t('empty_msg');
+    document.getElementById('empty-msg').textContent = searchQuery ? t('search_empty', searchQuery) : t('empty_msg');
+    // Update search count
+    const sc = document.getElementById('search-count');
+    if (sc) {
+      if (searchQuery) {
+        sc.textContent = preferAr ? `${filtered.length} نتيجة` : `${filtered.length} results`;
+        sc.style.display = 'block';
+      } else {
+        sc.style.display = 'none';
+      }
+    }
 
     const featured = [...filtered]
       .sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score))
@@ -1181,6 +1246,41 @@
     };
   });
   document.getElementById('refresh-btn').onclick = load;
+
+  // Search
+  const searchBar   = document.getElementById('search-bar');
+  const searchInput = document.getElementById('search-input');
+  const searchClear = document.getElementById('search-clear');
+
+  document.getElementById('search-btn').onclick = () => {
+    const opening = !searchBar.classList.contains('open');
+    searchBar.classList.toggle('open');
+    if (opening) {
+      searchInput.placeholder = t('search_placeholder');
+      setTimeout(() => searchInput.focus(), 220);
+    } else {
+      searchQuery = '';
+      searchInput.value = '';
+      searchClear.classList.remove('visible');
+      if (cache) render();
+    }
+  };
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value.trim();
+    searchClear.classList.toggle('visible', !!searchQuery);
+    if (cache) render();
+  });
+  searchClear.onclick = () => {
+    searchQuery = '';
+    searchInput.value = '';
+    searchClear.classList.remove('visible');
+    searchInput.focus();
+    if (cache) render();
+  };
+  // Close search on Escape
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('search-btn').click();
+  });
 
   // Lang toggle
   document.getElementById('lang-btn').onclick = () => {
