@@ -24,6 +24,28 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.on_event("startup")
+def run_startup_migrations():
+    """Idempotent schema migrations — safe to run on every boot."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    ALTER TABLE articles
+                    ADD COLUMN IF NOT EXISTS summary_ar TEXT
+                """)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_articles_needs_summary_ar
+                    ON articles (article_id)
+                    WHERE summary IS NOT NULL
+                      AND summary_ar IS NULL
+                      AND language = 'en'
+                """)
+            conn.commit()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"[startup] migration warning: {e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # tighten in production
