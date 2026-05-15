@@ -78,33 +78,32 @@
     /* Brand identity stays left-to-right regardless of page direction */
     [dir="rtl"] .header { direction: ltr; }
     .header-inner {
-      max-width: 1200px; margin: 0 auto; padding: .9rem 1.5rem;
+      max-width: 1200px; margin: 0 auto; padding: 1.1rem 1.5rem;
       display: flex; align-items: center; justify-content: space-between;
     }
     .wordmark {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink);
+      font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink);
     }
     [dir="rtl"] .wordmark { font-family: 'Noto Naskh Arabic', serif; letter-spacing: 0; }
     .wordmark span { color: var(--accent); }
     .live-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
       animation: livepulse 2s infinite; display: inline-block;
     }
     @keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:.3} }
     .nav-btn {
       background: none; border: none; cursor: pointer;
-      color: var(--muted); font-size: .8rem;
-      padding: .3rem .5rem; border-radius: 4px; transition: color .15s;
+      color: var(--muted); font-size: .85rem;
+      padding: .35rem .6rem; border-radius: 4px; transition: color .15s;
     }
     .nav-btn:hover { color: var(--ink); }
 
     /* ── Category Nav ────────────────────────────────────────────────── */
     .cat-nav {
       border-bottom: 1px solid var(--line); background: var(--bg);
-      position: sticky; top: 49px; z-index: 19;
+      position: sticky; top: 68px; z-index: 19;
     }
-    /* when hero is hidden, cat-nav stays at 49px — fine */
     .cat-nav-inner {
       max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
@@ -114,21 +113,21 @@
     .cat-tabs { display: flex; gap: 0; }
     .cat-tab {
       background: none; border: none; cursor: pointer;
-      color: var(--muted); font-size: .78rem; font-weight: 600;
-      letter-spacing: .06em; text-transform: uppercase;
-      padding: .85rem 1rem; border-bottom: 2px solid transparent;
+      color: var(--muted); font-size: .82rem; font-weight: 600;
+      letter-spacing: .05em; text-transform: uppercase;
+      padding: 1rem 1.1rem; border-bottom: 2px solid transparent;
       white-space: nowrap; transition: color .15s, border-color .15s;
     }
-    [dir="rtl"] .cat-tab { letter-spacing: 0; font-size: .85rem; }
+    [dir="rtl"] .cat-tab { letter-spacing: 0; font-size: .9rem; }
     .cat-tab:hover { color: var(--ink-soft); }
     .cat-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
     .cat-controls { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
     .ctrl-chip {
       background: none; border: 1px solid var(--line); color: var(--muted);
-      font-size: .72rem; font-weight: 500; padding: .3rem .65rem; border-radius: 999px;
+      font-size: .75rem; font-weight: 500; padding: .35rem .75rem; border-radius: 999px;
       cursor: pointer; white-space: nowrap; transition: all .15s;
     }
-    [dir="rtl"] .ctrl-chip { font-size: .78rem; }
+    [dir="rtl"] .ctrl-chip { font-size: .82rem; }
     .ctrl-chip:hover { color: var(--ink); border-color: var(--muted-2); }
     .ctrl-chip.active { color: var(--ink); border-color: var(--ink-soft); background: var(--line-soft); }
 
@@ -311,33 +310,33 @@
     .hero-banner {
       background: var(--bg-featured);
       border-bottom: 1px solid var(--line);
-      padding: 1.1rem 0;
+      padding: 1.75rem 0;
     }
     .hero-inner {
       max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem;
     }
     .hero-content { flex: 1; }
     .hero-tag {
-      font-size: .62rem; font-weight: 700; letter-spacing: .12em;
-      text-transform: uppercase; color: var(--accent); margin-bottom: .35rem;
+      font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: .5rem;
     }
-    [dir="rtl"] .hero-tag { letter-spacing: 0; font-size: .75rem; }
+    [dir="rtl"] .hero-tag { letter-spacing: 0; font-size: .8rem; }
     .hero-tagline {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 1.05rem; font-weight: 700; color: var(--ink);
-      margin: 0 0 .3rem; line-height: 1.3;
+      font-size: 1.55rem; font-weight: 700; color: var(--ink);
+      margin: 0 0 .55rem; line-height: 1.25;
     }
-    [dir="rtl"] .hero-tagline { font-family: 'Noto Naskh Arabic', serif; font-size: 1.1rem; }
+    [dir="rtl"] .hero-tagline { font-family: 'Noto Naskh Arabic', serif; font-size: 1.6rem; }
     .hero-desc {
-      font-size: .8rem; color: var(--muted); line-height: 1.65;
+      font-size: .9rem; color: var(--muted); line-height: 1.7;
       max-width: 680px; margin: 0;
     }
-    [dir="rtl"] .hero-desc { font-size: .86rem; }
+    [dir="rtl"] .hero-desc { font-size: .96rem; }
     .hero-dismiss {
       background: none; border: none; color: var(--muted-2); cursor: pointer;
-      font-size: .75rem; padding: .15rem .4rem; flex-shrink: 0;
-      transition: color .15s; margin-top: .1rem; border-radius: 3px;
+      font-size: .8rem; padding: .2rem .45rem; flex-shrink: 0;
+      transition: color .15s; margin-top: .2rem; border-radius: 3px;
     }
     .hero-dismiss:hover { color: var(--muted); }
 
