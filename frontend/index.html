@@ -254,6 +254,29 @@
       cursor: pointer; font-size: .8rem; flex-shrink: 0; transition: all .15s;
     }
     .modal-close:hover { color: var(--ink); border-color: var(--muted-2); }
+    .modal-share {
+      background: none; border: 1px solid var(--line); color: var(--muted);
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: all .15s; position: relative;
+    }
+    .modal-share:hover { color: var(--ink); border-color: var(--muted-2); }
+    .share-toast {
+      position: absolute; bottom: calc(100% + 7px); right: 0;
+      background: var(--ink); color: var(--bg);
+      font-size: .68rem; font-weight: 600; padding: .3rem .6rem;
+      border-radius: 5px; white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity .15s;
+    }
+    .share-toast.show { opacity: 1; }
+    /* Empty state for missing bias analysis */
+    .bias-empty {
+      border: 1px dashed var(--line); border-radius: 10px;
+      padding: 1.5rem; text-align: center; margin-bottom: 1.25rem;
+    }
+    .bias-empty-icon { font-size: 1.4rem; margin-bottom: .5rem; opacity: .4; }
+    .bias-empty-title { font-size: .82rem; font-weight: 600; color: var(--ink-soft); margin-bottom: .3rem; }
+    .bias-empty-desc { font-size: .75rem; color: var(--muted); line-height: 1.55; }
     .modal-tabs {
       display: flex; padding: 0 1.5rem; border-bottom: 1px solid var(--line);
       gap: .1rem; overflow-x: auto;
@@ -586,6 +609,10 @@
       hero_tagline: 'The same event. Two narratives. You decide.',
       hero_desc: 'CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.',
       score_tooltip: 'Contradiction score: how strongly our AI detected a factual or framing conflict between these two reports. Higher = more contradictory.',
+      share_copied: 'Link copied!',
+      share_title: (s1, s2) => `${s1} vs ${s2} — CrisisLens`,
+      bias_empty_title: 'Comparison analysis pending',
+      bias_empty_desc: 'Our AI compares what each source claims, flags factual disagreements, and identifies framing differences. It runs every 15 minutes on high-score contradictions.',
       r_mena: 'Pan-Arab', r_gulf: 'Gulf', r_west: 'Western', r_isr: 'Israeli',
       r_pal: 'Palestinian', r_res: 'Resistance media', r_tur: 'Turkish',
       r_inde: 'Independent', r_neut: 'Unaligned',
@@ -633,6 +660,10 @@
       hero_tagline: 'الحدث نفسه. روايتان. أنتَ القاضي.',
       hero_desc: 'كرايسيس لنز يرصد التناقضات بين كبرى وسائل الإعلام حين تتعارض في تغطية الحدث ذاته — من مصادر عربية وغربية وإسرائيلية وغيرها في الوقت الفعلي. انقر على أي بطاقة لرؤية المقارنة الكاملة.',
       score_tooltip: 'نسبة التناقض: مدى قوة التعارض الذي رصده الذكاء الاصطناعي بين التقريرين. كلما ارتفعت النسبة، زاد التعارض.',
+      share_copied: 'تم نسخ الرابط!',
+      share_title: (s1, s2) => `${s1} مقابل ${s2} — كرايسيس لنز`,
+      bias_empty_title: 'التحليل المقارن قيد الإعداد',
+      bias_empty_desc: 'يقارن الذكاء الاصطناعي ما يدّعيه كل مصدر، ويرصد الخلافات الحقائقية، ويحدد اختلافات الإطار. يعمل كل ١٥ دقيقة على التناقضات الأعلى تقييماً.',
       r_mena: 'عربي', r_gulf: 'خليجي', r_west: 'غربي', r_isr: 'إسرائيلي',
       r_pal: 'فلسطيني', r_res: 'إعلام المقاومة', r_tur: 'تركي',
       r_inde: 'مستقل', r_neut: 'محايد',
@@ -892,7 +923,12 @@
           </div>
           ${(ba.factual_disagreement||ba.factual_disagreement_ar) ? `<div class="sub-label">${t('factual_disagreement')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${(preferAr ? ba.factual_disagreement_ar : null) || ba.factual_disagreement}</p>` : ''}
           ${(ba.framing_difference||ba.framing_difference_ar)     ? `<div class="sub-label">${t('framing_difference')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${(preferAr ? ba.framing_difference_ar : null) || ba.framing_difference}</p>` : ''}
-        ` : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-bottom:1rem">${t('bias_pending')}</p>`}
+        ` : `
+          <div class="bias-empty">
+            <div class="bias-empty-icon">⚖️</div>
+            <div class="bias-empty-title">${t('bias_empty_title')}</div>
+            <div class="bias-empty-desc">${t('bias_empty_desc')}</div>
+          </div>`}
 
         <div class="sub-label">${t('signal_breakdown')}</div>
         <div class="metric-row">
@@ -931,7 +967,13 @@
             ${cross   ? `<span class="badge" style="font-size:.62rem">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
           </div>
         </div>
-        <button class="modal-close" id="modal-close">✕</button>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+          <button class="modal-share" id="modal-share" title="Share">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span class="share-toast" id="share-toast"></span>
+          </button>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
       </div>
       <div class="modal-tabs">
         <button class="modal-tab active" data-tab="1">${n1}</button>
@@ -945,8 +987,26 @@
       </div>`;
   }
 
-  function wireModal() {
+  function wireModal(c) {
     document.getElementById('modal-close').onclick = closeModal;
+
+    // Share button
+    document.getElementById('modal-share').onclick = () => {
+      const url   = `${location.origin}${location.pathname}#c${c.conflict_id}`;
+      const title = t('share_title', c.source_1, c.source_2);
+      const toast = document.getElementById('share-toast');
+      const show  = () => {
+        toast.textContent = t('share_copied');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 1800);
+      };
+      if (navigator.share) {
+        navigator.share({ title, url }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(url).then(show).catch(show);
+      }
+    };
+
     const panes = document.querySelectorAll('.modal-pane');
     const tabs  = document.querySelectorAll('.modal-tab');
     function activate(key) {
@@ -964,7 +1024,7 @@
     document.getElementById('modal-box').innerHTML = buildModal(c);
     document.getElementById('modal-wrap').classList.add('open');
     document.body.style.overflow = 'hidden';
-    wireModal();
+    wireModal(c);
   }
   function closeModal() {
     document.getElementById('modal-wrap').classList.remove('open');
