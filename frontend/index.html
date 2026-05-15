@@ -366,6 +366,73 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+    /* ── Mobile ──────────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      /* Header */
+      .header-inner { padding: .85rem 1rem; }
+      .wordmark { font-size: 1.3rem; }
+      .nav-github { display: none; }
+      .nav-btn { font-size: .8rem; padding: .3rem .45rem; }
+
+      /* Hero */
+      .hero-banner { padding: 1.25rem 0; }
+      .hero-inner { padding: 0 1rem; gap: 1rem; }
+      .hero-tagline { font-size: 1.2rem; }
+      .hero-desc { font-size: .82rem; }
+
+      /* Cat nav — let everything scroll in one row */
+      .cat-nav { top: 58px; }
+      .cat-nav-inner {
+        padding: 0 1rem;
+        justify-content: flex-start;
+        gap: 0;
+      }
+      .cat-tabs { flex-shrink: 0; }
+      .cat-tab { padding: .85rem .8rem; font-size: .75rem; }
+      .cat-controls {
+        flex-shrink: 0;
+        padding-inline-start: .75rem;
+        border-inline-start: 1px solid var(--line);
+        gap: .35rem;
+      }
+      .ctrl-chip { font-size: .7rem; padding: .28rem .55rem; }
+
+      /* Page */
+      .page { padding: 0 1rem 4rem; }
+
+      /* Modal — bottom sheet */
+      .modal-wrap {
+        padding: 0;
+        align-items: flex-end;
+        justify-content: stretch;
+      }
+      .modal-box {
+        border-radius: 18px 18px 0 0;
+        margin: 0;
+        width: 100%;
+        max-height: 92vh;
+        overflow-y: auto;
+        animation: slideUp .22s ease-out;
+      }
+      @keyframes slideUp { from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1} }
+      .modal-head { padding: 1.1rem 1rem .4rem; }
+      .modal-hl { font-size: 1.25rem; }
+      .modal-tabs { padding: 0 1rem; }
+      .modal-tab { padding: .75rem .85rem; font-size: .76rem; }
+      .modal-body { padding: 1rem; }
+      .modal-meta { gap: .35rem; }
+      .cmp-text { font-size: .84rem; }
+      .metric-row { gap: .45rem; }
+
+      /* Cards */
+      .featured-card { padding: 1.1rem; }
+      .feed-card { padding: 1rem; }
+      .card-hl { font-size: .95rem !important; }
+
+      /* Score tooltip — flip above to the left on small screens */
+      .score-tooltip { right: auto; left: 0; width: 200px; }
+    }
   </style>
 </head>
 <body>
@@ -383,7 +450,7 @@
         <button class="nav-btn" id="theme-btn" title="Toggle theme">
           <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
         </button>
-        <a href="https://github.com/daniehben/CrisisLens" class="nav-btn" style="text-decoration:none">GitHub</a>
+        <a href="https://github.com/daniehben/CrisisLens" class="nav-btn nav-github" style="text-decoration:none">GitHub</a>
       </nav>
     </div>
   </header>
