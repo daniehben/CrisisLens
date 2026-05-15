@@ -550,7 +550,15 @@
       </div>
     </div>
 
-    <div id="cold-hint" style="display:none" class="msg-box"></div>
+    <div id="cold-hint" style="display:none">
+      <div style="max-width:320px;margin:3rem auto;text-align:center;padding:0 1rem">
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:1rem" id="cold-hint-text"></div>
+        <div style="height:2px;background:var(--line);border-radius:999px;overflow:hidden;margin-bottom:.75rem">
+          <div id="cold-progress" style="height:100%;background:var(--accent);border-radius:999px;width:0%;transition:width 1s linear"></div>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted-2)" id="cold-hint-sub"></div>
+      </div>
+    </div>
 
     <div id="main-view" style="display:none">
       <div class="section-label" id="featured-label">Most Disputed · Now</div>
@@ -605,13 +613,19 @@
       m_contradiction: 'Contradiction', m_similarity: 'Similarity',
       m_score: 'Final score', m_trust: 'Trust spread',
       detected: 'Detected', conflict_id: 'ID', conflict_type: 'Type',
-      cold_hint: 'Waking up the API — first request after quiet period can take ~50 seconds on free hosting.',
+      cold_hint: 'Waking up the server…',
+      cold_hint_sub: 'Free-tier hosting sleeps after inactivity. Should be ready in ~30 seconds.',
       error_msg: "Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.",
       empty_msg: 'No contradictions match these filters.',
       hero_tag: 'What is this?',
       hero_tagline: 'The same event. Two narratives. You decide.',
       hero_desc: 'CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.',
       score_tooltip: 'Contradiction score: how strongly our AI detected a factual or framing conflict between these two reports. Higher = more contradictory.',
+      ctype_numeric: 'Numeric disagreement',
+      ctype_semantic: 'Semantic conflict',
+      ctype_framing: 'Framing difference',
+      ctype_contradiction: 'Contradiction',
+      ctype_factual: 'Factual dispute',
       share_copied: 'Link copied!',
       share_title: (s1, s2) => `${s1} vs ${s2} — CrisisLens`,
       bias_empty_title: 'Comparison analysis pending',
@@ -656,13 +670,19 @@
       m_contradiction: 'تناقض', m_similarity: 'تشابه',
       m_score: 'النتيجة', m_trust: 'توزع الموثوقية',
       detected: 'رُصد', conflict_id: 'رقم', conflict_type: 'نوع',
-      cold_hint: 'جاري تشغيل الخادم — قد تستغرق الطلبات الأولى ما يصل إلى ٥٠ ثانية.',
+      cold_hint: 'جاري تشغيل الخادم…',
+      cold_hint_sub: 'الاستضافة المجانية تتوقف عند عدم الاستخدام. ستكون جاهزة خلال ~٣٠ ثانية.',
       error_msg: 'تعذّر الوصول إلى الخادم. الخدمات المجانية تتوقف أحياناً — حاول مرة أخرى بعد دقيقة.',
       empty_msg: 'لا توجد تناقضات تطابق هذه الفلاتر.',
       hero_tag: 'ما هذا؟',
       hero_tagline: 'الحدث نفسه. روايتان. أنتَ القاضي.',
       hero_desc: 'كرايسيس لنز يرصد التناقضات بين كبرى وسائل الإعلام حين تتعارض في تغطية الحدث ذاته — من مصادر عربية وغربية وإسرائيلية وغيرها في الوقت الفعلي. انقر على أي بطاقة لرؤية المقارنة الكاملة.',
       score_tooltip: 'نسبة التناقض: مدى قوة التعارض الذي رصده الذكاء الاصطناعي بين التقريرين. كلما ارتفعت النسبة، زاد التعارض.',
+      ctype_numeric: 'تناقض رقمي',
+      ctype_semantic: 'تعارض دلالي',
+      ctype_framing: 'اختلاف في الإطار',
+      ctype_contradiction: 'تناقض',
+      ctype_factual: 'خلاف حقائقي',
       share_copied: 'تم نسخ الرابط!',
       share_title: (s1, s2) => `${s1} مقابل ${s2} — كرايسيس لنز`,
       bias_empty_title: 'التحليل المقارن قيد الإعداد',
@@ -943,7 +963,7 @@
         <div style="font-size:.65rem;color:var(--muted);margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem">
           <span>${t('detected')}: <span style="color:var(--ink-soft)">${fullDate(c.detected_at)}</span></span>
           <span>${t('conflict_id')}: <span style="color:var(--ink-soft)">#${c.conflict_id}</span></span>
-          ${c.conflict_type ? `<span>${t('conflict_type')}: <span style="color:var(--ink-soft)">${c.conflict_type}</span></span>` : ''}
+          ${c.conflict_type ? `<span>${t('conflict_type')}: <span style="color:var(--ink-soft)">${t('ctype_' + c.conflict_type) || c.conflict_type}</span></span>` : ''}
         </div>
       </div>`;
   }
@@ -961,9 +981,9 @@
             ${t('contradiction_label')} · ${conf}%
           </div>
           <div style="font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center">
-            <span>${c.source_1} <span style="color:${regionColor(c.source_1)}">●</span></span>
+            <span>${n1} <span style="color:${regionColor(c.source_1)}">●</span></span>
             <span style="color:var(--line)">${t('vs')}</span>
-            <span>${c.source_2} <span style="color:${regionColor(c.source_2)}">●</span></span>
+            <span>${n2} <span style="color:${regionColor(c.source_2)}">●</span></span>
             <span style="color:var(--line)">·</span>
             <span>${timeAgo(c.detected_at)}</span>
             ${numeric ? `<span class="badge badge-numeric" style="font-size:.62rem">${ICON_NEQ} ${t('badge_numeric')}</span>` : ''}
@@ -1061,7 +1081,10 @@
     document.getElementById('stat-lbl-cross').textContent = t('stat_cross');
     document.getElementById('stat-lbl-shown').textContent = t('stat_shown');
     document.getElementById('refresh-btn').textContent = t('refresh');
-    document.getElementById('cold-hint').textContent = t('cold_hint');
+    const cht = document.getElementById('cold-hint-text');
+    const chs = document.getElementById('cold-hint-sub');
+    if (cht) cht.textContent = t('cold_hint');
+    if (chs) chs.textContent = t('cold_hint_sub');
     document.getElementById('error-view').textContent = t('error_msg');
 
     document.querySelectorAll('.cat-tab').forEach(btn => {
@@ -1093,11 +1116,20 @@
     document.getElementById('error-view').style.display = 'none';
     document.getElementById('cold-hint').style.display = 'none';
 
+    let progressTimer = null;
     const slow = setTimeout(()=>{
-      const el = document.getElementById('cold-hint');
-      el.textContent = t('cold_hint');
-      el.style.display = 'block';
-    }, 5000);
+      const hint = document.getElementById('cold-hint');
+      document.getElementById('cold-hint-text').textContent = t('cold_hint');
+      document.getElementById('cold-hint-sub').textContent  = t('cold_hint_sub');
+      hint.style.display = 'block';
+      // Animate progress bar over ~45s
+      let pct = 0;
+      const bar = document.getElementById('cold-progress');
+      progressTimer = setInterval(() => {
+        pct = Math.min(pct + (100 / 45), 95); // approach 95%, never reach 100 until done
+        bar.style.width = pct + '%';
+      }, 1000);
+    }, 4000);
 
     let promise = window.__CL_DATA;
     if (!promise) promise = fetch(`https://crisislens-api.onrender.com/api/v1/conflicts?limit=100`).then(r=>r.ok?r.json():null).catch(()=>null);
@@ -1105,6 +1137,10 @@
 
     const data = await promise;
     clearTimeout(slow);
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    // Snap progress to 100% briefly before hiding
+    const bar = document.getElementById('cold-progress');
+    if (bar) bar.style.width = '100%';
     document.getElementById('cold-hint').style.display = 'none';
     document.getElementById('loading-view').style.display = 'none';
 
