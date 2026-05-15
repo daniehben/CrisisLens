@@ -14,6 +14,7 @@ from backend.nlp_pipeline.task10_pairs import run_task10
 from backend.nlp_pipeline.task11_nli import run_task11
 from backend.nlp_pipeline.task12_conflicts import run_task12
 from backend.nlp_pipeline.task13_bias_analysis import run_task13
+from backend.nlp_pipeline.task14_translate_analysis import run_task14
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ def run_ingestion_and_nlp():
     run_task11()
     run_task12()
     run_task13()     # LLM bias analysis per new conflict (Groq)
+    run_task14()     # Translate bias analysis fields to Arabic
     
     
 def main():

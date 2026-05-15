@@ -678,7 +678,9 @@
     const trust = c[`trust_score_${side}`];
     const url   = side==='1' ? c.url_a : c.url_b;
     const pub   = c[`published_${side}`];
-    const text  = c[`summary_${side}`] || c[`body_${side}`] || '';
+    const text  = preferAr
+      ? (c[`summary_${side}_ar`] || c[`summary_${side}`] || c[`body_${side}`] || '')
+      : (c[`summary_${side}`] || c[`body_${side}`] || '');
     const isSummary = !!c[`summary_${side}`];
     const { primary, secondary } = pickHL(c, side);
     const isAr = preferAr && !!c[`headline_${side}_ar`];
@@ -730,15 +732,15 @@
           <div class="cmp-grid">
             <div class="cmp-block" style="border-inline-start-color:${c1}">
               <div class="cmp-src" style="color:${c1}">${c.source_1} · ${regionLabel(c.source_1)}</div>
-              <div class="cmp-text" dir="auto">${ba.claims_a||'—'}</div>
+              <div class="cmp-text">${(preferAr ? ba.claims_a_ar : null) || ba.claims_a || '—'}</div>
             </div>
             <div class="cmp-block" style="border-inline-start-color:${c2}">
               <div class="cmp-src" style="color:${c2}">${c.source_2} · ${regionLabel(c.source_2)}</div>
-              <div class="cmp-text" dir="auto">${ba.claims_b||'—'}</div>
+              <div class="cmp-text">${(preferAr ? ba.claims_b_ar : null) || ba.claims_b || '—'}</div>
             </div>
           </div>
-          ${ba.factual_disagreement ? `<div class="sub-label">${t('factual_disagreement')}</div><p dir="auto" style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${ba.factual_disagreement}</p>` : ''}
-          ${ba.framing_difference   ? `<div class="sub-label">${t('framing_difference')}</div><p dir="auto" style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${ba.framing_difference}</p>` : ''}
+          ${(ba.factual_disagreement||ba.factual_disagreement_ar) ? `<div class="sub-label">${t('factual_disagreement')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${(preferAr ? ba.factual_disagreement_ar : null) || ba.factual_disagreement}</p>` : ''}
+          ${(ba.framing_difference||ba.framing_difference_ar)     ? `<div class="sub-label">${t('framing_difference')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${(preferAr ? ba.framing_difference_ar : null) || ba.framing_difference}</p>` : ''}
         ` : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-bottom:1rem">${t('bias_pending')}</p>`}
 
         <div class="sub-label">${t('signal_breakdown')}</div>
