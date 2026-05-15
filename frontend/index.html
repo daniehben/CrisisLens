@@ -339,6 +339,12 @@
       transition: color .15s; margin-top: .2rem; border-radius: 3px;
     }
     .hero-dismiss:hover { color: var(--muted); }
+    /* Collapsed state */
+    .hero-banner.hero-collapsed { padding: .5rem 0; }
+    .hero-banner.hero-collapsed .hero-content { display: none; }
+    .hero-banner.hero-collapsed .hero-dismiss {
+      color: var(--muted); font-size: .75rem; font-weight: 500;
+    }
 
     /* ── Score Tooltip ───────────────────────────────────────────────── */
     .score-info { position: relative; display: inline-flex; align-items: center; gap: .25rem; }
@@ -1097,15 +1103,28 @@
     applyTheme(theme);
   };
 
-  // Hero dismiss
+  // Hero dismiss — collapses to a slim "What is this?" bar, click to re-expand
   (function() {
-    const banner = document.getElementById('hero-banner');
-    if (localStorage.getItem('cl.hero') === '1') {
-      banner.style.display = 'none';
-    }
-    document.getElementById('hero-dismiss').onclick = () => {
-      banner.style.display = 'none';
+    const banner  = document.getElementById('hero-banner');
+    const content = document.getElementById('hero-content-wrap');
+    const dismiss = document.getElementById('hero-dismiss');
+
+    function collapse() {
+      banner.classList.add('hero-collapsed');
+      dismiss.textContent = preferAr ? '▾ ما هذا؟' : '▾ What is this?';
       localStorage.setItem('cl.hero', '1');
+    }
+    function expand() {
+      banner.classList.remove('hero-collapsed');
+      dismiss.textContent = '✕';
+      localStorage.removeItem('cl.hero');
+    }
+
+    if (localStorage.getItem('cl.hero') === '1') collapse();
+
+    dismiss.onclick = () => {
+      if (banner.classList.contains('hero-collapsed')) expand();
+      else collapse();
     };
   })();
 
