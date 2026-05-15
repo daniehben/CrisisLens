@@ -668,6 +668,9 @@
     });
   }
 
+  // ── Helpers ─────────────────────────────────────────────────────────
+  function hasArabic(s) { return s && /[؀-ۿ]/.test(s); }
+
   // ── Modal builders ──────────────────────────────────────────────────
   function buildArticlePane(c, side) {
     const code = c[`source_${side}`];
@@ -696,8 +699,12 @@
         </div>
         <div class="modal-hl ${isAr?'ar':''}">${primary||'—'}</div>
         ${secondary ? `<p style="color:var(--muted);font-size:.9rem;margin-bottom:.75rem" class="${preferAr?'':'ar'}">${secondary}</p>` : ''}
-        ${text
-          ? `<p class="modal-article-body ${isAr?'ar':''}">${text}</p>`
+        ${text ? (() => {
+            const bodyIsAr = hasArabic(text);
+            const mismatch = preferAr && !bodyIsAr;
+            return `${mismatch ? `<p style="color:var(--muted);font-size:.72rem;font-style:italic;margin-bottom:.35rem">النص الأصلي بالإنجليزية</p>` : ''}
+            <p class="modal-article-body" dir="auto">${text}</p>`;
+          })()
           : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-top:.75rem">${t('no_body')}</p>`
         }
         ${url ? `<a class="read-link" href="${url}" target="_blank" rel="noopener">
@@ -723,15 +730,15 @@
           <div class="cmp-grid">
             <div class="cmp-block" style="border-inline-start-color:${c1}">
               <div class="cmp-src" style="color:${c1}">${c.source_1} · ${regionLabel(c.source_1)}</div>
-              <div class="cmp-text">${ba.claims_a||'—'}</div>
+              <div class="cmp-text" dir="auto">${ba.claims_a||'—'}</div>
             </div>
             <div class="cmp-block" style="border-inline-start-color:${c2}">
               <div class="cmp-src" style="color:${c2}">${c.source_2} · ${regionLabel(c.source_2)}</div>
-              <div class="cmp-text">${ba.claims_b||'—'}</div>
+              <div class="cmp-text" dir="auto">${ba.claims_b||'—'}</div>
             </div>
           </div>
-          ${ba.factual_disagreement ? `<div class="sub-label">${t('factual_disagreement')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${ba.factual_disagreement}</p>` : ''}
-          ${ba.framing_difference   ? `<div class="sub-label">${t('framing_difference')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${ba.framing_difference}</p>` : ''}
+          ${ba.factual_disagreement ? `<div class="sub-label">${t('factual_disagreement')}</div><p dir="auto" style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${ba.factual_disagreement}</p>` : ''}
+          ${ba.framing_difference   ? `<div class="sub-label">${t('framing_difference')}</div><p dir="auto" style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${ba.framing_difference}</p>` : ''}
         ` : `<p style="color:var(--muted);font-size:.85rem;font-style:italic;margin-bottom:1rem">${t('bias_pending')}</p>`}
 
         <div class="sub-label">${t('signal_breakdown')}</div>
