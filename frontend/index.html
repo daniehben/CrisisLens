@@ -246,7 +246,10 @@
     .modal-head {
       padding: 1.5rem 1.5rem .5rem;
       display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+      direction: ltr; /* close button always top-right regardless of RTL */
     }
+    /* but let the title text inside honour RTL */
+    .modal-head > div:first-child { direction: inherit; }
     .modal-close {
       background: none; border: 1px solid var(--line); color: var(--muted);
       width: 32px; height: 32px; border-radius: 50%;
