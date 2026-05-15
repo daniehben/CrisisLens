@@ -75,6 +75,8 @@
       position: sticky; top: 0; z-index: 20;
       background: var(--bg); border-bottom: 1px solid var(--line);
     }
+    /* Brand identity stays left-to-right regardless of page direction */
+    [dir="rtl"] .header { direction: ltr; }
     .header-inner {
       max-width: 1200px; margin: 0 auto; padding: .9rem 1.5rem;
       display: flex; align-items: center; justify-content: space-between;
