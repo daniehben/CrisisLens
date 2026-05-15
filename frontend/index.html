@@ -104,6 +104,7 @@
       border-bottom: 1px solid var(--line); background: var(--bg);
       position: sticky; top: 49px; z-index: 19;
     }
+    /* when hero is hidden, cat-nav stays at 49px — fine */
     .cat-nav-inner {
       max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
@@ -306,6 +307,61 @@
     .sub-label { font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 .6rem; }
     [dir="rtl"] .sub-label { letter-spacing: 0; font-size: .78rem; }
 
+    /* ── Hero Banner ─────────────────────────────────────────────────── */
+    .hero-banner {
+      background: var(--bg-featured);
+      border-bottom: 1px solid var(--line);
+      padding: 1.1rem 0;
+    }
+    .hero-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    }
+    .hero-content { flex: 1; }
+    .hero-tag {
+      font-size: .62rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: .35rem;
+    }
+    [dir="rtl"] .hero-tag { letter-spacing: 0; font-size: .75rem; }
+    .hero-tagline {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.05rem; font-weight: 700; color: var(--ink);
+      margin: 0 0 .3rem; line-height: 1.3;
+    }
+    [dir="rtl"] .hero-tagline { font-family: 'Noto Naskh Arabic', serif; font-size: 1.1rem; }
+    .hero-desc {
+      font-size: .8rem; color: var(--muted); line-height: 1.65;
+      max-width: 680px; margin: 0;
+    }
+    [dir="rtl"] .hero-desc { font-size: .86rem; }
+    .hero-dismiss {
+      background: none; border: none; color: var(--muted-2); cursor: pointer;
+      font-size: .75rem; padding: .15rem .4rem; flex-shrink: 0;
+      transition: color .15s; margin-top: .1rem; border-radius: 3px;
+    }
+    .hero-dismiss:hover { color: var(--muted); }
+
+    /* ── Score Tooltip ───────────────────────────────────────────────── */
+    .score-info { position: relative; display: inline-flex; align-items: center; gap: .25rem; }
+    .score-info-icon {
+      width: 13px; height: 13px; border-radius: 50%;
+      border: 1px solid var(--muted-2); color: var(--muted-2);
+      font-size: .55rem; font-weight: 700; font-style: normal;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: default; flex-shrink: 0; line-height: 1;
+    }
+    .score-tooltip {
+      position: absolute; bottom: calc(100% + 7px); right: 0;
+      background: var(--bg-card); border: 1px solid var(--line);
+      border-radius: 7px; padding: .55rem .7rem;
+      font-size: .7rem; line-height: 1.55; color: var(--ink-soft);
+      pointer-events: none; opacity: 0; transition: opacity .15s;
+      z-index: 30; width: 220px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.35);
+    }
+    [dir="rtl"] .score-tooltip { right: auto; left: 0; font-size: .76rem; }
+    .score-info:hover .score-tooltip { opacity: 1; }
+
     /* ── Utility ─────────────────────────────────────────────────────── */
     .msg-box { text-align: center; padding: 5rem 1rem; color: var(--muted); font-size: .88rem; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -332,6 +388,18 @@
       </nav>
     </div>
   </header>
+
+  <!-- HERO BANNER -->
+  <div id="hero-banner" class="hero-banner">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-tag" id="hero-tag">What is this?</div>
+        <p class="hero-tagline" id="hero-tagline">The same event. Two narratives. You decide.</p>
+        <p class="hero-desc" id="hero-desc">CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.</p>
+      </div>
+      <button class="hero-dismiss" id="hero-dismiss" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
 
   <!-- CATEGORY NAV -->
   <nav class="cat-nav">
@@ -442,6 +510,10 @@
       cold_hint: 'Waking up the API — first request after quiet period can take ~50 seconds on free hosting.',
       error_msg: "Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.",
       empty_msg: 'No contradictions match these filters.',
+      hero_tag: 'What is this?',
+      hero_tagline: 'The same event. Two narratives. You decide.',
+      hero_desc: 'CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.',
+      score_tooltip: 'Contradiction score: how strongly our AI detected a factual or framing conflict between these two reports. Higher = more contradictory.',
       r_mena: 'Pan-Arab', r_gulf: 'Gulf', r_west: 'Western', r_isr: 'Israeli',
       r_pal: 'Palestinian', r_res: 'Resistance media', r_tur: 'Turkish',
       r_inde: 'Independent', r_neut: 'Unaligned',
@@ -485,6 +557,10 @@
       cold_hint: 'جاري تشغيل الخادم — قد تستغرق الطلبات الأولى ما يصل إلى ٥٠ ثانية.',
       error_msg: 'تعذّر الوصول إلى الخادم. الخدمات المجانية تتوقف أحياناً — حاول مرة أخرى بعد دقيقة.',
       empty_msg: 'لا توجد تناقضات تطابق هذه الفلاتر.',
+      hero_tag: 'ما هذا؟',
+      hero_tagline: 'الحدث نفسه. روايتان. أنتَ القاضي.',
+      hero_desc: 'كرايسيس لنز يرصد التناقضات بين كبرى وسائل الإعلام حين تتعارض في تغطية الحدث ذاته — من مصادر عربية وغربية وإسرائيلية وغيرها في الوقت الفعلي. انقر على أي بطاقة لرؤية المقارنة الكاملة.',
+      score_tooltip: 'نسبة التناقض: مدى قوة التعارض الذي رصده الذكاء الاصطناعي بين التقريرين. كلما ارتفعت النسبة، زاد التعارض.',
       r_mena: 'عربي', r_gulf: 'خليجي', r_west: 'غربي', r_isr: 'إسرائيلي',
       r_pal: 'فلسطيني', r_res: 'إعلام المقاومة', r_tur: 'تركي',
       r_inde: 'مستقل', r_neut: 'محايد',
@@ -633,7 +709,10 @@
           ${cross   ? `<span class="badge">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
           <div class="conf-wrap">
             <div class="conf-bar"><span style="width:${conf}%"></span></div>
-            <span class="conf-pct">${conf}%</span>
+            <div class="score-info">
+              <span class="conf-pct">${conf}%</span>
+              <i class="score-info-icon">?<span class="score-tooltip">${t('score_tooltip')}</span></i>
+            </div>
           </div>
         </div>
       </div>`;
@@ -859,6 +938,14 @@
       btn.textContent = btn.dataset.sort === 'score' ? t('ctrl_strongest') : t('ctrl_recent');
     });
 
+    // Hero banner strings
+    const heroBanner = document.getElementById('hero-banner');
+    if (heroBanner && heroBanner.style.display !== 'none') {
+      document.getElementById('hero-tag').textContent      = t('hero_tag');
+      document.getElementById('hero-tagline').textContent  = t('hero_tagline');
+      document.getElementById('hero-desc').textContent     = t('hero_desc');
+    }
+
     if (cache) render();
   }
 
@@ -943,6 +1030,18 @@
     localStorage.setItem('cl.theme', theme);
     applyTheme(theme);
   };
+
+  // Hero dismiss
+  (function() {
+    const banner = document.getElementById('hero-banner');
+    if (localStorage.getItem('cl.hero') === '1') {
+      banner.style.display = 'none';
+    }
+    document.getElementById('hero-dismiss').onclick = () => {
+      banner.style.display = 'none';
+      localStorage.setItem('cl.hero', '1');
+    };
+  })();
 
   // Init
   applyLang();   // set dir + strings before data loads
