@@ -445,6 +445,21 @@
     }
     .search-pill-x:hover { opacity: 1; }
 
+    /* ── Card verdict (short AI summary) ────────────────────────────── */
+    .card-verdict {
+      font-size: .72rem; color: var(--muted); line-height: 1.45;
+      font-style: italic; margin-bottom: .65rem;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    [dir="rtl"] .card-verdict { font-size: .8rem; font-style: normal; }
+
+    /* ── Severity label colours ──────────────────────────────────────── */
+    .sev-critical { color: #e74c3c; }
+    .sev-strong   { color: #e67e22; }
+    .sev-significant { color: #d4a017; }
+    .sev-mild     { color: var(--muted); }
+
     /* ── Card entrance animation ─────────────────────────────────────── */
     @keyframes cardIn {
       from { opacity: 0; transform: translateY(6px); }
@@ -705,7 +720,8 @@
       hero_tag: 'What is this?',
       hero_tagline: 'The same event. Two narratives. You decide.',
       hero_desc: 'CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.',
-      score_tooltip: 'Contradiction score: how strongly our AI detected a factual or framing conflict between these two reports. Higher = more contradictory.',
+      sev_critical: 'Critical', sev_strong: 'Strong', sev_significant: 'Significant', sev_mild: 'Mild',
+      score_tooltip: 'Signal strength — how confidently our AI flagged this as a real conflict, weighted by source trust. Critical = high-confidence contradiction between reliable outlets.',
       ctype_numeric: 'Numeric disagreement',
       ctype_semantic: 'Semantic conflict',
       ctype_framing: 'Framing difference',
@@ -764,7 +780,8 @@
       hero_tag: 'ما هذا؟',
       hero_tagline: 'الحدث نفسه. روايتان. أنتَ القاضي.',
       hero_desc: 'كرايسيس لنز يرصد التناقضات بين كبرى وسائل الإعلام حين تتعارض في تغطية الحدث ذاته — من مصادر عربية وغربية وإسرائيلية وغيرها في الوقت الفعلي. انقر على أي بطاقة لرؤية المقارنة الكاملة.',
-      score_tooltip: 'نسبة التناقض: مدى قوة التعارض الذي رصده الذكاء الاصطناعي بين التقريرين. كلما ارتفعت النسبة، زاد التعارض.',
+      sev_critical: 'حرج', sev_strong: 'قوي', sev_significant: 'ملحوظ', sev_mild: 'خفيف',
+      score_tooltip: 'قوة الإشارة — مدى ثقة الذكاء الاصطناعي بأن هذا تعارض حقيقي، مرجّحاً بموثوقية المصدر. "حرج" يعني تناقضاً واضحاً بين مصادر موثوقة.',
       ctype_numeric: 'تناقض رقمي',
       ctype_semantic: 'تعارض دلالي',
       ctype_framing: 'اختلاف في الإطار',
@@ -894,6 +911,28 @@
     return arr;
   }
 
+  // ── Severity helpers ────────────────────────────────────────────────
+  function severityOf(score) {
+    const pct = parseFloat(score) * 100;
+    if (pct >= 85) return { key: 'sev_critical',    cls: 'sev-critical' };
+    if (pct >= 70) return { key: 'sev_strong',      cls: 'sev-strong' };
+    if (pct >= 50) return { key: 'sev_significant', cls: 'sev-significant' };
+    return             { key: 'sev_mild',          cls: 'sev-mild' };
+  }
+
+  function shortVerdict(c) {
+    const ba = c.bias_analysis;
+    if (!ba) return null;
+    // Prefer factual_disagreement, fall back to framing_difference
+    const text = (preferAr ? ba.factual_disagreement_ar : null)
+      || ba.factual_disagreement
+      || (preferAr ? ba.framing_difference_ar : null)
+      || ba.framing_difference
+      || null;
+    if (!text) return null;
+    return text.length > 90 ? text.slice(0, 87).trimEnd() + '…' : text;
+  }
+
   // ── Icons ───────────────────────────────────────────────────────────
   const ICON_NEQ   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 9h14M5 15h14M16 5l-8 14"/></svg>`;
   const ICON_CROSS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>`;
@@ -907,7 +946,8 @@
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
     const numeric = hasNumericDisagreement(c);
     const cross = isCross(c);
-    // Headline direction: if preferAr use RTL class, otherwise check if we have Arabic
+    const sev = severityOf(c.weighted_score);
+    const verdict = shortVerdict(c);
     const hlClass1 = (preferAr && c.headline_1_ar) ? 'ar' : ((!preferAr && !c.headline_1_en && c.headline_1_ar) ? 'ar' : '');
     const hlClass2 = (preferAr && c.headline_2_ar) ? 'ar' : ((!preferAr && !c.headline_2_en && c.headline_2_ar) ? 'ar' : '');
     const delay = Math.min(idx * 0.045, 0.28);
@@ -926,13 +966,14 @@
           <div class="card-divider"></div>
           <div class="card-hl ${hlClass2}" style="color:var(--ink-soft)">${h2||'—'}</div>
         </div>
+        ${verdict ? `<div class="card-verdict">${verdict}</div>` : ''}
         <div class="card-footer">
           ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ} ${t('badge_numeric')}</span>` : ''}
           ${cross   ? `<span class="badge">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
           <div class="conf-wrap">
             <div class="conf-bar"><span style="width:${conf}%"></span></div>
             <div class="score-info">
-              <span class="conf-pct">${conf}%</span>
+              <span class="conf-pct ${sev.cls}">${t(sev.key)}</span>
               <i class="score-info-icon">?<span class="score-tooltip">${t('score_tooltip')}</span></i>
             </div>
           </div>
@@ -1090,13 +1131,15 @@
     const n1 = c.source_1_name || c.source_1;
     const n2 = c.source_2_name || c.source_2;
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
+    const wgt  = Math.round(parseFloat(c.weighted_score)*100);
     const numeric = hasNumericDisagreement(c);
     const cross = isCross(c);
+    const sev = severityOf(c.weighted_score);
     return `
       <div class="modal-head">
         <div>
-          <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.4rem">
-            ${t('contradiction_label')} · ${conf}%
+          <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem" class="${sev.cls}">
+            ${t(sev.key)} · ${wgt}%
           </div>
           <div style="font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center">
             <span>${n1} <span style="color:${regionColor(c.source_1)}">●</span></span>
