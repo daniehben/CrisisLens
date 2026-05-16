@@ -163,40 +163,41 @@
     /* ── Featured Grid ───────────────────────────────────────────────── */
     .featured-grid {
       display: grid; grid-template-columns: 1fr 1fr;
-      gap: 1px; background: var(--line);
-      border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
-      margin-bottom: .25rem;
+      gap: .75rem; margin-bottom: .75rem;
     }
     @media (max-width: 700px) { .featured-grid { grid-template-columns: 1fr; } }
     .featured-card {
       background: var(--bg-featured); padding: 1.5rem; cursor: pointer;
-      transition: background .15s; position: relative;
+      transition: background .15s, border-color .15s; position: relative;
+      border: 1px solid var(--line); border-radius: 12px;
     }
     .featured-card::before {
       content: ''; position: absolute; top: 0; bottom: 0;
       inset-inline-start: 0; width: 3px;
       background: var(--accent); opacity: 0; transition: opacity .15s;
+      border-radius: 12px 0 0 12px;
     }
-    .featured-card:hover { background: var(--bg-card); }
+    .featured-card:hover { background: var(--bg-card); border-color: var(--muted-2); }
     .featured-card:hover::before { opacity: 1; }
 
     /* ── Feed Grid ───────────────────────────────────────────────────── */
     .feed-grid {
       display: grid; grid-template-columns: 1fr 1fr;
-      gap: 1px; background: var(--line);
-      border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+      gap: .75rem;
     }
     @media (max-width: 700px) { .feed-grid { grid-template-columns: 1fr; } }
     .feed-card {
       background: var(--bg-card); padding: 1.25rem 1.35rem;
-      cursor: pointer; transition: background .15s; position: relative;
+      cursor: pointer; transition: background .15s, border-color .15s; position: relative;
+      border: 1px solid var(--line); border-radius: 12px;
     }
     .feed-card::before {
       content: ''; position: absolute; top: 0; bottom: 0;
       inset-inline-start: 0; width: 3px;
       background: var(--accent); opacity: 0; transition: opacity .15s;
+      border-radius: 12px 0 0 12px;
     }
-    .feed-card:hover { background: var(--line-soft); }
+    .feed-card:hover { background: var(--line-soft); border-color: var(--muted-2); }
     .feed-card:hover::before { opacity: 1; }
 
     /* ── Card Internals ──────────────────────────────────────────────── */
