@@ -445,6 +445,38 @@
     }
     .search-pill-x:hover { opacity: 1; }
 
+    /* ── Card story row (shared context chip + time) ─────────────────── */
+    .card-story-row {
+      display: flex; align-items: center; gap: .5rem; margin-bottom: .8rem;
+    }
+    .card-story-ctx {
+      font-size: .6rem; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; color: var(--muted);
+      background: var(--line-soft); padding: .15rem .5rem; border-radius: 3px;
+      max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    [dir="rtl"] .card-story-ctx { letter-spacing: 0; font-size: .68rem; }
+
+    /* ── Card source label (owns its headline) ────────────────────────── */
+    .card-src-label {
+      display: flex; align-items: center; gap: .3rem;
+      font-size: .68rem; font-weight: 700; color: var(--muted);
+      letter-spacing: .03em; margin-bottom: .3rem;
+    }
+    [dir="rtl"] .card-src-label { font-size: .75rem; letter-spacing: 0; }
+
+    /* ── VS separator ────────────────────────────────────────────────── */
+    .card-vs {
+      display: flex; align-items: center; gap: .55rem;
+      font-size: .58rem; font-weight: 800; letter-spacing: .18em;
+      color: var(--muted-2); text-transform: uppercase;
+      margin: .7rem 0;
+    }
+    .card-vs::before, .card-vs::after {
+      content: ''; flex: 1; height: 1px; background: var(--line);
+    }
+    [dir="rtl"] .card-vs { letter-spacing: .05em; }
+
     /* ── Card verdict (short AI summary) ────────────────────────────── */
     .card-verdict {
       font-size: .72rem; color: var(--muted); line-height: 1.45;
@@ -920,6 +952,14 @@
     return             { key: 'sev_mild',          cls: 'sev-mild' };
   }
 
+  function storyContext(c) {
+    // Find the first topic whose keywords appear in the headlines
+    for (const [topic, kws] of Object.entries(TOPICS)) {
+      if (matchesTopic(c, topic)) return t('cat_' + topic);
+    }
+    return null;
+  }
+
   function shortVerdict(c) {
     const ba = c.bias_analysis;
     if (!ba) return null;
@@ -948,25 +988,38 @@
     const cross = isCross(c);
     const sev = severityOf(c.weighted_score);
     const verdict = shortVerdict(c);
+    const ctx = storyContext(c);
+    const n1 = c.source_1_name || c.source_1;
+    const n2 = c.source_2_name || c.source_2;
+    const rc1 = regionColor(c.source_1);
+    const rc2 = regionColor(c.source_2);
     const hlClass1 = (preferAr && c.headline_1_ar) ? 'ar' : ((!preferAr && !c.headline_1_en && c.headline_1_ar) ? 'ar' : '');
     const hlClass2 = (preferAr && c.headline_2_ar) ? 'ar' : ((!preferAr && !c.headline_2_en && c.headline_2_ar) ? 'ar' : '');
     const delay = Math.min(idx * 0.045, 0.28);
     return `
       <div class="${large?'featured-card':'feed-card'} card-in" style="animation-delay:${delay}s" data-cid="${c.conflict_id}">
-        <div class="card-sources">
-          <span class="src-dot" style="background:${regionColor(c.source_1)}"></span>
-          <span>${c.source_1}</span>
-          <span class="vs-slash">/</span>
-          <span class="src-dot" style="background:${regionColor(c.source_2)}"></span>
-          <span>${c.source_2}</span>
-          <span class="card-time">${timeAgo(c.detected_at)}</span>
+
+        <div class="card-story-row">
+          ${ctx ? `<span class="card-story-ctx">${ctx}</span>` : ''}
+          <span class="card-time" style="margin-inline-start:auto">${timeAgo(c.detected_at)}</span>
         </div>
-        <div class="card-headline-wrap">
-          <div class="card-hl ${hlClass1}">${h1||'—'}</div>
-          <div class="card-divider"></div>
-          <div class="card-hl ${hlClass2}" style="color:var(--ink-soft)">${h2||'—'}</div>
+
+        <div class="card-src-label">
+          <span class="src-dot" style="background:${rc1}"></span>
+          <span style="color:${rc1}">${n1}</span>
         </div>
+        <div class="card-hl ${hlClass1}">${h1||'—'}</div>
+
+        <div class="card-vs">vs</div>
+
+        <div class="card-src-label">
+          <span class="src-dot" style="background:${rc2}"></span>
+          <span style="color:${rc2}">${n2}</span>
+        </div>
+        <div class="card-hl ${hlClass2}" style="color:var(--ink-soft)">${h2||'—'}</div>
+
         ${verdict ? `<div class="card-verdict">${verdict}</div>` : ''}
+
         <div class="card-footer">
           ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ} ${t('badge_numeric')}</span>` : ''}
           ${cross   ? `<span class="badge">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
