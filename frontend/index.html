@@ -458,6 +458,12 @@
     }
     [dir="rtl"] .card-story-ctx { letter-spacing: 0; font-size: .68rem; }
 
+    /* ── Card perspective block (contains source + headline) ─────────── */
+    .card-block {
+      border: 1px solid var(--line); border-radius: 8px;
+      padding: .75rem .85rem; border-inline-start-width: 3px;
+    }
+
     /* ── Card source label (owns its headline) ────────────────────────── */
     .card-src-label {
       display: flex; align-items: center; gap: .3rem;
@@ -1005,19 +1011,23 @@
           <span class="card-time" style="margin-inline-start:auto">${timeAgo(c.detected_at)}</span>
         </div>
 
-        <div class="card-src-label">
-          <span class="src-dot" style="background:${rc1}"></span>
-          <span style="color:${rc1}">${n1}</span>
+        <div class="card-block" style="border-inline-start-color:${rc1}">
+          <div class="card-src-label">
+            <span class="src-dot" style="background:${rc1}"></span>
+            <span style="color:${rc1}">${n1}</span>
+          </div>
+          <div class="card-hl ${hlClass1}">${h1||'—'}</div>
         </div>
-        <div class="card-hl ${hlClass1}">${h1||'—'}</div>
 
         <div class="card-vs">vs</div>
 
-        <div class="card-src-label">
-          <span class="src-dot" style="background:${rc2}"></span>
-          <span style="color:${rc2}">${n2}</span>
+        <div class="card-block" style="border-inline-start-color:${rc2}">
+          <div class="card-src-label">
+            <span class="src-dot" style="background:${rc2}"></span>
+            <span style="color:${rc2}">${n2}</span>
+          </div>
+          <div class="card-hl ${hlClass2}" style="color:var(--ink-soft)">${h2||'—'}</div>
         </div>
-        <div class="card-hl ${hlClass2}" style="color:var(--ink-soft)">${h2||'—'}</div>
 
         ${verdict ? `<div class="card-verdict">${verdict}</div>` : ''}
 
