@@ -423,6 +423,35 @@
     [dir="rtl"] .score-tooltip { right: auto; left: 0; font-size: .76rem; }
     .score-info:hover .score-tooltip { opacity: 1; }
 
+    /* ── Search Pill (active-filter indicator) ───────────────────────── */
+    .search-pill-wrap {
+      background: var(--bg); border-bottom: 1px solid var(--line-soft);
+      padding: .45rem 0; animation: pillFade .18s ease-out;
+    }
+    @keyframes pillFade { from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)} }
+    .search-pill-inner { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+    .search-pill {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      color: var(--accent); font-size: .72rem; font-weight: 600;
+      padding: .22rem .55rem .22rem .45rem; border-radius: 999px;
+    }
+    [dir="rtl"] .search-pill { font-size: .8rem; }
+    .search-pill-x {
+      background: none; border: none; cursor: pointer;
+      color: var(--accent); font-size: .65rem; padding: 0 .05rem;
+      line-height: 1; opacity: .7; transition: opacity .12s;
+    }
+    .search-pill-x:hover { opacity: 1; }
+
+    /* ── Card entrance animation ─────────────────────────────────────── */
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card-in { animation: cardIn .2s ease-out both; }
+
     /* ── Utility ─────────────────────────────────────────────────────── */
     .msg-box { text-align: center; padding: 5rem 1rem; color: var(--muted); font-size: .88rem; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -527,6 +556,17 @@
       <input id="search-input" class="search-input" type="search" autocomplete="off" spellcheck="false">
       <span id="search-count" class="search-count" style="display:none"></span>
       <button id="search-clear" class="search-clear" aria-label="Clear search">✕</button>
+    </div>
+  </div>
+
+  <!-- SEARCH ACTIVE PILL -->
+  <div id="search-pill-wrap" class="search-pill-wrap" style="display:none">
+    <div class="search-pill-inner">
+      <span class="search-pill">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span id="search-pill-text"></span>
+        <button class="search-pill-x" id="search-pill-clear" aria-label="Clear search">✕</button>
+      </span>
     </div>
   </div>
 
@@ -861,7 +901,7 @@
   const SUN  = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>`;
 
   // ── Card builder ────────────────────────────────────────────────────
-  function buildCard(c, large=false) {
+  function buildCard(c, large=false, idx=0) {
     const { primary: h1 } = pickHL(c, '1');
     const { primary: h2 } = pickHL(c, '2');
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
@@ -870,8 +910,9 @@
     // Headline direction: if preferAr use RTL class, otherwise check if we have Arabic
     const hlClass1 = (preferAr && c.headline_1_ar) ? 'ar' : ((!preferAr && !c.headline_1_en && c.headline_1_ar) ? 'ar' : '');
     const hlClass2 = (preferAr && c.headline_2_ar) ? 'ar' : ((!preferAr && !c.headline_2_en && c.headline_2_ar) ? 'ar' : '');
+    const delay = Math.min(idx * 0.045, 0.28);
     return `
-      <div class="${large?'featured-card':'feed-card'}" data-cid="${c.conflict_id}">
+      <div class="${large?'featured-card':'feed-card'} card-in" style="animation-delay:${delay}s" data-cid="${c.conflict_id}">
         <div class="card-sources">
           <span class="src-dot" style="background:${regionColor(c.source_1)}"></span>
           <span>${c.source_1}</span>
@@ -917,17 +958,29 @@
       }
     }
 
+    // Active search pill
+    const pillWrap = document.getElementById('search-pill-wrap');
+    const pillText = document.getElementById('search-pill-text');
+    if (pillWrap && pillText) {
+      if (searchQuery) {
+        pillText.textContent = searchQuery;
+        pillWrap.style.display = '';
+      } else {
+        pillWrap.style.display = 'none';
+      }
+    }
+
     const featured = [...filtered]
       .sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score))
       .slice(0,2);
-    document.getElementById('featured-grid').innerHTML = featured.map(c=>buildCard(c,true)).join('');
+    document.getElementById('featured-grid').innerHTML = featured.map((c,i)=>buildCard(c,true,i)).join('');
     document.getElementById('featured-label').textContent = t('featured_label');
 
     const rest = filtered.filter(c=>!featured.includes(c));
     const feedLbl = topicFilter==='all' ? t('feed_label_all') : t('feed_label_topic', topicFilter);
     document.getElementById('feed-label').textContent = feedLbl;
 
-    document.getElementById('feed-grid').innerHTML = rest.map(c=>buildCard(c,false)).join('');
+    document.getElementById('feed-grid').innerHTML = rest.map((c,i)=>buildCard(c,false,i)).join('');
     document.getElementById('empty-msg').style.display = filtered.length===0 ? 'block' : 'none';
 
     document.querySelectorAll('[data-cid]').forEach(el => {
@@ -1281,6 +1334,8 @@
   searchInput.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.getElementById('search-btn').click();
   });
+  // Pill clear button — same effect as searchClear
+  document.getElementById('search-pill-clear').onclick = () => { searchClear.click(); };
 
   // Lang toggle
   document.getElementById('lang-btn').onclick = () => {
