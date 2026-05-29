@@ -35,6 +35,10 @@ def run_startup_migrations():
                     ADD COLUMN IF NOT EXISTS summary_ar TEXT
                 """)
                 cur.execute("""
+                    ALTER TABLE articles
+                    ADD COLUMN IF NOT EXISTS image_url TEXT
+                """)
+                cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_articles_needs_summary_ar
                     ON articles (article_id)
                     WHERE summary IS NOT NULL
@@ -190,6 +194,7 @@ def get_conflicts(
                     COALESCE(a1.summary_ar, CASE WHEN a1.language = 'ar' THEN a1.summary ELSE NULL END) AS summary_1_ar,
                     a1.published_at    AS published_1,
                     a1.url             AS url_a,
+                    a1.image_url       AS image_url_1,
                     s1.code            AS source_1,
                     s1.name            AS source_1_name,
                     s1.trust_weight    AS trust_score_1,
@@ -203,6 +208,7 @@ def get_conflicts(
                     COALESCE(a2.summary_ar, CASE WHEN a2.language = 'ar' THEN a2.summary ELSE NULL END) AS summary_2_ar,
                     a2.published_at    AS published_2,
                     a2.url             AS url_b,
+                    a2.image_url       AS image_url_2,
                     s2.code            AS source_2,
                     s2.name            AS source_2_name,
                     s2.trust_weight    AS trust_score_2,
@@ -240,6 +246,7 @@ def get_conflict_detail(request: Request, conflict_id: int):
                     a1.body_snippet    AS body_1,
                     a1.published_at    AS published_1,
                     a1.url             AS url_a,
+                    a1.image_url       AS image_url_1,
                     s1.code            AS source_1,
                     s1.name            AS source_1_name,
                     s1.trust_weight    AS trust_score_1,
@@ -250,6 +257,7 @@ def get_conflict_detail(request: Request, conflict_id: int):
                     a2.body_snippet    AS body_2,
                     a2.published_at    AS published_2,
                     a2.url             AS url_b,
+                    a2.image_url       AS image_url_2,
                     s2.code            AS source_2,
                     s2.name            AS source_2_name,
                     s2.trust_weight    AS trust_score_2,

@@ -74,6 +74,11 @@ class NewsAPIAdapter(FeedAdapter):
                     if not title:
                         continue
 
+                    image_url = (item.get('urlToImage') or '').strip() or None
+                    # Reject removed/placeholder image URLs
+                    if image_url and 'removed.com' in image_url:
+                        image_url = None
+
                     article = RawArticle(
                         source_code=self._code,
                         external_id=_make_external_id(url),
@@ -83,6 +88,7 @@ class NewsAPIAdapter(FeedAdapter):
                         trust_weight=self._source_config['trust_weight'],
                         headline_en=title,
                         body_snippet=description[:500] if description else None,
+                        image_url=image_url,
                     )
                     articles.append(article)
 

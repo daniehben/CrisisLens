@@ -19,6 +19,7 @@ class RawArticle:
     headline_ar: Optional[str] = None   # Arabic headline
     headline_en: Optional[str] = None   # English headline
     body_snippet: Optional[str] = None  # first 500 chars of body
+    image_url: Optional[str] = None     # hero image URL (from NewsAPI urlToImage / RSS media)
 
     def __post_init__(self):
         # Truncate body snippet to 500 chars

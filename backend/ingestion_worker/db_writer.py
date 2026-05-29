@@ -17,8 +17,8 @@ def write_article(cur, article: RawArticle, source_map: dict) -> bool:
             INSERT INTO articles (
                 source_id, external_id, url, published_at,
                 language, trust_weight,
-                headline_ar, headline_en, body_snippet
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                headline_ar, headline_en, body_snippet, image_url
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (source_id, external_id) DO NOTHING
         """, (
             source_id,
@@ -30,6 +30,7 @@ def write_article(cur, article: RawArticle, source_map: dict) -> bool:
             article.headline_ar,
             article.headline_en,
             article.body_snippet,
+            article.image_url,
         ))
         return cur.rowcount == 1
 

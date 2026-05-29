@@ -25,6 +25,7 @@ class ArticleSchema(BaseModel):
     headline_ar: Optional[str]
     headline_en: Optional[str]
     body_snippet: Optional[str]
+    image_url: Optional[str]
     language: str
     trust_weight: float
     published_at: datetime

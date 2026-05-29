@@ -178,6 +178,31 @@ def _make_external_id(url: str) -> str:
     return hashlib.md5(url.encode()).hexdigest()
 
 
+def _extract_image(entry) -> str | None:
+    """Try the common RSS image locations feedparser exposes."""
+    # media:thumbnail (YouTube, many news feeds)
+    thumbs = getattr(entry, 'media_thumbnail', None)
+    if thumbs and isinstance(thumbs, list):
+        url = thumbs[0].get('url', '')
+        if url:
+            return url
+    # media:content with medium=image
+    content = getattr(entry, 'media_content', None)
+    if content and isinstance(content, list):
+        for item in content:
+            if item.get('medium') == 'image' or item.get('type', '').startswith('image/'):
+                url = item.get('url', '')
+                if url:
+                    return url
+    # <enclosure> with image mime type
+    for enc in getattr(entry, 'enclosures', []):
+        if enc.get('type', '').startswith('image/'):
+            url = enc.get('href') or enc.get('url', '')
+            if url:
+                return url
+    return None
+
+
 class RSSAdapter(FeedAdapter):
 
     def __init__(self, code: str):
@@ -229,6 +254,7 @@ class RSSAdapter(FeedAdapter):
                         headline_ar=title if lang == 'ar' else None,
                         headline_en=title if lang == 'en' else None,
                         body_snippet=summary[:500] if summary else None,
+                        image_url=_extract_image(entry),
                     )
                     articles.append(article)
 
