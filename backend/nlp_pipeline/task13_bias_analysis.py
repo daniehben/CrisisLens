@@ -118,7 +118,10 @@ def run_task13():
                 JOIN articles a2 ON a2.article_id = c.article_b_id
                 JOIN sources s1 ON s1.source_id = a1.source_id
                 JOIN sources s2 ON s2.source_id = a2.source_id
-                WHERE c.bias_analysis IS NULL
+                WHERE (
+                    c.bias_analysis IS NULL
+                    OR (c.bias_analysis->>'narrative') IS NULL
+                )
                 ORDER BY c.weighted_score DESC
                 LIMIT %s
             """, (BATCH_SIZE,))
