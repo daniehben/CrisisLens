@@ -213,3 +213,77 @@ def run_task8_summaries():
 
     log.info(f"[Task8-Summaries] Complete — {translated_count}/{len(rows)} summaries translated")
     return translated_count
+
+
+# ── Task 8b — Arabic → English (for cross-language conflict display) ───────
+
+_AR_TO_EN_PROMPT = """\
+Translate the following Arabic news headline to natural English as it would \
+appear in a professional Western news outlet. \
+Output ONLY the English translation — no preamble, no explanation, no quotes.
+
+{text}"""
+
+
+def translate_to_english_groq(text: str) -> str | None:
+    """Translate a single Arabic text to English via Groq."""
+    if not text or not text.strip():
+        return None
+    result = chat(_AR_TO_EN_PROMPT.format(text=text.strip()),
+                  model=FAST_MODEL, max_tokens=200)
+    if result and len(result.strip()) > 3:
+        return result.strip()
+    return None
+
+
+def run_task8b():
+    """Translate Arabic-native headlines to English so cross-language conflict
+    cards display both languages in the frontend.
+
+    Only processes articles where language='ar' AND headline_en IS NULL so we
+    never overwrite original English headlines.
+    """
+    log.info("[Task8b] Translating Arabic headlines to English...")
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT article_id, headline_ar
+                FROM articles
+                WHERE language = 'ar'
+                  AND headline_ar IS NOT NULL
+                  AND headline_en IS NULL
+                ORDER BY article_id DESC
+                LIMIT 80
+            """)
+            rows = cur.fetchall()
+
+    if not rows:
+        log.info("[Task8b] No Arabic headlines need English translation.")
+        return 0
+
+    log.info(f"[Task8b] Translating {len(rows)} Arabic headlines...")
+    translated_count = 0
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            for article_id, headline_ar in rows:
+                en = translate_to_english_groq(headline_ar)
+                if not en:
+                    try:
+                        en = GoogleTranslator(source='ar', target='en').translate(headline_ar)
+                    except Exception:
+                        en = None
+                if en:
+                    cur.execute("""
+                        UPDATE articles
+                        SET headline_en = %s,
+                            headline_en_translated = TRUE
+                        WHERE article_id = %s
+                    """, (en, article_id))
+                    translated_count += 1
+        conn.commit()
+
+    log.info(f"[Task8b] Complete — {translated_count}/{len(rows)} translated")
+    return translated_count
+    return translated_count

@@ -406,6 +406,8 @@
     }
     .badge svg { width: 9px; height: 9px; flex-shrink: 0; }
     .badge-numeric { border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
+    .badge-framing { border-color: color-mix(in srgb, #b07d20 35%, transparent); color: #8a6010; }
+    [data-theme="dark"] .badge-framing { color: #d4a84b; border-color: color-mix(in srgb, #d4a84b 30%, transparent); }
     .conf-wrap { margin-inline-start: auto; display: flex; align-items: center; gap: .35rem; }
     .conf-bar { width: 42px; height: 3px; background: var(--line); border-radius: 999px; overflow: hidden; }
     .conf-bar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
@@ -751,7 +753,7 @@
       sidebar_head: 'Also Disputed',
       feed_label_all: 'All Contradictions',
       feed_label_topic: t => t.charAt(0).toUpperCase() + t.slice(1) + ' — Contradictions',
-      badge_numeric: 'numeric', badge_cross: 'cross-perspective',
+      badge_numeric: 'numeric', badge_framing: 'framing', badge_cross: 'cross-perspective',
       contradiction_label: 'Contradiction', vs: 'vs',
       tab_comparison: 'Comparison',
       trust_high: 'High', trust_mid: 'Mid', trust_low: 'Low', trust_unv: 'Unverified',
@@ -803,7 +805,7 @@
         const m = { palestine:'فلسطين', iran:'إيران', lebanon:'لبنان', syria:'سوريا', yemen:'اليمن', ukraine:'أوكرانيا', finance:'الاقتصاد' };
         return (m[t] || t) + ' — تناقضات';
       },
-      badge_numeric: 'تناقض رقمي', badge_cross: 'تعدد المصادر',
+      badge_numeric: 'تناقض رقمي', badge_framing: 'اختلاف في الإطار', badge_cross: 'تعدد المصادر',
       contradiction_label: 'تناقض', vs: 'مقابل',
       tab_comparison: 'مقارنة',
       trust_high: 'عالية', trust_mid: 'متوسطة', trust_low: 'منخفضة', trust_unv: 'غير موثق',
@@ -978,8 +980,10 @@
   }
 
   // ── Icons ─────────────────────────────────────────────────────────────
-  const ICON_NEQ   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 9h14M5 15h14M16 5l-8 14"/></svg>`;
-  const ICON_CROSS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>`;
+  const ICON_NEQ    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 9h14M5 15h14M16 5l-8 14"/></svg>`;
+  const ICON_CROSS  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>`;
+  const ICON_FRAME  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+  function isFraming(c) { return c.conflict_type === 'framing'; }
   const MOON = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
   const SUN  = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>`;
 
@@ -995,7 +999,8 @@
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
     const verdict = shortVerdict(c);
     const numeric = hasNumericDisagreement(c);
-    const cross = isCross(c);
+    const cross   = isCross(c);
+    const framing = isFraming(c);
     const img = c.image_url_1 || c.image_url_2;
     const hl1cls = (preferAr && c.headline_1_ar) ? 'ar' : '';
     const hl2cls = (preferAr && c.headline_2_ar) ? 'ar' : '';
@@ -1027,6 +1032,7 @@
           ${verdict ? `<div class="hero-verdict">${verdict}</div>` : ''}
           <div class="hero-footer">
             ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ} ${t('badge_numeric')}</span>` : ''}
+            ${framing ? `<span class="badge badge-framing">${ICON_FRAME} ${t('badge_framing')}</span>` : ''}
             ${cross   ? `<span class="badge">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
             <div class="conf-wrap">
               <div class="conf-bar"><span style="width:${conf}%"></span></div>
@@ -1080,7 +1086,8 @@
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
     const verdict = shortVerdict(c);
     const numeric = hasNumericDisagreement(c);
-    const cross = isCross(c);
+    const cross   = isCross(c);
+    const framing = isFraming(c);
     const img = c.image_url_1 || c.image_url_2;
     const hl1cls = (preferAr && c.headline_1_ar) ? 'ar' : '';
     const hl2cls = (preferAr && c.headline_2_ar) ? 'ar' : '';
@@ -1108,6 +1115,7 @@
           ${verdict ? `<div class="fc-verdict">${verdict}</div>` : ''}
           <div class="fc-footer">
             ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ}</span>` : ''}
+            ${framing ? `<span class="badge badge-framing">${ICON_FRAME}</span>` : ''}
             ${cross   ? `<span class="badge">${ICON_CROSS}</span>` : ''}
             <span class="fc-time">${timeAgo(c.detected_at)}</span>
             <div class="conf-wrap">
@@ -1269,7 +1277,8 @@
     const wgt = Math.round(parseFloat(c.weighted_score)*100);
     const sev = severityOf(c.weighted_score);
     const numeric = hasNumericDisagreement(c);
-    const cross = isCross(c);
+    const cross   = isCross(c);
+    const framing = isFraming(c);
     return `
       <div class="modal-head">
         <div>
@@ -1283,6 +1292,7 @@
             <span style="color:var(--line)">·</span>
             <span>${timeAgo(c.detected_at)}</span>
             ${numeric?`<span class="badge badge-numeric" style="font-size:.62rem">${ICON_NEQ} ${t('badge_numeric')}</span>`:''}
+            ${framing?`<span class="badge badge-framing" style="font-size:.62rem">${ICON_FRAME} ${t('badge_framing')}</span>`:''}
             ${cross?`<span class="badge" style="font-size:.62rem">${ICON_CROSS} ${t('badge_cross')}</span>`:''}
           </div>
         </div>

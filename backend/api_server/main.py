@@ -39,6 +39,10 @@ def run_startup_migrations():
                     ADD COLUMN IF NOT EXISTS image_url TEXT
                 """)
                 cur.execute("""
+                    ALTER TABLE articles
+                    ADD COLUMN IF NOT EXISTS headline_en_translated BOOLEAN DEFAULT FALSE
+                """)
+                cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_articles_needs_summary_ar
                     ON articles (article_id)
                     WHERE summary IS NOT NULL

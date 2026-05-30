@@ -8,7 +8,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from backend.ingestion_worker.worker import run_worker
 from backend.nlp_pipeline.task7_fetch_body import run_task7
 from backend.nlp_pipeline.task7_5_summarize import run_task7_5
-from backend.nlp_pipeline.task8_translate import run_task8
+from backend.nlp_pipeline.task8_translate import run_task8, run_task8b
 from backend.nlp_pipeline.task9_embed import run_task9
 from backend.nlp_pipeline.task10_pairs import run_task10
 from backend.nlp_pipeline.task11_nli import run_task11
@@ -54,7 +54,8 @@ def run_ingestion_and_nlp():
     run_worker()
     run_task7()      # fetch full bodies
     run_task7_5()    # LLM-clean & summarize bodies (Groq)
-    run_task8()
+    run_task8()   # EN→AR translation for English articles
+    run_task8b()  # AR→EN translation for Arabic-native articles (cross-language display)
     run_task9()
     run_task10()
     run_task11()

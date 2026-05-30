@@ -55,6 +55,58 @@ def keyword_jaccard(a_texts: list[str], b_texts: list[str]) -> float:
     return len(a & b) / len(a | b)
 
 
+# Opposing vocabulary clusters — each tuple is (group_A_terms, group_B_terms).
+# If one side has a term from group_A and the other has a term from group_B
+# (or vice versa), that's a framing flip worth surfacing.
+_FRAMING_PAIRS: list[tuple[set[str], set[str]]] = [
+    # Outcome: dead vs alive
+    ({'killed', 'dead', 'died', 'death', 'bodies', 'casualties', 'victims',
+      'قتل', 'قتلى', 'استشهد', 'شهيد', 'شهداء', 'ضحايا'},
+     {'survived', 'safe', 'alive', 'escaped', 'unhurt', 'rescued',
+      'نجا', 'سليم', 'أحياء'}),
+    # Actor: terrorist vs fighter
+    ({'terrorist', 'terrorists', 'extremist', 'jihadi', 'jihadist',
+      'إرهابي', 'إرهابيون', 'متطرف'},
+     {'fighter', 'fighters', 'militant', 'resistance', 'combatant', 'freedom fighter',
+      'مقاتل', 'مقاومة', 'مجاهد'}),
+    # Action: attack vs retaliation
+    ({'attack', 'attacked', 'assault', 'bombed', 'shelled',
+      'هجوم', 'اعتدى', 'قصف'},
+     {'retaliated', 'responded', 'self-defense', 'operation',
+      'رد', 'دفاع عن النفس', 'عملية'}),
+    # Land framing
+    ({'occupied', 'occupation', 'illegal settlements', 'colonists',
+      'احتلال', 'محتل', 'مستوطنات'},
+     {'disputed territories', 'communities', 'residents',
+      'مناطق متنازع عليها', 'سكان'}),
+    # Credibility: denied vs confirmed
+    ({'denied', 'false', 'fabricated', 'disinformation',
+      'نفى', 'كذب', 'مزيف'},
+     {'confirmed', 'verified', 'evidence shows', 'witnesses say',
+      'أكد', 'تأكد', 'شهود'}),
+]
+
+_FRAMING_TOKEN_RE = re.compile(r'[\w؀-ۿ]{3,}', re.UNICODE)
+
+
+def _framing_tokens(text: str) -> set[str]:
+    if not text:
+        return set()
+    return {t.lower() for t in _FRAMING_TOKEN_RE.findall(text)}
+
+
+def framing_flip(a_texts: list[str], b_texts: list[str]) -> bool:
+    """True if the two sides use opposing vocabulary — 'killed' vs 'martyred',
+    'terrorist' vs 'resistance fighter', etc. The core framing differences
+    that define cross-perspective conflict."""
+    a_tok = set().union(*(_framing_tokens(t) for t in a_texts if t))
+    b_tok = set().union(*(_framing_tokens(t) for t in b_texts if t))
+    for group_a, group_b in _FRAMING_PAIRS:
+        if (a_tok & group_a and b_tok & group_b) or (a_tok & group_b and b_tok & group_a):
+            return True
+    return False
+
+
 def is_same_story(similarity: float, a_texts: list[str], b_texts: list[str]) -> bool:
     """True if the pair looks like the same event reported by two outlets,
     not a real contradiction. Heuristic: high embedding similarity AND high
