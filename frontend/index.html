@@ -546,6 +546,40 @@
     .sub-label { font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 .6rem; }
     [dir="rtl"] .sub-label { letter-spacing: 0; font-size: .78rem; }
 
+    /* ── Modal dispute + narrative ─────────────────────────────────────── */
+    .modal-dispute {
+      font-size: 1.05rem; font-weight: 700; font-style: italic;
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--ink); line-height: 1.3; margin-top: .25rem;
+    }
+    [dir="rtl"] .modal-dispute {
+      font-family: 'Noto Naskh Arabic', serif; font-style: normal; font-size: 1.05rem;
+    }
+    .cmp-narrative {
+      font-size: .97rem; line-height: 1.72; color: var(--ink-soft);
+      padding: 1.1rem 1.25rem;
+      background: var(--bg-featured);
+      border-inline-start: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      margin-bottom: .25rem;
+    }
+    [dir="rtl"] .cmp-narrative { border-inline-start-color: var(--accent); border-radius: 8px 0 0 8px; }
+    .cmp-narrative--empty { opacity: .55; font-style: italic; }
+    .cmp-detail { font-size: .88rem; line-height: 1.65; color: var(--ink-soft); margin: .4rem 0 0; }
+    .signal-details {
+      margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1rem;
+    }
+    .signal-details summary {
+      font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); cursor: pointer; user-select: none; list-style: none;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .signal-details summary::after {
+      content: '▸'; font-size: .6rem; transition: transform .15s;
+    }
+    .signal-details[open] summary::after { transform: rotate(90deg); }
+    [dir="rtl"] .signal-details summary { letter-spacing: 0; font-size: .78rem; }
+
     /* ── Card entrance animation ───────────────────────────────────────── */
     @keyframes cardIn { from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)} }
     .card-in { animation: cardIn .2s ease-out both; }
@@ -760,13 +794,16 @@
       trust_suffix: 'trust',
       read_article: domain => `Read full article on ${domain}`,
       no_body: 'No body available — read the full article at the source.',
-      what_each_says: 'What each side says',
+      at_issue: 'At issue',
+      analysis_label: 'Analysis',
+      what_each_says: 'What each side claims',
       factual_disagreement: 'Factual disagreement',
       framing_difference: 'Framing difference',
       signal_breakdown: 'Signal breakdown',
       m_contradiction: 'Contradiction', m_similarity: 'Similarity',
       m_score: 'Final score', m_trust: 'Trust spread',
       detected: 'Detected', conflict_id: 'ID', conflict_type: 'Type',
+      analysis_pending: 'Analysis pending',
       cold_hint: 'Waking up the server…',
       cold_hint_sub: 'Free-tier hosting sleeps after inactivity. Should be ready in ~30 seconds.',
       error_msg: "Couldn't reach the API. Free-tier services sleep when idle — try again in a minute.",
@@ -812,13 +849,16 @@
       trust_suffix: 'موثوقية',
       read_article: domain => `اقرأ المقال كاملاً على ${domain}`,
       no_body: 'لا يوجد نص متاح — اقرأ المقال كاملاً من المصدر.',
-      what_each_says: 'ما يقوله كل طرف',
+      at_issue: 'موضع الخلاف',
+      analysis_label: 'تحليل',
+      what_each_says: 'ما يدّعيه كل طرف',
       factual_disagreement: 'خلاف في الحقائق',
       framing_difference: 'اختلاف في الإطار',
       signal_breakdown: 'تفاصيل الإشارة',
       m_contradiction: 'تناقض', m_similarity: 'تشابه',
       m_score: 'النتيجة', m_trust: 'توزع الموثوقية',
       detected: 'رُصد', conflict_id: 'رقم', conflict_type: 'نوع',
+      analysis_pending: 'التحليل قيد الإعداد',
       cold_hint: 'جاري تشغيل الخادم…',
       cold_hint_sub: 'الاستضافة المجانية تتوقف عند عدم الاستخدام. ستكون جاهزة خلال ~٣٠ ثانية.',
       error_msg: 'تعذّر الوصول إلى الخادم. الخدمات المجانية تتوقف أحياناً — حاول مرة أخرى بعد دقيقة.',
@@ -969,7 +1009,13 @@
     }
     return null;
   }
+  function disputeQuestion(c) {
+    const ba = c.bias_analysis; if (!ba) return null;
+    return (preferAr ? ba.dispute_ar : null) || ba.dispute || null;
+  }
   function shortVerdict(c) {
+    // Prefer dispute question; fall back to factual disagreement snippet
+    const d = disputeQuestion(c); if (d) return d;
     const ba = c.bias_analysis; if (!ba) return null;
     const text = (preferAr ? ba.factual_disagreement_ar : null)
       || ba.factual_disagreement
@@ -1235,39 +1281,62 @@
     const ba   = c.bias_analysis || null;
     const c1   = regionColor(c.source_1);
     const c2   = regionColor(c.source_2);
+    const n1   = c.source_1_name || c.source_1;
+    const n2   = c.source_2_name || c.source_2;
+
+    const narrative = ba ? ((preferAr ? ba.narrative_ar : null) || ba.narrative || null) : null;
+    const claimsA   = ba ? ((preferAr ? ba.claims_a_ar  : null) || ba.claims_a  || null) : null;
+    const claimsB   = ba ? ((preferAr ? ba.claims_b_ar  : null) || ba.claims_b  || null) : null;
+    const factual   = ba ? ((preferAr ? ba.factual_disagreement_ar : null) || ba.factual_disagreement || null) : null;
+    const framing   = ba ? ((preferAr ? ba.framing_difference_ar  : null) || ba.framing_difference  || null) : null;
+
     return `
       <div class="modal-pane" data-pane="cmp">
-        ${ba ? `
-          <div class="sub-label">${t('what_each_says')}</div>
+        ${narrative ? `
+          <div class="cmp-narrative" dir="auto">${narrative}</div>
+        ` : ba ? `
+          <div class="cmp-narrative cmp-narrative--empty">
+            <span style="color:var(--muted)">${t('analysis_pending')}</span>
+          </div>
+        ` : `
+          <div class="bias-empty">
+            <div class="bias-empty-icon">⚖️</div>
+            <div class="bias-empty-title">${t('bias_empty_title')}</div>
+            <div class="bias-empty-desc">${t('bias_empty_desc')}</div>
+          </div>
+        `}
+
+        ${(claimsA || claimsB) ? `
+          <div class="sub-label" style="margin-top:1.25rem">${t('what_each_says')}</div>
           <div class="cmp-grid">
             <div class="cmp-block" style="border-inline-start-color:${c1}">
-              <div class="cmp-src" style="color:${c1}">${c.source_1} · ${regionLabel(c.source_1)}</div>
-              <div class="cmp-text">${(preferAr?ba.claims_a_ar:null)||ba.claims_a||'—'}</div>
+              <div class="cmp-src" style="color:${c1}">${n1} <span style="color:var(--muted);font-weight:400">· ${regionLabel(c.source_1)}</span></div>
+              <div class="cmp-text" dir="auto">${claimsA||'—'}</div>
             </div>
             <div class="cmp-block" style="border-inline-start-color:${c2}">
-              <div class="cmp-src" style="color:${c2}">${c.source_2} · ${regionLabel(c.source_2)}</div>
-              <div class="cmp-text">${(preferAr?ba.claims_b_ar:null)||ba.claims_b||'—'}</div>
+              <div class="cmp-src" style="color:${c2}">${n2} <span style="color:var(--muted);font-weight:400">· ${regionLabel(c.source_2)}</span></div>
+              <div class="cmp-text" dir="auto">${claimsB||'—'}</div>
             </div>
           </div>
-          ${(ba.factual_disagreement||ba.factual_disagreement_ar)?`<div class="sub-label">${t('factual_disagreement')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft);margin-bottom:.75rem">${(preferAr?ba.factual_disagreement_ar:null)||ba.factual_disagreement}</p>`:''}
-          ${(ba.framing_difference||ba.framing_difference_ar)?`<div class="sub-label">${t('framing_difference')}</div><p style="font-size:.88rem;line-height:1.65;color:var(--ink-soft)">${(preferAr?ba.framing_difference_ar:null)||ba.framing_difference}</p>`:''}
-        ` : `<div class="bias-empty">
-          <div class="bias-empty-icon">⚖️</div>
-          <div class="bias-empty-title">${t('bias_empty_title')}</div>
-          <div class="bias-empty-desc">${t('bias_empty_desc')}</div>
-        </div>`}
-        <div class="sub-label">${t('signal_breakdown')}</div>
-        <div class="metric-row">
-          <div class="metric"><div class="metric-lbl">${t('m_contradiction')}</div><div class="metric-val">${conf}%</div><div class="metric-bar"><span style="width:${conf}%"></span></div></div>
-          <div class="metric"><div class="metric-lbl">${t('m_similarity')}</div><div class="metric-val">${sim}%</div><div class="metric-bar"><span style="width:${sim}%;background:var(--r-west)"></span></div></div>
-          <div class="metric"><div class="metric-lbl">${t('m_score')}</div><div class="metric-val">${wgt}%</div><div class="metric-bar"><span style="width:${wgt}%;background:var(--r-mena)"></span></div></div>
-          <div class="metric"><div class="metric-lbl">${t('m_trust')}</div><div class="metric-val">${t1}/${t2}</div><div class="metric-bar"><span style="width:${Math.max(t1,t2)}%"></span></div></div>
-        </div>
-        <div style="font-size:.65rem;color:var(--muted);margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem">
-          <span>${t('detected')}: <span style="color:var(--ink-soft)">${fullDate(c.detected_at)}</span></span>
-          <span>${t('conflict_id')}: <span style="color:var(--ink-soft)">#${c.conflict_id}</span></span>
-          ${c.conflict_type?`<span>${t('conflict_type')}: <span style="color:var(--ink-soft)">${t('ctype_'+c.conflict_type)||c.conflict_type}</span></span>`:''}
-        </div>
+        ` : ''}
+
+        ${factual ? `<div class="sub-label" style="margin-top:1rem">${t('factual_disagreement')}</div><p class="cmp-detail" dir="auto">${factual}</p>` : ''}
+        ${framing ? `<div class="sub-label" style="margin-top:.75rem">${t('framing_difference')}</div><p class="cmp-detail" dir="auto">${framing}</p>` : ''}
+
+        <details class="signal-details">
+          <summary>${t('signal_breakdown')}</summary>
+          <div class="metric-row">
+            <div class="metric"><div class="metric-lbl">${t('m_contradiction')}</div><div class="metric-val">${conf}%</div><div class="metric-bar"><span style="width:${conf}%"></span></div></div>
+            <div class="metric"><div class="metric-lbl">${t('m_similarity')}</div><div class="metric-val">${sim}%</div><div class="metric-bar"><span style="width:${sim}%;background:var(--r-west)"></span></div></div>
+            <div class="metric"><div class="metric-lbl">${t('m_score')}</div><div class="metric-val">${wgt}%</div><div class="metric-bar"><span style="width:${wgt}%;background:var(--r-mena)"></span></div></div>
+            <div class="metric"><div class="metric-lbl">${t('m_trust')}</div><div class="metric-val">${t1}/${t2}</div><div class="metric-bar"><span style="width:${Math.max(t1,t2)}%"></span></div></div>
+          </div>
+          <div style="font-size:.65rem;color:var(--muted);margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.4rem 1.2rem">
+            <span>${t('detected')}: <span style="color:var(--ink-soft)">${fullDate(c.detected_at)}</span></span>
+            <span>${t('conflict_id')}: <span style="color:var(--ink-soft)">#${c.conflict_id}</span></span>
+            ${c.conflict_type?`<span>${t('conflict_type')}: <span style="color:var(--ink-soft)">${t('ctype_'+c.conflict_type)||c.conflict_type}</span></span>`:''}
+          </div>
+        </details>
       </div>`;
   }
 
@@ -1279,24 +1348,26 @@
     const numeric = hasNumericDisagreement(c);
     const cross   = isCross(c);
     const framing = isFraming(c);
+    const ba      = c.bias_analysis || null;
+    const dispute = ba ? ((preferAr ? ba.dispute_ar : null) || ba.dispute || null) : null;
     return `
       <div class="modal-head">
-        <div>
-          <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem" class="${sev.cls}">
-            ${t(sev.key)} · ${wgt}%
+        <div style="min-width:0;flex:1">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .8rem">
+            <span class="${sev.cls}">${t(sev.key)} · ${wgt}%</span>
+            <span style="color:var(--muted);font-weight:400">
+              <span style="color:${regionColor(c.source_1)};font-weight:700">${n1}</span>
+              <span style="color:var(--muted-2)"> ${t('vs')} </span>
+              <span style="color:${regionColor(c.source_2)};font-weight:700">${n2}</span>
+            </span>
+            <span style="color:var(--muted-2)">${timeAgo(c.detected_at)}</span>
+            ${numeric?`<span class="badge badge-numeric" style="font-size:.6rem">${ICON_NEQ} ${t('badge_numeric')}</span>`:''}
+            ${framing?`<span class="badge badge-framing" style="font-size:.6rem">${ICON_FRAME} ${t('badge_framing')}</span>`:''}
+            ${cross?`<span class="badge" style="font-size:.6rem">${ICON_CROSS} ${t('badge_cross')}</span>`:''}
           </div>
-          <div style="font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:center">
-            <span>${n1} <span style="color:${regionColor(c.source_1)}">●</span></span>
-            <span style="color:var(--line)">${t('vs')}</span>
-            <span>${n2} <span style="color:${regionColor(c.source_2)}">●</span></span>
-            <span style="color:var(--line)">·</span>
-            <span>${timeAgo(c.detected_at)}</span>
-            ${numeric?`<span class="badge badge-numeric" style="font-size:.62rem">${ICON_NEQ} ${t('badge_numeric')}</span>`:''}
-            ${framing?`<span class="badge badge-framing" style="font-size:.62rem">${ICON_FRAME} ${t('badge_framing')}</span>`:''}
-            ${cross?`<span class="badge" style="font-size:.62rem">${ICON_CROSS} ${t('badge_cross')}</span>`:''}
-          </div>
+          ${dispute ? `<div class="modal-dispute" dir="auto">${dispute}</div>` : ''}
         </div>
-        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+        <div style="display:flex;align-items:flex-start;gap:.5rem;flex-shrink:0">
           <button class="modal-share" id="modal-share" title="Share">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             <span class="share-toast" id="share-toast"></span>
@@ -1307,9 +1378,9 @@
         </div>
       </div>
       <div class="modal-tabs">
-        <button class="modal-tab active" data-tab="1">${n1}</button>
-        <button class="modal-tab" data-tab="2">${n2}</button>
         <button class="modal-tab" data-tab="cmp">${t('tab_comparison')}</button>
+        <button class="modal-tab" data-tab="1">${n1}</button>
+        <button class="modal-tab" data-tab="2">${n2}</button>
       </div>
       <div class="modal-body">
         ${buildArticlePane(c,'1')}
@@ -1335,7 +1406,7 @@
       tabs.forEach(tb=>tb.classList.toggle('active', tb.dataset.tab===key));
     }
     tabs.forEach(tab=>tab.onclick=()=>activate(tab.dataset.tab));
-    activate('1');
+    activate('cmp');
   }
 
   function openModal(id) {
