@@ -1,10 +1,13 @@
 import hashlib
+import re
 import httpx
 import feedparser
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from backend.ingestion_worker.adapters.base import FeedAdapter
 from backend.shared.models import RawArticle
+
+_IMG_TAG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.IGNORECASE)
 
 
 RSS_SOURCES = {
@@ -200,6 +203,23 @@ def _extract_image(entry) -> str | None:
             url = enc.get('href') or enc.get('url', '')
             if url:
                 return url
+    # <img src> embedded in content or summary HTML
+    for field in ('content', 'summary'):
+        html = ''
+        val = getattr(entry, field, None)
+        if not val:
+            continue
+        if isinstance(val, list):
+            html = ' '.join(v.get('value', '') for v in val if isinstance(v, dict))
+        elif isinstance(val, str):
+            html = val
+        m = _IMG_TAG_RE.search(html)
+        if m:
+            url = m.group(1)
+            # Skip tiny tracking pixels and SVG data URIs
+            if url.startswith('data:') or (url.endswith('.gif') and 'pixel' in url.lower()):
+                continue
+            return url
     return None
 
 

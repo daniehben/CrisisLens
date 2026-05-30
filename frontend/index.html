@@ -346,6 +346,25 @@
     }
     .fc:hover { border-color: var(--muted-2); background: var(--line-soft); }
     .fc-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--line-soft); display: block; }
+    .fc-img-ph {
+      width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .fc-img-ph::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--ph-c1, #3d6e8a) 0%, var(--ph-c1, #3d6e8a) 49%, var(--line) 49.5%, var(--ph-c2, #9a6840) 50%);
+      opacity: .18;
+    }
+    .fc-img-ph-inner {
+      position: relative; display: flex; flex-direction: column; align-items: center; gap: .2rem;
+      text-align: center; padding: .5rem;
+    }
+    .fc-img-ph-names {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: .72rem; font-weight: 700; color: var(--muted); letter-spacing: .01em;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .fc-img-ph-sep { font-size: .5rem; color: var(--accent); font-weight: 900; letter-spacing: .15em; }
     .fc-body { padding: .85rem .95rem; flex: 1; display: flex; flex-direction: column; }
     .fc-src {
       font-size: .62rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
@@ -983,7 +1002,7 @@
     return `
       <div class="hero-card card-in" data-cid="${c.conflict_id}">
         ${img
-          ? `<img class="hero-img" src="${img}" alt="" loading="lazy" onerror="this.parentNode.removeChild(this)">`
+          ? `<img class="hero-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none'">`
           : `<div class="hero-img-ph"><div class="hero-img-ph-inner">
                <span class="hero-img-ph-src" style="color:${rc1}">${n1}</span>
                <span class="hero-img-ph-vs">VS</span>
@@ -1068,7 +1087,18 @@
     const delay = Math.min((idx||0) * 0.04, 0.24);
     return `
       <div class="fc card-in" style="animation-delay:${delay}s" data-cid="${c.conflict_id}">
-        ${img ? `<img class="fc-img" src="${img}" alt="" loading="lazy" onerror="this.parentNode.removeChild(this)">` : ''}
+        ${img
+          ? `<img class="fc-img" src="${img}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')">`
+          : ''}
+        <div class="fc-img-ph" style="--ph-c1:${rc1};--ph-c2:${rc2};${img?'display:none':''}" aria-hidden="true">
+          <div class="fc-img-ph-inner">
+            <div class="fc-img-ph-names">
+              <span style="color:${rc1}">${n1}</span>
+              <span class="fc-img-ph-sep">VS</span>
+              <span style="color:${rc2}">${n2}</span>
+            </div>
+          </div>
+        </div>
         <div class="fc-body">
           <div class="fc-src"><span class="src-dot" style="background:${rc1}"></span>${n1}</div>
           <div class="fc-hl ${hl1cls}">${h1||'—'}</div>
