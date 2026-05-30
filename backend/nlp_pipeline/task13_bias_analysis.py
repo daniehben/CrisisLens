@@ -1,16 +1,19 @@
-"""Task 13 — Generate per-conflict bias analysis with Groq.
+"""Task 13 — Generate per-conflict narrative analysis with Groq.
 
 For each conflict that doesn't have a bias_analysis yet, ask the LLM to
-compare the two sources and return structured JSON:
+produce a journalist-style analysis with:
 
   {
-    "claims_a":            "what source A says",
-    "claims_b":            "what source B says",
-    "factual_disagreement": "the concrete fact(s) they disagree on" or null,
-    "framing_difference":  "how the framing differs" or null
+    "dispute":             short question capturing the core disagreement
+    "narrative":           2–3 sentence flowing analysis (the main report)
+    "claims_a":            one sentence — what source A specifically claims
+    "claims_b":            one sentence — what source B specifically claims
+    "factual_disagreement": concrete facts that differ, or null
+    "framing_difference":  vocabulary/framing differences, or null
   }
 
-Runs after task12 (so it only sees real, scored conflicts).
+The "narrative" and "dispute" fields are the primary UX elements.
+The other fields back up the modal detail pane.
 """
 import json
 import logging
@@ -26,19 +29,39 @@ log = logging.getLogger(__name__)
 # Kept low because 70B has tight RPM and each call ~600 tokens.
 BATCH_SIZE = 5
 
-PROMPT = """Two news outlets reported on the same event but the headlines \
-contradict each other. Compare their coverage and output STRICT JSON with \
-these exact keys:
+PROMPT = """You are an expert conflict-media analyst. Two news outlets have \
+reported on the same event in ways that contradict each other. Your job is to \
+write a clear, neutral analysis that a reader can understand WITHOUT reading \
+either original article.
 
-- "claims_a":            one short sentence summarizing source A's claim
-- "claims_b":            one short sentence summarizing source B's claim
-- "factual_disagreement": one or two sentences naming any concrete factual \
-disagreement (numbers, who did what, when, where), or null if there isn't one
-- "framing_difference":  one or two sentences on how the same facts are framed \
-differently (word choice, emphasis, what's omitted), or null if minimal
+Output STRICT JSON with exactly these keys:
 
-Be neutral. Don't take sides. Use the same language the user is reading \
-(English unless the bodies are clearly Arabic).
+- "dispute": A single question (max 12 words) that captures the core \
+disagreement. Example: "Who was responsible for the Jabalia camp explosion?" \
+or "Did a ceasefire deal get reached?" Make it specific and factual.
+
+- "narrative": A 2–3 sentence journalist-style analysis. Structure it as: \
+(1) what the two sources disagree on, (2) what each side specifically claims, \
+(3) why the disagreement matters or what explains it (different sourcing, \
+framing, political context). Write in flowing prose — no bullet points, no \
+labels. Be precise about the factual gap. This is the main text readers see.
+
+- "claims_a": One sentence: what {source_a_name} specifically reports as fact.
+- "claims_b": One sentence: what {source_b_name} specifically reports as fact.
+- "factual_disagreement": One or two sentences on concrete facts that differ \
+(numbers, attributions, timelines), or null if the disagreement is purely \
+about framing.
+- "framing_difference": One or two sentences on how the same facts are \
+described differently (word choice, who is called what, what is omitted), \
+or null if minimal.
+
+Rules:
+- Be strictly neutral. Describe both perspectives fairly.
+- Write in English unless both article bodies are entirely in Arabic.
+- Be specific — name the numbers, the actors, the events. Vague analysis \
+is useless.
+- The "narrative" field should read like a paragraph from a quality newspaper's \
+media criticism column.
 
 Source A — {source_a_name} ({source_a_region}):
 Headline: {headline_a}
@@ -48,7 +71,7 @@ Source B — {source_b_name} ({source_b_region}):
 Headline: {headline_b}
 Body: {body_b}
 
-Output JSON only."""
+Output JSON only. No markdown, no code fences."""
 
 
 # Region mapping mirrors the frontend's PERSPECTIVE map; if expanded there,
@@ -130,11 +153,11 @@ def run_task13():
                     body_b=body_b,
                 )
 
-                analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=600)
+                analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=900)
                 # If smart model rate-limited or unavailable, fall back to fast.
                 if not analysis:
-                    analysis = chat_json(prompt, model=FAST_MODEL, max_tokens=600)
-                if not analysis or "claims_a" not in analysis:
+                    analysis = chat_json(prompt, model=FAST_MODEL, max_tokens=900)
+                if not analysis or "narrative" not in analysis:
                     log.warning(f"[Task13] Conflict {r['conflict_id']}: no usable analysis from either model")
                     failed += 1
                     continue

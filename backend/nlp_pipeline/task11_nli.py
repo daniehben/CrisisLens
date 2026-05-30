@@ -1,8 +1,10 @@
 """Task 11 — Natural Language Inference (NLI) on candidate pairs.
 
-We use a multilingual NLI model so we can compare Arabic headlines directly
-without translating them through English first (which loses signal). The
-model returns probabilities for entailment / neutral / contradiction.
+We use a multilingual NLI model (mDeBERTa-v3 XNLI) to classify whether two
+articles contradict each other. Input priority: LLM-cleaned summary > raw
+body snippet > headline. Using body text gives dramatically better signal than
+headline-only comparison — headlines are marketing copy, contradictions live
+in the reported facts.
 """
 import logging
 import os
@@ -78,7 +80,10 @@ def run_task11():
             cur.execute("""
                 SELECT ap.pair_id,
                        a1.headline_ar AS h1_ar, a1.headline_en AS h1_en,
-                       a2.headline_ar AS h2_ar, a2.headline_en AS h2_en
+                       a1.summary     AS h1_sum, a1.body_snippet AS h1_body,
+                       a2.headline_ar AS h2_ar, a2.headline_en AS h2_en,
+                       a2.summary     AS h2_sum, a2.body_snippet AS h2_body,
+                       a1.published_at AS pub1, a2.published_at AS pub2
                 FROM article_pairs ap
                 JOIN articles a1 ON a1.article_id = ap.article_id_1
                 JOIN articles a2 ON a2.article_id = ap.article_id_2
@@ -96,11 +101,23 @@ def run_task11():
     classified = 0
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            for pair_id, h1_ar, h1_en, h2_ar, h2_en in pairs:
-                # Prefer Arabic if both pairs have it (the model is multilingual);
-                # otherwise fall back to English. Mixing langs across a pair is fine.
-                premise    = h1_ar or h1_en or ""
-                hypothesis = h2_ar or h2_en or ""
+            for pair_id, h1_ar, h1_en, h1_sum, h1_body, \
+                         h2_ar, h2_en, h2_sum, h2_body, \
+                         pub1, pub2 in pairs:
+
+                # Build the richest possible text for each side.
+                # Priority: summary (LLM-cleaned) > body_snippet > headline.
+                # We truncate to 400 chars so the NLI model doesn't choke —
+                # mDeBERTa has a 512-token limit; 400 chars ≈ 100 tokens.
+                def best_text(summary, body, hl_ar, hl_en) -> str:
+                    if summary and len(summary.strip()) > 20:
+                        return summary.strip()[:400]
+                    if body and len(body.strip()) > 20:
+                        return body.strip()[:400]
+                    return (hl_ar or hl_en or "").strip()[:400]
+
+                premise    = best_text(h1_sum, h1_body, h1_ar, h1_en)
+                hypothesis = best_text(h2_sum, h2_body, h2_ar, h2_en)
 
                 if not premise or not hypothesis:
                     cur.execute(

@@ -116,3 +116,48 @@ def is_same_story(similarity: float, a_texts: list[str], b_texts: list[str]) -> 
     if numeric_disagreement(a_texts, b_texts):
         return False  # numbers disagree — definitely worth surfacing
     return keyword_jaccard(a_texts, b_texts) >= 0.50
+
+
+def is_developing_story_update(
+    pub1, pub2,
+    a_texts: list[str], b_texts: list[str],
+    max_hours: float = 8.0,
+    max_ratio: float = 3.0,
+) -> bool:
+    """True when the pair looks like a story *updating* rather than *contradicting*.
+
+    Pattern: Source A publishes "7 killed" at 6am. Source B publishes "12 killed"
+    at 11am as bodies are recovered. The numeric_disagreement() flag fires, but
+    this isn't a contradiction — it's a news update. We suppress it when:
+      1. The articles are within max_hours of each other (same breaking news window)
+      2. Both have numbers AND the larger count is < max_ratio × the smaller count
+         (i.e. the numbers are growing, not wildly diverging)
+      3. No framing_flip detected (framing flips always override this suppression)
+    """
+    if pub1 is None or pub2 is None:
+        return False
+
+    # Time gap between articles
+    from datetime import timedelta
+    gap = abs((pub2 - pub1).total_seconds()) / 3600.0
+    if gap > max_hours:
+        return False
+
+    # Both sides must have numbers
+    a_nums = extract_numbers(*a_texts)
+    b_nums = extract_numbers(*b_texts)
+    if not a_nums or not b_nums:
+        return False
+
+    # Check if numbers are consistent with "updating" rather than "contradicting":
+    # the sets aren't identical (otherwise numeric_disagreement wouldn't fire),
+    # but the numbers are in the same ballpark (ratio < max_ratio)
+    try:
+        a_max = max(float(n) for n in a_nums if n.replace('.', '').isdigit())
+        b_max = max(float(n) for n in b_nums if n.replace('.', '').isdigit())
+        if a_max == 0 or b_max == 0:
+            return False
+        ratio = max(a_max, b_max) / min(a_max, b_max)
+        return ratio < max_ratio
+    except (ValueError, ZeroDivisionError):
+        return False

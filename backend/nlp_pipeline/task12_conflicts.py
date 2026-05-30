@@ -1,6 +1,8 @@
 import logging
 from backend.shared.database import get_db_connection
-from backend.nlp_pipeline.heuristics import numeric_disagreement, is_same_story, framing_flip
+from backend.nlp_pipeline.heuristics import (
+    numeric_disagreement, is_same_story, framing_flip, is_developing_story_update
+)
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +42,7 @@ def run_task12():
                     a2.trust_weight AS trust_2,
                     a1.headline_en AS h1_en, a1.headline_ar AS h1_ar,
                     a2.headline_en AS h2_en, a2.headline_ar AS h2_ar,
+                    a1.published_at AS pub1, a2.published_at AS pub2,
                     s1.code AS src1, s2.code AS src2
                 FROM article_pairs ap
                 JOIN articles a1 ON a1.article_id = ap.article_id_1
@@ -74,7 +77,7 @@ def run_task12():
             for row in pairs:
                 (pair_id, id1, id2, similarity, contradiction_score,
                  trust_1, trust_2, h1_en, h1_ar, h2_en, h2_ar,
-                 src1, src2) = row
+                 pub1, pub2, src1, src2) = row
 
                 trust_1 = float(trust_1 or 0.5)
                 trust_2 = float(trust_2 or 0.5)
@@ -91,6 +94,16 @@ def run_task12():
                              f"(similarity={similarity:.3f})")
                     continue
 
+                # Heuristic 1b — developing-story update suppression.
+                # "7 killed at 6am → 12 killed at 11am" is a story updating,
+                # not a contradiction. Skip unless there's a framing flip,
+                # which signals a genuine narrative disagreement.
+                has_framing = framing_flip(a_texts, b_texts)
+                if not has_framing and is_developing_story_update(pub1, pub2, a_texts, b_texts):
+                    same_story_skipped += 1
+                    log.info(f"[Task12] Pair {pair_id} skipped as developing-story update")
+                    continue
+
                 # Base score: contradiction × max trust
                 max_trust = max(trust_1, trust_2)
                 conflict_score = contradiction_score * max_trust
@@ -102,8 +115,7 @@ def run_task12():
                     numeric_boosted += 1
 
                 # Heuristic 3 — framing vocabulary boost
-                # "killed" vs "martyred", "terrorist" vs "resistance fighter" etc.
-                framing = framing_flip(a_texts, b_texts)
+                framing = has_framing  # already computed above
                 if framing:
                     conflict_score = min(conflict_score + FRAMING_BOOST, 1.0)
                     framing_boosted += 1

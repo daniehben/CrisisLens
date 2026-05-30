@@ -66,7 +66,11 @@ def run_task14():
                 SELECT conflict_id, bias_analysis
                 FROM conflicts
                 WHERE bias_analysis IS NOT NULL
-                  AND (bias_analysis->>'claims_a_ar') IS NULL
+                  AND (
+                    (bias_analysis->>'claims_a_ar') IS NULL
+                    OR (bias_analysis->>'narrative' IS NOT NULL
+                        AND (bias_analysis->>'narrative_ar') IS NULL)
+                  )
                 ORDER BY weighted_score DESC
                 LIMIT %s
             """, (BATCH_SIZE,))
@@ -90,6 +94,8 @@ def run_task14():
                         continue
 
                 fields_to_translate = {
+                    "dispute":              ba.get("dispute"),
+                    "narrative":            ba.get("narrative"),
                     "claims_a":             ba.get("claims_a"),
                     "claims_b":             ba.get("claims_b"),
                     "factual_disagreement": ba.get("factual_disagreement"),
@@ -104,7 +110,7 @@ def run_task14():
                     max_tokens=800,
                 )
 
-                if ar_fields and "claims_a" in ar_fields:
+                if ar_fields and ("claims_a" in ar_fields or "narrative" in ar_fields):
                     # Groq returns same keys — remap to _ar variants
                     for key in fields_to_translate:
                         if key in ar_fields:
