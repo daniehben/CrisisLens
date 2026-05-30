@@ -37,8 +37,14 @@ def restore_telegram_session():
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
         self.end_headers()
         self.wfile.write(b'{"status": "worker running"}')
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
 
     def log_message(self, format, *args):
         pass  # silence HTTP logs
@@ -51,17 +57,24 @@ def start_health_server():
     server.serve_forever()
 
 def run_ingestion_and_nlp():
-    run_worker()
-    run_task7()      # fetch full bodies
-    run_task7_5()    # LLM-clean & summarize bodies (Groq)
-    run_task8()   # EN→AR translation for English articles
-    run_task8b()  # AR→EN translation for Arabic-native articles (cross-language display)
-    run_task9()
-    run_task10()
-    run_task11()
-    run_task12()
-    run_task13()     # LLM bias analysis per new conflict (Groq)
-    run_task14()     # Translate bias analysis fields to Arabic
+    steps = [
+        ("worker",  run_worker),
+        ("task7",   run_task7),
+        ("task7_5", run_task7_5),
+        ("task8",   run_task8),
+        ("task8b",  run_task8b),
+        ("task9",   run_task9),
+        ("task10",  run_task10),
+        ("task11",  run_task11),
+        ("task12",  run_task12),
+        ("task13",  run_task13),
+        ("task14",  run_task14),
+    ]
+    for name, fn in steps:
+        try:
+            fn()
+        except Exception as e:
+            log.error(f"[scheduler] {name} crashed: {e}", exc_info=True)
     
     
 def main():
