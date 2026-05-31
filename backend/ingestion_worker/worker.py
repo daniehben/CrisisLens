@@ -21,9 +21,10 @@ def get_all_adapters():
                  'TAS', 'PTV', 'RTA',
                  'ANA',
                  'GG', 'GZ', 'CJ', 'EI', 'AW', 'CRA', 'DSN',   # indie voices
-                 'YT_BP', 'YT_DN', 'YT_RT']:                    # YouTube commentary (YT_GZ disabled — bad channel ID)
+                 'YT_BP', 'YT_DN', 'YT_RT',                     # YouTube commentary (YT_GZ disabled — bad channel ID)
+                 'CNN', 'GUA', 'BBAR', 'SKA', 'MEE', 'SDT']:    # new global sources
         adapters.append(RSSAdapter(code))
-    for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP']:
+    for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP', 'REU']:
         adapters.append(NewsAPIAdapter(code))
     # Telegram channels via public web view (no MTProto, no bot, no auth)
     for code in ['BNO', 'AJA+', 'AJE+', 'REU', 'BBC+', 'MAYE', 'WM', 'SI']:

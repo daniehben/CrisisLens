@@ -14,6 +14,7 @@ NEWSAPI_SOURCES = {
     'JRP':  {'newsapi_id': 'the-jerusalem-post',    'language': 'en', 'trust_weight': 0.75},
     'WP':   {'newsapi_id': 'the-washington-post',   'language': 'en', 'trust_weight': 0.80},
     'AP':   {'newsapi_id': 'associated-press',      'language': 'en', 'trust_weight': 0.80},
+    'REU':  {'newsapi_id': 'reuters',               'language': 'en', 'trust_weight': 0.85},
 }
 
 

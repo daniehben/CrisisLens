@@ -15,13 +15,14 @@ DIVERSITY_BONUS = 0.08           # added when sources are from different perspec
 # Perspective regions for diversity bonus. A pair crossing region boundaries
 # is more interesting than two sources from the same region.
 _REGION_GROUP = {
-    'AJA': 'arab', 'ANA': 'arab', 'ARB': 'arab', 'AKH': 'arab',
-    'DW': 'western', 'F24': 'western', 'BBC': 'western',
+    'AJA': 'arab', 'AJE': 'arab', 'ANA': 'arab', 'ARB': 'arab', 'AKH': 'arab', 'SKA': 'arab',
+    'DW': 'western', 'F24': 'western', 'BBC': 'western', 'BBAR': 'western',
     'AP': 'western', 'WP': 'western', 'JRP': 'western',
+    'CNN': 'western', 'GUA': 'western', 'REU': 'western',
     'TAS': 'state', 'PTV': 'state', 'RTA': 'state',
     'MND': 'pal', 'WAF': 'pal', 'EI': 'pal',
     'GG': 'indie', 'GZ': 'indie', 'CJ': 'indie',
-    'AW': 'indie', 'CRA': 'indie', 'DSN': 'indie',
+    'AW': 'indie', 'CRA': 'indie', 'DSN': 'indie', 'MEE': 'indie', 'SDT': 'indie',
     'YT_BP': 'indie', 'YT_DN': 'indie', 'YT_RT': 'indie',
 }
 

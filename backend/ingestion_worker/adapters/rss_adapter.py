@@ -130,6 +130,43 @@ RSS_SOURCES = {
         'language': 'en',
         'trust_weight': 0.55,
     },
+    # ── New global sources (2026-05) ──────────────────────────────────────
+    'CNN': {
+        # CNN — via Google News (direct cnn.com blocks Render Frankfurt IPs)
+        'url': 'https://news.google.com/rss/search?q=site:cnn.com&hl=en&gl=US&ceid=US:en',
+        'language': 'en',
+        'trust_weight': 0.75,
+    },
+    'GUA': {
+        # The Guardian — world news RSS (direct, usually accessible)
+        'url': 'https://www.theguardian.com/world/rss',
+        'language': 'en',
+        'trust_weight': 0.78,
+    },
+    'BBAR': {
+        # BBC Arabic — same trust as BBC English, Arabic edition
+        'url': 'http://feeds.bbci.co.uk/arabic/rss.xml',
+        'language': 'ar',
+        'trust_weight': 0.80,
+    },
+    'SKA': {
+        # Sky News Arabia — UAE/Saudi aligned, good non-Palestine coverage
+        'url': 'https://news.google.com/rss/search?q=site:skynewsarabia.com&hl=ar&gl=AE&ceid=AE:ar',
+        'language': 'ar',
+        'trust_weight': 0.65,
+    },
+    'MEE': {
+        # Middle East Eye — independent UK-based, strong MENA coverage
+        'url': 'https://news.google.com/rss/search?q=site:middleeasteye.net&hl=en&gl=GB&ceid=GB:en',
+        'language': 'en',
+        'trust_weight': 0.60,
+    },
+    'SDT': {
+        # Sudan Tribune — geography expansion: Sudan, Horn of Africa, Sahel
+        'url': 'https://sudantribune.com/feed/',
+        'language': 'en',
+        'trust_weight': 0.60,
+    },
     # ── YouTube commentary channels via RSS ────────────────────────────────
     # YouTube exposes per-channel RSS at:
     #   https://www.youtube.com/feeds/videos.xml?channel_id=<UC...>
