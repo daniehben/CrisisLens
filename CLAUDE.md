@@ -43,17 +43,18 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 | AP | Associated Press | NewsAPI | en | 0.80 | ✅ Live |
 | ASH | Asharq Al-Awsat | RSS | ar | 0.65 | ⏸ Disabled — Render IPs blocked |
 | TNA | The New Arab | RSS | en | 0.65 | ⏸ Disabled — Render IPs blocked |
-| BNO | BNO News | Telegram | en | 0.50 | ⏸ Disabled — MTProto blocked |
-| AJA+ | AJ Plus Arabic | Telegram | ar | 0.50 | ⏸ Disabled — MTProto blocked |
-| AJE+ | Al Jazeera English TG | Telegram | en | 0.80 | ⏸ Disabled — MTProto blocked |
-| REU | Reuters Telegram | Telegram | en | 0.80 | ⏸ Disabled — MTProto blocked |
-| BBC+ | BBC Breaking TG | Telegram | en | 0.80 | ⏸ Disabled — MTProto blocked |
-| WM | War Monitor | Telegram | en | 0.25 | ⏸ Disabled — MTProto blocked |
-| SI | Spectator Index | Telegram | en | 0.10 | ⏸ Disabled — MTProto blocked |
+| BNO | BNO News | telegram_web | en | 0.50 | ✅ Live (t.me/s/) |
+| AJA+ | AJ Plus Arabic | telegram_web | ar | 0.50 | ✅ Live (t.me/s/) |
+| BBC+ | BBC Breaking | telegram_web | en | 0.80 | ✅ Live (t.me/s/) |
+| MAYE | Al Mayadeen EN | telegram_web | en | 0.45 | ✅ Live (t.me/s/) |
+| WM | War Monitor | telegram_web | en | 0.25 | ✅ Live (t.me/s/) |
+| SI | Spectator Index | telegram_web | en | 0.10 | ✅ Live (t.me/s/) |
+| AJE+ | Al Jazeera English TG | — | en | — | ⏸ Removed — duplicate of AJE (NewsAPI) |
+| REU TG | Reuters Telegram | — | en | — | ⏸ Removed — duplicate of REU (NewsAPI) |
 
 ## Known Issues & Workarounds
 1. **Redis unreachable:** `Connection refused` on internal network. Worker uses DB-level `ON CONFLICT DO NOTHING` for deduplication instead.
-2. **Telegram blocked:** Render Frankfurt IPs cannot complete MTProto TLS handshake. Fix: migrate to async Telethon with explicit proxy or use Telegram Bot API instead.
+2. **Telegram MTProto blocked:** Render Frankfurt IPs cannot complete MTProto TLS handshake. **Fixed:** Switched to `TelegramWebAdapter` which scrapes `t.me/s/<channel>` (plain HTTPS public preview — no auth, no MTProto). All 6 channels now live.
 3. **ASH/TNA RSS blocked:** aawsat.com and newarab.com block Render Frankfurt IPs. Fix: use alternative feeds or proxy.
 4. **API /health hangs:** DB and Redis connections in health check can hang. Fixed with `socket_timeout=3` and `statement_timeout=3000ms`.
 

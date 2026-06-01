@@ -27,7 +27,8 @@ def get_all_adapters():
     for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP', 'REU']:
         adapters.append(NewsAPIAdapter(code))
     # Telegram channels via public web view (no MTProto, no bot, no auth)
-    for code in ['BNO', 'AJA+', 'AJE+', 'REU', 'BBC+', 'MAYE', 'WM', 'SI']:
+    # REU and AJE+ excluded — already ingested via NewsAPI
+    for code in ['BNO', 'AJA+', 'BBC+', 'MAYE', 'WM', 'SI']:
         adapters.append(TelegramWebAdapter(code))
     return adapters
 
