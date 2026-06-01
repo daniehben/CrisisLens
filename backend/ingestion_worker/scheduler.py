@@ -15,6 +15,7 @@ from backend.nlp_pipeline.task11_nli import run_task11
 from backend.nlp_pipeline.task12_conflicts import run_task12
 from backend.nlp_pipeline.task13_bias_analysis import run_task13
 from backend.nlp_pipeline.task14_translate_analysis import run_task14
+from backend.nlp_pipeline.task6_images import run_task6
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ def start_health_server():
 def run_ingestion_and_nlp():
     steps = [
         ("worker",  run_worker),
+        ("task6",   run_task6),   # OG image backfill — runs right after ingestion
         ("task7",   run_task7),
         ("task7_5", run_task7_5),
         ("task8",   run_task8),
