@@ -367,6 +367,66 @@
     @media (max-width: 860px) { .feed-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 540px) { .feed-grid { grid-template-columns: 1fr; } }
 
+    /* ── Feed header row (label + type tabs) ──────────────────────────── */
+    .feed-header-row {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: .5rem;
+      padding: .6rem 0 .4rem; margin-bottom: .1rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .feed-header-row .section-label {
+      border: none; padding: 0; margin: 0; flex-shrink: 0;
+    }
+    .type-tabs { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .type-tab {
+      padding: .28rem .7rem; border-radius: 999px;
+      font-size: .65rem; font-weight: 600; letter-spacing: .02em;
+      border: 1px solid var(--line); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .15s;
+    }
+    .type-tab:hover { border-color: var(--muted-2); color: var(--ink-soft); }
+    .type-tab.active {
+      background: var(--accent); border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* ── Topic sections ────────────────────────────────────────────────── */
+    .topic-section { margin-bottom: 2rem; }
+    .topic-section-hd {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .55rem 0; margin-bottom: .75rem;
+      border-bottom: 2px solid var(--accent);
+      cursor: pointer; user-select: none;
+    }
+    .topic-section-icon {
+      font-size: 1.15rem; line-height: 1; flex-shrink: 0;
+    }
+    .topic-section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.05rem; font-weight: 800; color: var(--ink); flex: 1;
+    }
+    .topic-section-count {
+      font-size: .65rem; font-weight: 600; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--muted);
+      background: var(--line-soft); padding: .2rem .55rem; border-radius: 999px;
+    }
+    .topic-section-chevron {
+      width: 14px; height: 14px; color: var(--muted-2);
+      transition: transform .2s;
+    }
+    .topic-section.collapsed .topic-section-chevron { transform: rotate(-90deg); }
+    .topic-section.collapsed .topic-section-body { display: none; }
+    .section-expand-btn {
+      margin-top: .75rem;
+      padding: .45rem 1.2rem; border-radius: 6px;
+      font-size: .72rem; font-weight: 600;
+      border: 1px solid var(--line); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .15s;
+      display: block; width: 100%; text-align: center;
+    }
+    .section-expand-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .fc-hidden { display: none; }
+
     /* ── Feed card ─────────────────────────────────────────────────────── */
     .fc {
       background: var(--bg-card); border: 1px solid var(--line); border-radius: 10px;
@@ -723,10 +783,12 @@
         <button class="cat-tab active" data-topic="all">All</button>
         <button class="cat-tab" data-topic="palestine">Palestine</button>
         <button class="cat-tab" data-topic="iran">Iran</button>
+        <button class="cat-tab" data-topic="ukraine">Ukraine</button>
         <button class="cat-tab" data-topic="lebanon">Lebanon</button>
         <button class="cat-tab" data-topic="syria">Syria</button>
         <button class="cat-tab" data-topic="yemen">Yemen</button>
-        <button class="cat-tab" data-topic="ukraine">Ukraine</button>
+        <button class="cat-tab" data-topic="sudan">Sudan</button>
+        <button class="cat-tab" data-topic="iraq">Iraq</button>
         <button class="cat-tab" data-topic="finance">Finance</button>
       </div>
       <div class="cat-controls">
@@ -796,8 +858,17 @@
     <div id="main-view" style="display:none">
       <div class="section-label" id="featured-label">Most Disputed · Now</div>
       <div class="newspaper-top" id="featured-grid"></div>
-      <div class="section-label" id="feed-label">All Contradictions</div>
-      <div class="feed-grid" id="feed-grid"></div>
+      <div class="feed-header-row">
+        <div class="section-label" id="feed-label">All Contradictions</div>
+        <div class="type-tabs" id="type-tabs">
+          <button class="type-tab active" data-type="all">All types</button>
+          <button class="type-tab" data-type="numeric">🔢 Numeric</button>
+          <button class="type-tab" data-type="framing">💬 Framing</button>
+          <button class="type-tab" data-type="cross">🌐 Cross-regional</button>
+          <button class="type-tab" data-type="confident">⚡ High confidence</button>
+        </div>
+      </div>
+      <div id="feed-sections"></div>
       <div id="empty-msg" class="msg-box" style="display:none"></div>
     </div>
 
@@ -949,14 +1020,31 @@
     pal:'r_pal', res:'r_res', tur:'r_tur', inde:'r_inde', neutral:'r_neut',
   };
   const TOPICS = {
-    palestine: ['palestine','gaza','west bank','hamas','rafah','idf','settler','jenin','ramallah','fatah'],
-    iran:      ['iran','tehran','khamenei','irgc','nuclear','sanctions','persian'],
-    lebanon:   ['lebanon','beirut','hezbollah','nasrallah','south lebanon'],
-    syria:     ['syria','damascus','aleppo','idlib','hts','rebel'],
-    yemen:     ['yemen','houthi','sanaa','hodeidah','red sea'],
-    ukraine:   ['ukraine','kyiv','russia','zelensky','nato','donbas','putin'],
-    finance:   ['oil','dollar','gdp','inflation','sanctions','economy','barrel','brent','opec','markets'],
+    palestine: ['palestine','gaza','west bank','hamas','rafah','idf','settler','jenin','ramallah','fatah','غزة','فلسطين','حماس','رفح'],
+    iran:      ['iran','tehran','khamenei','irgc','nuclear','persian','إيران','طهران','خامنئي','نووي'],
+    ukraine:   ['ukraine','kyiv','russia','zelensky','nato','donbas','putin','crimea','أوكرانيا','روسيا','بوتين'],
+    lebanon:   ['lebanon','beirut','hezbollah','nasrallah','south lebanon','لبنان','بيروت','حزب الله'],
+    syria:     ['syria','damascus','aleppo','idlib','hts','rebel','سوريا','دمشق','حلب','إدلب'],
+    yemen:     ['yemen','houthi','sanaa','hodeidah','red sea','اليمن','الحوثي','صنعاء','البحر الأحمر'],
+    sudan:     ['sudan','darfur','khartoum','rsf','rapid support','السودان','دارفور','الخرطوم'],
+    iraq:      ['iraq','baghdad','mosul','kurdish','peshmerga','العراق','بغداد','الموصل'],
+    finance:   ['oil','dollar','gdp','inflation','economy','barrel','brent','opec','markets','النفط','الاقتصاد','أوبك'],
   };
+
+  const TOPIC_META = {
+    palestine: { icon: '🇵🇸', label: 'Palestine & Gaza',    labelAr: 'فلسطين وغزة' },
+    iran:      { icon: '🇮🇷', label: 'Iran',                labelAr: 'إيران' },
+    ukraine:   { icon: '🇺🇦', label: 'Ukraine & Russia',    labelAr: 'أوكرانيا وروسيا' },
+    lebanon:   { icon: '🇱🇧', label: 'Lebanon',             labelAr: 'لبنان' },
+    syria:     { icon: '🇸🇾', label: 'Syria',               labelAr: 'سوريا' },
+    yemen:     { icon: '🇾🇪', label: 'Yemen',               labelAr: 'اليمن' },
+    sudan:     { icon: '🇸🇩', label: 'Sudan',               labelAr: 'السودان' },
+    iraq:      { icon: '🇮🇶', label: 'Iraq',                labelAr: 'العراق' },
+    finance:   { icon: '💹',  label: 'Economy & Finance',   labelAr: 'الاقتصاد والمال' },
+    other:     { icon: '🌐',  label: 'Other',               labelAr: 'أخرى' },
+  };
+
+  const SECTION_PREVIEW = 4; // cards visible before "show more"
 
   function regionOf(code)    { return REGION_MAP[code] || 'neutral'; }
   function regionColor(code) { return REGION_COLOR_MAP[regionOf(code)] || 'var(--r-neut)'; }
@@ -1002,6 +1090,7 @@
   let langFilter = 'all';
   let sortMode   = 'score';
   let topicFilter = 'all';
+  let typeFilter  = 'all';
   let searchQuery = '';
 
   function pickHL(c, side) {
@@ -1018,8 +1107,17 @@
       .filter(Boolean).join(' ').toLowerCase();
     return kws.some(k => hay.includes(k));
   }
+  function matchesType(c) {
+    if (typeFilter === 'all') return true;
+    if (typeFilter === 'numeric')   return hasNumericDisagreement(c) || c.conflict_type === 'numeric';
+    if (typeFilter === 'framing')   return c.conflict_type === 'framing';
+    if (typeFilter === 'cross')     return isCross(c);
+    if (typeFilter === 'confident') return parseFloat(c.weighted_score) >= 0.70;
+    return true;
+  }
   function rowMatches(c) {
     if (!matchesTopic(c, topicFilter)) return false;
+    if (!matchesType(c)) return false;
     if (langFilter === 'ar' && !(c.headline_1_ar||c.headline_2_ar)) return false;
     if (langFilter === 'en' && !(c.headline_1_en||c.headline_2_en)) return false;
     if (searchQuery) {
@@ -1035,6 +1133,73 @@
     if (sortMode === 'recent') arr.sort((a,b)=>new Date(b.detected_at)-new Date(a.detected_at));
     else arr.sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score));
     return arr;
+  }
+
+  function topicOf(c) {
+    for (const [topic, kws] of Object.entries(TOPICS)) {
+      const hay = [c.headline_1_en,c.headline_2_en,c.headline_1_ar,c.headline_2_ar]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (kws.some(k => hay.includes(k))) return topic;
+    }
+    return 'other';
+  }
+
+  function groupByTopic(rows) {
+    const order = [...Object.keys(TOPICS), 'other'];
+    const groups = {};
+    order.forEach(t => groups[t] = []);
+    rows.forEach(c => {
+      const t = topicOf(c);
+      groups[t].push(c);
+    });
+    return order.filter(t => groups[t].length > 0).map(t => ({ topic: t, items: groups[t] }));
+  }
+
+  function buildTopicSections(groups) {
+    if (!groups.length) return '';
+    const chevron = `<svg class="topic-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    return groups.map(({ topic, items }) => {
+      const meta  = TOPIC_META[topic] || TOPIC_META.other;
+      const title = preferAr ? meta.labelAr : meta.label;
+      const preview  = items.slice(0, SECTION_PREVIEW);
+      const overflow = items.slice(SECTION_PREVIEW);
+      const countLabel = preferAr ? `${items.length} تناقض` : `${items.length} conflict${items.length!==1?'s':''}`;
+      return `
+        <div class="topic-section" data-topic-section="${topic}">
+          <div class="topic-section-hd" onclick="toggleSection(this)">
+            <span class="topic-section-icon">${meta.icon}</span>
+            <span class="topic-section-title">${title}</span>
+            <span class="topic-section-count">${countLabel}</span>
+            ${chevron}
+          </div>
+          <div class="topic-section-body">
+            <div class="feed-grid">
+              ${preview.map((c,i) => buildCard(c,false,i)).join('')}
+            </div>
+            ${overflow.length ? `
+              <div class="feed-grid fc-overflow" style="display:none;margin-top:.75rem">
+                ${overflow.map((c,i) => buildCard(c,false,SECTION_PREVIEW+i)).join('')}
+              </div>
+              <button class="section-expand-btn" onclick="expandSection(this)">
+                ${preferAr ? `عرض ${overflow.length} المزيد` : `Show ${overflow.length} more`}
+              </button>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function toggleSection(hd) {
+    hd.closest('.topic-section').classList.toggle('collapsed');
+  }
+
+  function expandSection(btn) {
+    const body = btn.closest('.topic-section-body');
+    body.querySelector('.fc-overflow').style.display = '';
+    btn.style.display = 'none';
+    // wire click handlers for newly revealed cards
+    body.querySelectorAll('[data-cid]').forEach(el => {
+      el.onclick = e => { if (!e.target.closest('a')) location.hash = `#c${el.dataset.cid}`; };
+    });
   }
 
   // ── Severity ──────────────────────────────────────────────────────────
@@ -1263,7 +1428,15 @@
     const rest = filtered.filter(c => !top4.includes(c));
     document.getElementById('feed-label').textContent =
       topicFilter==='all' ? t('feed_label_all') : t('feed_label_topic', topicFilter);
-    document.getElementById('feed-grid').innerHTML = rest.map((c,i) => buildCard(c,false,i)).join('');
+
+    const feedSections = document.getElementById('feed-sections');
+    // Topic sections only when browsing "All" with no active search
+    if (topicFilter === 'all' && !searchQuery) {
+      feedSections.innerHTML = buildTopicSections(groupByTopic(rest));
+    } else {
+      // Flat grid for filtered/search views
+      feedSections.innerHTML = `<div class="feed-grid">${rest.map((c,i) => buildCard(c,false,i)).join('')}</div>`;
+    }
 
     document.getElementById('empty-msg').textContent = searchQuery ? t('search_empty', searchQuery) : t('empty_msg');
     document.getElementById('empty-msg').style.display = filtered.length===0 ? 'block' : 'none';
@@ -1564,6 +1737,13 @@
     btn.onclick = () => {
       topicFilter = btn.dataset.topic;
       document.querySelectorAll('.cat-tab').forEach(b=>b.classList.toggle('active', b===btn));
+      render();
+    };
+  });
+  document.getElementById('type-tabs').querySelectorAll('.type-tab').forEach(btn => {
+    btn.onclick = () => {
+      typeFilter = btn.dataset.type;
+      document.querySelectorAll('.type-tab').forEach(b=>b.classList.toggle('active', b===btn));
       render();
     };
   });
