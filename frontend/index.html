@@ -369,62 +369,57 @@
 
     /* ── Feed header row (label + type tabs) ──────────────────────────── */
     .feed-header-row {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: flex-end; justify-content: space-between;
       flex-wrap: wrap; gap: .5rem;
-      padding: .6rem 0 .4rem; margin-bottom: .1rem;
-      border-bottom: 1px solid var(--line);
+      padding-bottom: 0; margin-bottom: 1.25rem;
     }
     .feed-header-row .section-label {
-      border: none; padding: 0; margin: 0; flex-shrink: 0;
+      border: none; padding: 0 0 .5rem; margin: 0; flex-shrink: 0;
     }
-    .type-tabs { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .type-tabs { display: flex; gap: 0; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
     .type-tab {
-      padding: .28rem .7rem; border-radius: 999px;
-      font-size: .65rem; font-weight: 600; letter-spacing: .02em;
-      border: 1px solid var(--line); background: transparent;
-      color: var(--muted); cursor: pointer; transition: all .15s;
+      padding: .4rem .85rem;
+      font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+      background: transparent; color: var(--muted); cursor: pointer; transition: all .15s;
     }
-    .type-tab:hover { border-color: var(--muted-2); color: var(--ink-soft); }
+    .type-tab:hover { color: var(--ink); }
     .type-tab.active {
-      background: var(--accent); border-color: var(--accent);
-      color: #fff;
+      color: var(--accent); border-bottom-color: var(--accent);
     }
 
     /* ── Topic sections ────────────────────────────────────────────────── */
-    .topic-section { margin-bottom: 2rem; }
+    .topic-section { margin-bottom: 2.5rem; }
     .topic-section-hd {
-      display: flex; align-items: center; gap: .6rem;
-      padding: .55rem 0; margin-bottom: .75rem;
-      border-bottom: 2px solid var(--accent);
+      display: flex; align-items: baseline; gap: .75rem;
+      padding-bottom: .55rem; margin-bottom: .85rem;
+      border-bottom: 3px solid var(--accent);
       cursor: pointer; user-select: none;
-    }
-    .topic-section-icon {
-      font-size: 1.15rem; line-height: 1; flex-shrink: 0;
     }
     .topic-section-title {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 1.05rem; font-weight: 800; color: var(--ink); flex: 1;
+      font-size: 1.35rem; font-weight: 900; color: var(--ink);
+      letter-spacing: -.01em; flex: 1; line-height: 1;
     }
     .topic-section-count {
-      font-size: .65rem; font-weight: 600; letter-spacing: .04em;
+      font-size: .62rem; font-weight: 700; letter-spacing: .10em;
       text-transform: uppercase; color: var(--muted);
-      background: var(--line-soft); padding: .2rem .55rem; border-radius: 999px;
     }
     .topic-section-chevron {
-      width: 14px; height: 14px; color: var(--muted-2);
-      transition: transform .2s;
+      width: 13px; height: 13px; color: var(--muted-2);
+      transition: transform .18s; flex-shrink: 0; align-self: center;
     }
     .topic-section.collapsed .topic-section-chevron { transform: rotate(-90deg); }
     .topic-section.collapsed .topic-section-body { display: none; }
     .section-expand-btn {
-      margin-top: .75rem;
-      padding: .45rem 1.2rem; border-radius: 6px;
-      font-size: .72rem; font-weight: 600;
+      margin-top: .85rem;
+      padding: .5rem 1.4rem; border-radius: 3px;
+      font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
       border: 1px solid var(--line); background: transparent;
       color: var(--muted); cursor: pointer; transition: all .15s;
       display: block; width: 100%; text-align: center;
     }
-    .section-expand-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .section-expand-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
     .fc-hidden { display: none; }
 
     /* ── Feed card ─────────────────────────────────────────────────────── */
@@ -861,11 +856,11 @@
       <div class="feed-header-row">
         <div class="section-label" id="feed-label">All Contradictions</div>
         <div class="type-tabs" id="type-tabs">
-          <button class="type-tab active" data-type="all">All types</button>
-          <button class="type-tab" data-type="numeric">🔢 Numeric</button>
-          <button class="type-tab" data-type="framing">💬 Framing</button>
-          <button class="type-tab" data-type="cross">🌐 Cross-regional</button>
-          <button class="type-tab" data-type="confident">⚡ High confidence</button>
+          <button class="type-tab active" data-type="all">All</button>
+          <button class="type-tab" data-type="numeric">Numeric</button>
+          <button class="type-tab" data-type="framing">Framing</button>
+          <button class="type-tab" data-type="cross">Cross-regional</button>
+          <button class="type-tab" data-type="confident">High confidence</button>
         </div>
       </div>
       <div id="feed-sections"></div>
@@ -1032,16 +1027,16 @@
   };
 
   const TOPIC_META = {
-    palestine: { icon: '🇵🇸', label: 'Palestine & Gaza',    labelAr: 'فلسطين وغزة' },
-    iran:      { icon: '🇮🇷', label: 'Iran',                labelAr: 'إيران' },
+    palestine: { label: 'Palestine & Gaza',    labelAr: 'فلسطين وغزة' },
+    iran:      { label: 'Iran',                labelAr: 'إيران' },
     ukraine:   { icon: '🇺🇦', label: 'Ukraine & Russia',    labelAr: 'أوكرانيا وروسيا' },
-    lebanon:   { icon: '🇱🇧', label: 'Lebanon',             labelAr: 'لبنان' },
-    syria:     { icon: '🇸🇾', label: 'Syria',               labelAr: 'سوريا' },
-    yemen:     { icon: '🇾🇪', label: 'Yemen',               labelAr: 'اليمن' },
-    sudan:     { icon: '🇸🇩', label: 'Sudan',               labelAr: 'السودان' },
-    iraq:      { icon: '🇮🇶', label: 'Iraq',                labelAr: 'العراق' },
-    finance:   { icon: '💹',  label: 'Economy & Finance',   labelAr: 'الاقتصاد والمال' },
-    other:     { icon: '🌐',  label: 'Other',               labelAr: 'أخرى' },
+    lebanon:   { label: 'Lebanon',             labelAr: 'لبنان' },
+    syria:     { label: 'Syria',               labelAr: 'سوريا' },
+    yemen:     { label: 'Yemen',               labelAr: 'اليمن' },
+    sudan:     { label: 'Sudan',               labelAr: 'السودان' },
+    iraq:      { label: 'Iraq',                labelAr: 'العراق' },
+    finance:   { label: 'Economy & Finance',   labelAr: 'الاقتصاد والمال' },
+    other:     { label: 'Other',               labelAr: 'أخرى' },
   };
 
   const SECTION_PREVIEW = 4; // cards visible before "show more"
@@ -1167,7 +1162,6 @@
       return `
         <div class="topic-section" data-topic-section="${topic}">
           <div class="topic-section-hd" onclick="toggleSection(this)">
-            <span class="topic-section-icon">${meta.icon}</span>
             <span class="topic-section-title">${title}</span>
             <span class="topic-section-count">${countLabel}</span>
             ${chevron}
