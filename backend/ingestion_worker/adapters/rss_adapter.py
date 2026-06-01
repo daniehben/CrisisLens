@@ -130,6 +130,54 @@ RSS_SOURCES = {
         'language': 'en',
         'trust_weight': 0.55,
     },
+    # ── Former NewsAPI sources → migrated to RSS (2026-06) ───────────────
+    # NewsAPI free/dev plan cannot be used in production (ToS violation).
+    # All sources now served via direct RSS or Google News proxy.
+    'BBC': {
+        # BBC World News — direct official feed
+        'url': 'https://feeds.bbci.co.uk/news/world/rss.xml',
+        'language': 'en',
+        'trust_weight': 0.80,
+    },
+    'REU': {
+        # Reuters — no public RSS since 2020; route via Google News
+        'url': 'https://news.google.com/rss/search?q=site:reuters.com&hl=en&gl=US&ceid=US:en',
+        'language': 'en',
+        'trust_weight': 0.85,
+    },
+    'AP': {
+        # Associated Press — official AP top news RSS
+        'url': 'https://feeds.apnews.com/rss/apf-topnews',
+        'language': 'en',
+        'trust_weight': 0.80,
+    },
+    'WP': {
+        # Washington Post — direct RSS paywalled; route via Google News
+        'url': 'https://news.google.com/rss/search?q=site:washingtonpost.com&hl=en&gl=US&ceid=US:en',
+        'language': 'en',
+        'trust_weight': 0.75,
+    },
+    'JRP': {
+        # Jerusalem Post — via Google News (direct feed intermittent)
+        'url': 'https://news.google.com/rss/search?q=site:jpost.com&hl=en&gl=IL&ceid=IL:en',
+        'language': 'en',
+        'trust_weight': 0.70,
+    },
+    # AJE (Al Jazeera English via NewsAPI) → dropped; same content as AJA (trust 1.0)
+    # ── BNO News: moved from Telegram scraping to direct RSS ─────────────
+    'BNO': {
+        # BNO News breaking news feed — official RSS, no scraping needed
+        'url': 'https://bnonews.com/index.php/feed/',
+        'language': 'en',
+        'trust_weight': 0.50,
+    },
+    # ── Al Mayadeen: moved from Telegram scraping to direct RSS ──────────
+    'MAYE': {
+        # Al Mayadeen English — official RSS
+        'url': 'https://www.almayadeen.net/rss/all.xml',
+        'language': 'en',
+        'trust_weight': 0.45,
+    },
     # ── New global sources (2026-05) ──────────────────────────────────────
     'CNN': {
         # CNN — via Google News (direct cnn.com blocks Render Frankfurt IPs)

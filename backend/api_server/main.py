@@ -41,17 +41,30 @@ def run_startup_migrations():
                     WHERE summary IS NOT NULL AND summary_ar IS NULL AND language = 'en'
                 """)
 
-                # ── Source rows (014) — new global sources ──────────────────
-                # INSERT ... ON CONFLICT DO UPDATE so name/trust/url stay current.
+                # ── Source rows (014/016) — all active sources, idempotent upsert ──
+                # ON CONFLICT DO UPDATE keeps name/url/type current on every deploy.
                 cur.execute("""
                     INSERT INTO sources (name, code, language, trust_tier, trust_weight, feed_url, feed_type, is_active) VALUES
-                        ('CNN',             'CNN',  'en', 2, 0.75, 'https://news.google.com/rss/search?q=site:cnn.com&hl=en&gl=US&ceid=US:en',                'rss',     TRUE),
-                        ('The Guardian',    'GUA',  'en', 2, 0.78, 'https://www.theguardian.com/world/rss',                                                  'rss',     TRUE),
-                        ('BBC Arabic',      'BBAR', 'ar', 2, 0.80, 'http://feeds.bbci.co.uk/arabic/rss.xml',                                                 'rss',     TRUE),
-                        ('Sky News Arabia', 'SKA',  'ar', 3, 0.65, 'https://news.google.com/rss/search?q=site:skynewsarabia.com&hl=ar&gl=AE&ceid=AE:ar',    'rss',     TRUE),
-                        ('Middle East Eye', 'MEE',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:middleeasteye.net&hl=en&gl=GB&ceid=GB:en',    'rss',     TRUE),
-                        ('Sudan Tribune',   'SDT',  'en', 3, 0.60, 'https://sudantribune.com/feed/',                                                         'rss',     TRUE),
-                        ('Reuters',         'REU',  'en', 1, 0.85, 'https://newsapi.org/v2/top-headlines?sources=reuters',                                   'newsapi', TRUE)
+                        -- Global mainstream (RSS, not NewsAPI)
+                        ('BBC News',          'BBC',  'en', 1, 0.80, 'https://feeds.bbci.co.uk/news/world/rss.xml',                                              'rss', TRUE),
+                        ('Reuters',           'REU',  'en', 1, 0.85, 'https://news.google.com/rss/search?q=site:reuters.com&hl=en&gl=US&ceid=US:en',             'rss', TRUE),
+                        ('Associated Press',  'AP',   'en', 1, 0.80, 'https://feeds.apnews.com/rss/apf-topnews',                                                 'rss', TRUE),
+                        ('Washington Post',   'WP',   'en', 2, 0.75, 'https://news.google.com/rss/search?q=site:washingtonpost.com&hl=en&gl=US&ceid=US:en',     'rss', TRUE),
+                        ('Jerusalem Post',    'JRP',  'en', 2, 0.70, 'https://news.google.com/rss/search?q=site:jpost.com&hl=en&gl=IL&ceid=IL:en',              'rss', TRUE),
+                        ('CNN',               'CNN',  'en', 2, 0.75, 'https://news.google.com/rss/search?q=site:cnn.com&hl=en&gl=US&ceid=US:en',                'rss', TRUE),
+                        ('The Guardian',      'GUA',  'en', 2, 0.78, 'https://www.theguardian.com/world/rss',                                                   'rss', TRUE),
+                        ('Middle East Eye',   'MEE',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:middleeasteye.net&hl=en&gl=GB&ceid=GB:en',     'rss', TRUE),
+                        ('Sudan Tribune',     'SDT',  'en', 3, 0.60, 'https://sudantribune.com/feed/',                                                          'rss', TRUE),
+                        -- Arabic broadcasters
+                        ('BBC Arabic',        'BBAR', 'ar', 2, 0.80, 'http://feeds.bbci.co.uk/arabic/rss.xml',                                                  'rss', TRUE),
+                        ('Sky News Arabia',   'SKA',  'ar', 3, 0.65, 'https://news.google.com/rss/search?q=site:skynewsarabia.com&hl=ar&gl=AE&ceid=AE:ar',     'rss', TRUE),
+                        -- Breaking / aggregator (RSS, not Telegram)
+                        ('BNO News',          'BNO',  'en', 3, 0.50, 'https://bnonews.com/index.php/feed/',                                                     'rss', TRUE),
+                        ('Al Mayadeen EN',    'MAYE', 'en', 3, 0.45, 'https://www.almayadeen.net/rss/all.xml',                                                  'rss', TRUE),
+                        -- Telegram (only sources with no RSS alternative)
+                        ('AJ Plus Arabic',    'AJA+', 'ar', 3, 0.50, 'https://t.me/s/ajplusar',          'telegram_web', TRUE),
+                        ('War Monitor',       'WM',   'en', 4, 0.25, 'https://t.me/s/WarMonitor1',       'telegram_web', TRUE),
+                        ('Spectator Index',   'SI',   'en', 4, 0.10, 'https://t.me/s/spectatorindex',    'telegram_web', TRUE)
                     ON CONFLICT (code) DO UPDATE SET
                         name         = EXCLUDED.name,
                         trust_weight = EXCLUDED.trust_weight,
@@ -59,23 +72,10 @@ def run_startup_migrations():
                         feed_type    = EXCLUDED.feed_type,
                         is_active    = TRUE
                 """)
-
-                # ── Source rows (015) — Telegram web sources ─────────────────
-                # TelegramWebAdapter fetches t.me/s/<channel> (plain HTTPS, no MTProto)
+                # Disable sources no longer in use
                 cur.execute("""
-                    INSERT INTO sources (name, code, language, trust_tier, trust_weight, feed_url, feed_type, is_active) VALUES
-                        ('BNO News',         'BNO',  'en', 3, 0.50, 'https://t.me/s/BNOFeed',           'telegram_web', TRUE),
-                        ('AJ Plus Arabic',   'AJA+', 'ar', 3, 0.50, 'https://t.me/s/ajplusar',          'telegram_web', TRUE),
-                        ('BBC Breaking',     'BBC+', 'en', 2, 0.80, 'https://t.me/s/BBCNews_Breaking',  'telegram_web', TRUE),
-                        ('Al Mayadeen EN',   'MAYE', 'en', 3, 0.45, 'https://t.me/s/AlMayadeenEnglish', 'telegram_web', TRUE),
-                        ('War Monitor',      'WM',   'en', 4, 0.25, 'https://t.me/s/WarMonitor1',       'telegram_web', TRUE),
-                        ('Spectator Index',  'SI',   'en', 4, 0.10, 'https://t.me/s/spectatorindex',    'telegram_web', TRUE)
-                    ON CONFLICT (code) DO UPDATE SET
-                        name         = EXCLUDED.name,
-                        trust_weight = EXCLUDED.trust_weight,
-                        feed_url     = EXCLUDED.feed_url,
-                        feed_type    = EXCLUDED.feed_type,
-                        is_active    = TRUE
+                    UPDATE sources SET is_active = FALSE
+                    WHERE code IN ('AJE', 'BBC+')
                 """)
 
             conn.commit()

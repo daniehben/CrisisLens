@@ -4,9 +4,9 @@ from backend.shared.deduplication import get_redis_client, check_and_mark
 from backend.shared.database import get_db_connection, get_source_map
 from backend.ingestion_worker.db_writer import write_batch
 from backend.ingestion_worker.adapters.rss_adapter import RSSAdapter
-from backend.ingestion_worker.adapters.newsapi_adapter import NewsAPIAdapter
-from backend.ingestion_worker.adapters.telegram_adapter import TelegramAdapter
 from backend.ingestion_worker.adapters.telegram_web_adapter import TelegramWebAdapter
+# NewsAPIAdapter removed — free/dev plan cannot be used in production (ToS violation).
+# All former NewsAPI sources (BBC, REU, AP, WP, JRP) now served via RSS.
 
 
 # Cap concurrent fetches. Tradeoff: higher = faster cycle, lower = less memory.
@@ -16,19 +16,29 @@ MAX_CONCURRENT_FETCHES = 3
 
 def get_all_adapters():
     adapters = []
-    for code in ['AJA', 'DW', 'F24', 'ARB',
-                 'MND', 'WAF', 'AKH',
-                 'TAS', 'PTV', 'RTA',
-                 'ANA',
-                 'GG', 'GZ', 'CJ', 'EI', 'AW', 'CRA', 'DSN',   # indie voices
-                 'YT_BP', 'YT_DN', 'YT_RT',                     # YouTube commentary (YT_GZ disabled — bad channel ID)
-                 'CNN', 'GUA', 'BBAR', 'SKA', 'MEE', 'SDT']:    # new global sources
+    for code in [
+        # ── Core Arabic-first sources ──────────────────────────────────────
+        'AJA',                              # Al Jazeera (trust 1.0)
+        'DW', 'F24', 'ARB',                # Arabic broadcasters
+        'BBAR', 'SKA',                      # BBC Arabic, Sky News Arabia
+        # ── Palestinian / resistance perspective ──────────────────────────
+        'MND', 'WAF', 'AKH', 'EI',
+        # ── State media ───────────────────────────────────────────────────
+        'TAS', 'PTV', 'RTA', 'ANA',
+        # ── Western mainstream (now via RSS, not NewsAPI) ─────────────────
+        'BBC', 'REU', 'AP', 'WP', 'JRP',   # former NewsAPI sources
+        'CNN', 'GUA', 'MEE', 'SDT',
+        # ── Independent voices ────────────────────────────────────────────
+        'GG', 'GZ', 'CJ', 'AW', 'CRA', 'DSN',
+        # ── Breaking news / aggregators ───────────────────────────────────
+        'BNO', 'MAYE',                      # moved from Telegram to RSS
+        # ── YouTube commentary ────────────────────────────────────────────
+        'YT_BP', 'YT_DN', 'YT_RT',
+    ]:
         adapters.append(RSSAdapter(code))
-    for code in ['AJE', 'BBC', 'JRP', 'WP', 'AP', 'REU']:
-        adapters.append(NewsAPIAdapter(code))
-    # Telegram channels via public web view (no MTProto, no bot, no auth)
-    # REU and AJE+ excluded — already ingested via NewsAPI
-    for code in ['BNO', 'AJA+', 'BBC+', 'MAYE', 'WM', 'SI']:
+    # Telegram: only sources with no RSS alternative
+    # BBC+ dropped (redundant with BBC RSS), BNO/MAYE moved to RSS
+    for code in ['AJA+', 'WM', 'SI']:
         adapters.append(TelegramWebAdapter(code))
     return adapters
 

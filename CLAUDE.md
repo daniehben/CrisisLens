@@ -32,25 +32,50 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 - Add `PYTHONUNBUFFERED=1` env var to worker for visible logs
 - Free tier spins down after inactivity — first request takes 50+ seconds
 
-## Active Sources (Phase 1)
+## Active Sources
 | Code | Name | Type | Language | Trust | Status |
 |------|------|------|----------|-------|--------|
 | AJA | Al Jazeera | RSS | en | 1.00 | ✅ Live |
-| AJE | Al Jazeera English | NewsAPI | en | 0.80 | ✅ Live |
-| BBC | BBC News | NewsAPI | en | 0.80 | ✅ Live |
-| JRP | Jerusalem Post | NewsAPI | en | 0.75 | ✅ Live |
-| WP | Washington Post | NewsAPI | en | 0.80 | ✅ Live |
-| AP | Associated Press | NewsAPI | en | 0.80 | ✅ Live |
-| ASH | Asharq Al-Awsat | RSS | ar | 0.65 | ⏸ Disabled — Render IPs blocked |
-| TNA | The New Arab | RSS | en | 0.65 | ⏸ Disabled — Render IPs blocked |
-| BNO | BNO News | telegram_web | en | 0.50 | ✅ Live (t.me/s/) |
+| BBC | BBC News | RSS | en | 0.80 | ✅ Live (feeds.bbci.co.uk) |
+| REU | Reuters | RSS | en | 0.85 | ✅ Live (Google News proxy) |
+| AP | Associated Press | RSS | en | 0.80 | ✅ Live (feeds.apnews.com) |
+| WP | Washington Post | RSS | en | 0.75 | ✅ Live (Google News proxy) |
+| JRP | Jerusalem Post | RSS | en | 0.70 | ✅ Live (Google News proxy) |
+| CNN | CNN | RSS | en | 0.75 | ✅ Live (Google News proxy) |
+| GUA | The Guardian | RSS | en | 0.78 | ✅ Live (theguardian.com) |
+| MEE | Middle East Eye | RSS | en | 0.60 | ✅ Live (Google News proxy) |
+| SDT | Sudan Tribune | RSS | en | 0.60 | ✅ Live |
+| BBAR | BBC Arabic | RSS | ar | 0.80 | ✅ Live (feeds.bbci.co.uk/arabic) |
+| SKA | Sky News Arabia | RSS | ar | 0.65 | ✅ Live (Google News proxy) |
+| DW | Deutsche Welle Arabic | RSS | ar | 0.80 | ✅ Live |
+| F24 | France 24 Arabic | RSS | ar | 0.80 | ✅ Live (Google News proxy) |
+| ARB | Al Arabiya | RSS | ar | 0.65 | ✅ Live (Google News proxy) |
+| ANA | Anadolu Agency | RSS | ar | 0.70 | ✅ Live |
+| MND | Mondoweiss | RSS | en | 0.55 | ✅ Live |
+| WAF | WAFA (Palestinian NA) | RSS | en | 0.65 | ✅ Live (Google News proxy) |
+| AKH | Al-Akhbar Lebanon | RSS | ar | 0.55 | ✅ Live (Google News proxy) |
+| EI | Electronic Intifada | RSS | en | 0.55 | ✅ Live |
+| TAS | Tasnim (Iranian state) | RSS | ar | 0.40 | ✅ Live (Google News proxy) |
+| PTV | Press TV | RSS | en | 0.40 | ✅ Live (Google News proxy) |
+| RTA | RT Arabic | RSS | ar | 0.35 | ✅ Live (Google News proxy) |
+| GG | Glenn Greenwald | RSS | en | 0.50 | ✅ Live (Substack) |
+| GZ | The Grayzone | RSS | en | 0.40 | ✅ Live |
+| CJ | Caitlin Johnstone | RSS | en | 0.35 | ✅ Live (Substack) |
+| AW | Antiwar.com | RSS | en | 0.45 | ✅ Live (Google News proxy) |
+| CRA | The Cradle | RSS | en | 0.45 | ✅ Live |
+| DSN | Drop Site News | RSS | en | 0.55 | ✅ Live |
+| BNO | BNO News | RSS | en | 0.50 | ✅ Live (bnonews.com/feed) |
+| MAYE | Al Mayadeen EN | RSS | en | 0.45 | ✅ Live (almayadeen.net/rss) |
 | AJA+ | AJ Plus Arabic | telegram_web | ar | 0.50 | ✅ Live (t.me/s/) |
-| BBC+ | BBC Breaking | telegram_web | en | 0.80 | ✅ Live (t.me/s/) |
-| MAYE | Al Mayadeen EN | telegram_web | en | 0.45 | ✅ Live (t.me/s/) |
 | WM | War Monitor | telegram_web | en | 0.25 | ✅ Live (t.me/s/) |
 | SI | Spectator Index | telegram_web | en | 0.10 | ✅ Live (t.me/s/) |
-| AJE+ | Al Jazeera English TG | — | en | — | ⏸ Removed — duplicate of AJE (NewsAPI) |
-| REU TG | Reuters Telegram | — | en | — | ⏸ Removed — duplicate of REU (NewsAPI) |
+| YT_BP | Breaking Points | RSS | en | 0.35 | ✅ Live (YouTube RSS) |
+| YT_DN | Democracy Now! | RSS | en | 0.50 | ✅ Live (YouTube RSS) |
+| YT_RT | The Real News Network | RSS | en | 0.45 | ✅ Live (YouTube RSS) |
+| AJE | Al Jazeera English | — | — | — | ⏸ Removed — same feed as AJA |
+| BBC+ | BBC Breaking TG | — | — | — | ⏸ Removed — redundant with BBC RSS |
+| ASH | Asharq Al-Awsat | — | ar | — | ⏸ Disabled — Render IPs blocked |
+| TNA | The New Arab | — | en | — | ⏸ Disabled — Render IPs blocked |
 
 ## Known Issues & Workarounds
 1. **Redis unreachable:** `Connection refused` on internal network. Worker uses DB-level `ON CONFLICT DO NOTHING` for deduplication instead.
