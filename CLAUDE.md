@@ -6,8 +6,18 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 ## Infrastructure
 - **GitHub:** github.com/daniehben/CrisisLens (main branch)
 - **Render PostgreSQL:** crisislens-db, Frankfurt free tier
-  - Internal URL: `postgresql://crisislens_db_user:KKdadOnM5ftKPBdsJhcpewcw0EoppVYW@dpg-d6ms1sn5r7bs73cl59tg-a/crisislens_db`
-  - External URL: append `?sslmode=require` and use `.frankfurt-postgres.render.com` host
+  - Internal URL (worker/API on Render): `postgresql://crisislens_db_user:KKdadOnM5ftKPBdsJhcpewcw0EoppVYW@dpg-d6ms1sn5r7bs73cl59tg-a/crisislens_db`
+  - **External URL (from your Mac):** `postgresql://crisislens_db_user:KKdadOnM5ftKPBdsJhcpewcw0EoppVYW@dpg-d6ms1sn5r7bs73cl59tg-a.frankfurt-postgres.render.com/crisislens_db?sslmode=require`
+  - ⚠️ **Never use psql from Anaconda env** — Anaconda's OpenSSL breaks Render SSL.
+  - ⚠️ **Never use `python migrate.py` locally** — asyncpg AND psycopg2 both fail on Anaconda macOS (SSL stack incompatibility).
+  - ⚠️ **Render Shell requires paid plan** — not available on free tier.
+  - **✅ Canonical migration workflow (zero local tooling needed):**
+    1. Add idempotent SQL to `run_startup_migrations()` in `backend/api_server/main.py`
+       - Use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` for schema changes
+       - Use `INSERT INTO ... ON CONFLICT (code) DO UPDATE SET ...` for source rows
+    2. `git push origin main` — Render redeploys the API, startup migrations run automatically
+    3. The API uses the **internal** DB URL (no SSL issues, no external access needed)
+  - **Never need to run DB migrations manually** — always embed them in `run_startup_migrations()` and push
 - **Render Redis (Valkey):** crisislens-redis, Frankfurt free tier
   - Internal URL: `redis://red-d6ms42sr85hc73dav9l0:6379` — NO TLS (internal network only, no password)
   - ⚠️ Redis is currently NOT reachable from worker — connection refused on private network. Deduplication bypassed.
@@ -52,6 +62,8 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 - `GET /health` — db + redis + article count
 - `GET /api/v1/sources` — list active sources
 - `GET /api/v1/feed?language=&source=&limit=&offset=` — paginated articles
+- `GET /api/v1/conflicts?min_score=&limit=&offset=` — contradiction pairs
+- `GET /api/v1/conflicts/{id}` — single conflict detail
 
 ## Phase Status
 - ✅ Phase 1 — Pipeline MVP (complete, 78+ articles live)
