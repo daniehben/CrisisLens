@@ -3,7 +3,6 @@ httpx
 telethon
 aiohttp
 asyncpg
-redis
 apscheduler
 python-dotenv
 langdetect

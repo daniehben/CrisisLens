@@ -19,10 +19,8 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
     2. `git push origin main` — Render redeploys the API, startup migrations run automatically
     3. The API uses the **internal** DB URL (no SSL issues, no external access needed)
   - **Never need to run DB migrations manually** — always embed them in `run_startup_migrations()` and push
-- **Render Redis (Valkey):** crisislens-redis, Frankfurt free tier
-  - Internal URL: set as `REDIS_URL` env var in Render dashboard — **never commit here**
-  - Format: `redis://<internal-host>:6379` — NO TLS, no password (internal network only)
-  - ⚠️ Redis is currently NOT reachable from worker — connection refused on private network. Deduplication bypassed.
+- **Redis:** Removed entirely (2026-06-02). Was unreachable from Render internal network anyway.
+  Deduplication now uses an in-memory URL hash set in `backend/shared/deduplication.py` — loads all known URLs from DB on startup, O(1) lookups, no external dependency.
 - **Render Web Services** (both free tier, Frankfurt):
   - crisislens-api: https://crisislens-api.onrender.com — LIVE ✅
   - crisislens-worker: https://crisislens-worker.onrender.com — LIVE ✅
@@ -80,7 +78,7 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 | TNA | The New Arab | — | en | — | ⏸ Disabled — Render IPs blocked |
 
 ## Known Issues & Workarounds
-1. **Redis unreachable:** `Connection refused` on internal network. Worker uses DB-level `ON CONFLICT DO NOTHING` for deduplication instead.
+1. **Redis removed:** Replaced with in-memory URL hash set. No external dependency needed.
 2. **Telegram MTProto blocked:** Render Frankfurt IPs cannot complete MTProto TLS handshake. **Fixed:** Switched to `TelegramWebAdapter` which scrapes `t.me/s/<channel>` (plain HTTPS public preview — no auth, no MTProto). All 6 channels now live.
 3. **ASH/TNA RSS blocked:** aawsat.com and newarab.com block Render Frankfurt IPs. Fix: use alternative feeds or proxy.
 4. **API /health hangs:** DB and Redis connections in health check can hang. Fixed with `socket_timeout=3` and `statement_timeout=3000ms`.

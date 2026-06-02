@@ -44,5 +44,4 @@ class FeedResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     db: str
-    redis: str
     articles_count: int

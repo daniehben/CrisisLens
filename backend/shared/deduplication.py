@@ -75,11 +75,3 @@ def reset():
     _seen = None
 
 
-# ---------------------------------------------------------------------------
-# Backward-compat shim — worker.py calls get_redis_client() and passes the
-# result as the first arg to check_and_mark(). Keep these so the worker
-# doesn't need to change yet.
-# ---------------------------------------------------------------------------
-def get_redis_client():
-    """Deprecated. Returns None. Redis is no longer used for dedup."""
-    return None

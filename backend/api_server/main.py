@@ -5,7 +5,6 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.requests import Request
 import psycopg2.extras
-import redis as redis_lib
 
 from backend.shared.database import get_db_connection
 from backend.shared.config import Config
@@ -111,17 +110,8 @@ def health(request: Request):
     except Exception as e:
         db_status = f"error: {str(e)[:50]}"
 
-    redis_status = "error"
-    try:
-        r = redis_lib.from_url(config.REDIS_URL, decode_responses=False, socket_timeout=3, socket_connect_timeout=3)
-        r.ping()
-        redis_status = "ok"
-    except Exception as e:
-        redis_status = f"error: {str(e)[:50]}"
-
     return HealthResponse(
         db=db_status,
-        redis=redis_status,
         articles_count=articles_count,
     )
 

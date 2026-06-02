@@ -6,8 +6,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 class Config:
     DATABASE_URL: str = os.getenv('DATABASE_URL', '')
-    REDIS_URL: str = os.getenv('REDIS_URL', 'redis://localhost:6379')
-    # NewsAPI removed — RSS-only ingestion since v0.2. Key no longer needed.
+    # Redis removed — dedup now uses an in-memory URL hash set (see deduplication.py).
     COSINE_SIMILARITY_THRESHOLD: float = float(os.getenv('COSINE_SIMILARITY_THRESHOLD', '0.65'))
     NLI_CONFIDENCE_THRESHOLD: float = float(os.getenv('NLI_CONFIDENCE_THRESHOLD', '0.70'))
     APP_ENV: str = os.getenv('APP_ENV', 'development')
