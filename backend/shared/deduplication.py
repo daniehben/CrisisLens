@@ -1,72 +1,85 @@
+"""URL deduplication — in-memory set backed by the DB.
+
+Strategy:
+  On first use, load all known article URL hashes from the DB into a Python
+  set. Each check is O(1) with no network call. When a new article is
+  inserted the caller marks it here so the set stays current for the rest
+  of the cycle. On worker restart the set is rebuilt from the DB.
+
+  This replaces the Redis bitmap approach. Redis on Render's internal
+  network is unreachable (connection refused), and an in-process set is
+  actually faster (no network round-trip) and costs nothing.
+
+  Memory: each MD5 hex string is 32 bytes. At 200k articles that's ~6MB.
+  Render free tier has 512MB — no issue.
+"""
 import hashlib
 import logging
-import redis
 from typing import Optional
-from backend.shared.config import Config
 
 log = logging.getLogger(__name__)
 
-BITMAP_KEY = "crisislens:seen_urls"
-TTL_SECONDS = 48 * 60 * 60  # 48 hours
-
-# Module-level flag: once Redis fails, stop trying for this process lifetime.
-# Avoids paying a connect-timeout cost on every single article.
-_redis_disabled = False
+# The set of MD5 hashes of all known article URLs.
+# None = not yet initialised (load on first use).
+_seen: Optional[set] = None
 
 
-def _url_to_bit(url: str) -> int:
-    """Convert URL to a bit index in the bitmap (~4M bits = 512KB)."""
-    digest = hashlib.md5(url.encode()).hexdigest()
-    return int(digest[:8], 16) % (8 * 1024 * 512)
+def _hash(url: str) -> str:
+    return hashlib.md5(url.encode()).hexdigest()
 
 
-def get_redis_client() -> Optional[redis.Redis]:
-    """
-    Returns a connected Redis client, or None if Redis is unreachable.
-    Probes the connection once with a short timeout so we fail fast instead
-    of blocking 10s per article when the worker can't reach Redis.
-    """
-    global _redis_disabled
-    if _redis_disabled:
-        return None
-
-    config = Config()
+def _load_from_db() -> set:
+    """Pull all existing article URLs from the DB and return as a hash set."""
+    from backend.shared.database import get_db_connection
+    hashes = set()
     try:
-        client = redis.from_url(
-            config.REDIS_URL,
-            decode_responses=False,
-            socket_timeout=2,
-            socket_connect_timeout=2,
-        )
-        client.ping()  # actually open the socket
-        return client
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT url FROM articles WHERE url IS NOT NULL")
+                for (url,) in cur.fetchall():
+                    hashes.add(_hash(url))
+        log.info(f"[dedup] Loaded {len(hashes):,} known URLs into memory")
     except Exception as e:
-        log.warning(f"[dedup] Redis unreachable, falling back to DB-only dedup: {e}")
-        _redis_disabled = True
-        return None
+        log.warning(f"[dedup] Could not pre-load URL cache from DB: {e}")
+    return hashes
 
 
-def check_and_mark(r: Optional[redis.Redis], url: str) -> bool:
+def _get_seen() -> set:
+    """Lazy-init the seen-URL set."""
+    global _seen
+    if _seen is None:
+        _seen = _load_from_db()
+    return _seen
+
+
+def check_and_mark(url: str) -> bool:
     """
-    Atomic check-and-mark.
-    Returns True if duplicate (already seen), False if new (and marks it).
-    If Redis is unavailable, returns False — DB UNIQUE constraint will catch
-    real duplicates downstream in db_writer.write_article.
-    """
-    if r is None:
-        return False
+    Returns True if this URL has been seen before (duplicate).
+    Returns False if it's new, and marks it as seen.
 
-    try:
-        bit = _url_to_bit(url)
-        pipe = r.pipeline()
-        pipe.getbit(BITMAP_KEY, bit)
-        pipe.setbit(BITMAP_KEY, bit, 1)
-        pipe.expire(BITMAP_KEY, TTL_SECONDS)
-        results = pipe.execute()
-        return bool(results[0])  # True = duplicate
-    except Exception as e:
-        # If Redis dies mid-cycle, disable it for the rest of this run.
-        global _redis_disabled
-        log.warning(f"[dedup] Redis call failed, disabling for this run: {e}")
-        _redis_disabled = True
-        return False
+    The old signature accepted an optional Redis client as the first argument.
+    That argument is now ignored so existing call sites don't need to change.
+    """
+    seen = _get_seen()
+    h = _hash(url)
+    if h in seen:
+        return True
+    seen.add(h)
+    return False
+
+
+def reset():
+    """Force a full reload from DB on the next check. Call if you suspect
+    the in-memory set is stale (e.g. after a long pause or manual DB edit)."""
+    global _seen
+    _seen = None
+
+
+# ---------------------------------------------------------------------------
+# Backward-compat shim — worker.py calls get_redis_client() and passes the
+# result as the first arg to check_and_mark(). Keep these so the worker
+# doesn't need to change yet.
+# ---------------------------------------------------------------------------
+def get_redis_client():
+    """Deprecated. Returns None. Redis is no longer used for dedup."""
+    return None

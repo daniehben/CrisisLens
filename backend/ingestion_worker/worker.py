@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from backend.shared.deduplication import get_redis_client, check_and_mark
+from backend.shared.deduplication import check_and_mark
 from backend.shared.database import get_db_connection, get_source_map
 from backend.ingestion_worker.db_writer import write_batch
 from backend.ingestion_worker.adapters.rss_adapter import RSSAdapter
@@ -87,7 +87,6 @@ def run_ingestion_cycle() -> None:
     print(f"\n[worker] === Ingestion cycle starting at "
           f"{cycle_start.strftime('%Y-%m-%d %H:%M:%S')} UTC ===")
 
-    r = get_redis_client()  # None if Redis unreachable — handled downstream
     adapters = get_all_adapters()
     source_map = get_source_map()  # cache once per cycle, not per write_batch
     total_fetched = 0
@@ -110,7 +109,7 @@ def run_ingestion_cycle() -> None:
             new_articles = []
             dupes = 0
             for article in articles:
-                if check_and_mark(r, article.url):
+                if check_and_mark(article.url):
                     dupes += 1
                 else:
                     new_articles.append(article)
