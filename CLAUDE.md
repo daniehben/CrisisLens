@@ -6,8 +6,9 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 ## Infrastructure
 - **GitHub:** github.com/daniehben/CrisisLens (main branch)
 - **Render PostgreSQL:** crisislens-db, Frankfurt free tier
-  - Internal URL (worker/API on Render): `postgresql://crisislens_db_user:KKdadOnM5ftKPBdsJhcpewcw0EoppVYW@dpg-d6ms1sn5r7bs73cl59tg-a/crisislens_db`
-  - **External URL (from your Mac):** `postgresql://crisislens_db_user:KKdadOnM5ftKPBdsJhcpewcw0EoppVYW@dpg-d6ms1sn5r7bs73cl59tg-a.frankfurt-postgres.render.com/crisislens_db?sslmode=require`
+  - Internal URL (worker/API on Render): set as `DATABASE_URL` env var in Render dashboard — **never commit here**
+  - **External URL (from your Mac):** Render dashboard → crisislens-db → Connect → External Database URL
+  - ⚠️ **Credentials were accidentally committed prior to 2026-06-02 — rotated on that date**
   - ⚠️ **Never use psql from Anaconda env** — Anaconda's OpenSSL breaks Render SSL.
   - ⚠️ **Never use `python migrate.py` locally** — asyncpg AND psycopg2 both fail on Anaconda macOS (SSL stack incompatibility).
   - ⚠️ **Render Shell requires paid plan** — not available on free tier.
@@ -19,7 +20,8 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
     3. The API uses the **internal** DB URL (no SSL issues, no external access needed)
   - **Never need to run DB migrations manually** — always embed them in `run_startup_migrations()` and push
 - **Render Redis (Valkey):** crisislens-redis, Frankfurt free tier
-  - Internal URL: `redis://red-d6ms42sr85hc73dav9l0:6379` — NO TLS (internal network only, no password)
+  - Internal URL: set as `REDIS_URL` env var in Render dashboard — **never commit here**
+  - Format: `redis://<internal-host>:6379` — NO TLS, no password (internal network only)
   - ⚠️ Redis is currently NOT reachable from worker — connection refused on private network. Deduplication bypassed.
 - **Render Web Services** (both free tier, Frankfurt):
   - crisislens-api: https://crisislens-api.onrender.com — LIVE ✅

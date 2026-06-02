@@ -10,15 +10,11 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
-      - key: NEWSAPI_KEY
-        sync: false
-      - key: TELEGRAM_API_ID
-        sync: false
-      - key: TELEGRAM_API_HASH
-        sync: false
-      - key: TELEGRAM_SESSION_B64
+      - key: GROQ_API_KEY
         sync: false
       - key: HF_TOKEN
+        sync: false
+      - key: TELEGRAM_SESSION_B64
         sync: false
 
   - type: web
