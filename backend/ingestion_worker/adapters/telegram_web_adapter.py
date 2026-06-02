@@ -3,13 +3,23 @@
 Why this approach over Telethon (MTProto) or Bot API:
   * MTProto: Render Frankfurt IPs are blocked.
   * Bot API: bots can only read channels they admin — we don't own these.
-  * t.me/s/: Telegram's anonymous public web preview. No auth, no rate limit
-    issues on our scale, blocked-egress-friendly.
+  * t.me/s/: Telegram's anonymous public web preview. No auth, blocked-egress-friendly.
 
 Each channel returns the most recent ~20 messages parsed from HTML.
+
+Rate limiting:
+  Telegram doesn't publish hard limits for t.me/s/ scraping, but they do
+  enforce soft limits (~1 req/s sustained, harder on bursts). We protect
+  against IP blocks with:
+    1. A per-instance inter-request delay (FETCH_DELAY_S between channels
+       when the worker fetches all adapters concurrently).
+    2. Exponential backoff on 429 / 5xx responses.
+    3. Jitter on the delay so multiple workers don't synchronise.
 """
 import hashlib
 import logging
+import random
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -21,16 +31,20 @@ from backend.shared.models import RawArticle
 
 log = logging.getLogger(__name__)
 
+# Seconds to sleep before each fetch — reduces burst rate when the worker
+# runs all adapters near-simultaneously via ThreadPoolExecutor.
+FETCH_DELAY_S = 2.0          # base delay
+FETCH_DELAY_JITTER = 1.0     # random extra 0–1s on top of base
+
+# Retry config on 429 / 5xx
+MAX_RETRIES = 2
+RETRY_BACKOFF_BASE = 5       # seconds; doubles each retry (5, 10)
+
 # Per-source config: channel username + language + trust weight.
 TELEGRAM_SOURCES = {
-    'BNO':   {'channel': 'BNOFeed',              'language': 'en', 'trust_weight': 0.50},
     'AJA+':  {'channel': 'ajplusar',             'language': 'ar', 'trust_weight': 0.50},
-    'AJE+':  {'channel': 'aje_news',             'language': 'en', 'trust_weight': 0.80},
-    'REU':   {'channel': 'reuters_news_agency',  'language': 'en', 'trust_weight': 0.80},
-    'BBC+':  {'channel': 'BBCNews_Breaking',     'language': 'en', 'trust_weight': 0.80},
     'WM':    {'channel': 'WarMonitor1',          'language': 'en', 'trust_weight': 0.25},
     'SI':    {'channel': 'spectatorindex',       'language': 'en', 'trust_weight': 0.10},
-    'MAYE':  {'channel': 'AlMayadeenEnglish',    'language': 'en', 'trust_weight': 0.45},
 }
 
 HEADERS = {
@@ -46,7 +60,6 @@ HEADERS = {
 def _parse_iso(s: str) -> datetime:
     """Telegram time tags use ISO 8601 with TZ offset."""
     try:
-        # Strip subsecond if present, normalize timezone
         return datetime.fromisoformat(s.replace('Z', '+00:00')).astimezone(timezone.utc).replace(tzinfo=None)
     except Exception:
         return datetime.utcnow()
@@ -58,6 +71,45 @@ def _msg_id_from_url(url: str) -> Optional[str]:
         return None
     parts = url.rstrip('/').split('/')
     return parts[-1] if parts else None
+
+
+def _fetch_with_backoff(url: str) -> Optional[str]:
+    """GET url with exponential backoff on 429 / 5xx. Returns HTML or None."""
+    delay = FETCH_DELAY_S + random.uniform(0, FETCH_DELAY_JITTER)
+    time.sleep(delay)
+
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            with httpx.Client(headers=HEADERS, timeout=15, follow_redirects=True) as client:
+                resp = client.get(url)
+
+            if resp.status_code == 200:
+                return resp.text
+
+            if resp.status_code == 429:
+                wait = RETRY_BACKOFF_BASE * (2 ** attempt)
+                log.warning(f"[telegram] 429 rate limited on {url} — backing off {wait}s")
+                time.sleep(wait)
+                continue
+
+            if resp.status_code >= 500:
+                wait = RETRY_BACKOFF_BASE * (2 ** attempt)
+                log.warning(f"[telegram] {resp.status_code} server error on {url} — backing off {wait}s")
+                time.sleep(wait)
+                continue
+
+            # 4xx other than 429 — not retryable
+            log.warning(f"[telegram] {resp.status_code} on {url} — skipping")
+            return None
+
+        except Exception as e:
+            wait = RETRY_BACKOFF_BASE * (2 ** attempt)
+            log.warning(f"[telegram] request error on {url}: {e} — backing off {wait}s")
+            if attempt < MAX_RETRIES:
+                time.sleep(wait)
+
+    log.warning(f"[telegram] all retries exhausted for {url}")
+    return None
 
 
 class TelegramWebAdapter(FeedAdapter):
@@ -75,13 +127,8 @@ class TelegramWebAdapter(FeedAdapter):
         channel = self._cfg['channel']
         url = f"https://t.me/s/{channel}"
 
-        try:
-            with httpx.Client(headers=HEADERS, timeout=15, follow_redirects=True) as client:
-                resp = client.get(url)
-                resp.raise_for_status()
-                html = resp.text
-        except Exception as e:
-            log.warning(f"[{self._code}] t.me fetch failed: {e}")
+        html = _fetch_with_backoff(url)
+        if not html:
             return articles
 
         try:
@@ -96,17 +143,15 @@ class TelegramWebAdapter(FeedAdapter):
             return articles
 
         lang = self._cfg['language']
-        # Walk newest-first
-        for msg in messages[-30:]:  # last 30 messages shown
+        for msg in messages[-30:]:
             try:
                 text_el = msg.find('div', class_='tgme_widget_message_text')
                 if not text_el:
                     continue
                 text = text_el.get_text(separator=' ', strip=True)
-                text = ' '.join(text.split())  # collapse whitespace
+                text = ' '.join(text.split())
                 if len(text) < 30:
                     continue
-                # Skip obvious channel chrome
                 low = text.lower()
                 if any(x in low for x in ('subscribe', 'forwarded from', '@')) and len(text) < 80:
                     continue
