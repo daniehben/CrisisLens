@@ -92,12 +92,14 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 - `GET /api/v1/conflicts/{id}` — single conflict detail
 
 ## Phase Status
-- ✅ Phase 1 — Pipeline MVP (complete, 78+ articles live)
-- 🔜 Phase 2 — NLP MVP (language detection, translation, AraBERT embeddings, contradiction detection)
-- 🔜 Phase 3 — Website MVP (Next.js + Vercel)
-- 🔜 Phase 4 — Expansion
+- ✅ Phase 1 — Pipeline MVP (complete)
+- ✅ Phase 2 — NLP MVP (complete: translation, multilingual embeddings, NLI contradiction detection, bias analysis, stale cleanup)
+- ✅ Phase 3 — Website MVP (complete: single-file HTML/JS deployed to Vercel — Next.js not needed)
+  - Frontend: https://crisis-lens-six.vercel.app
+  - Auto-deploys on push to main
+- 🔜 Phase 4 — Expansion (more sources, framing classifier, custom domain)
 
 ## Pending
 - Al Jazeera DACR credentials: Reference VPHX98C923 — switch AJA to Arabic RSS when received
-- Redis connectivity fix needed before Phase 2
-- Telegram adapter fix needed for Phase 4 source expansion
+- Custom domain — set ALLOWED_ORIGINS in Render env when domain is finalised
+- Framing classifier (mDeBERTa) — blocked on Render free tier RAM (512MB), see docs/BUDGET.md
