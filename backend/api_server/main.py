@@ -1,3 +1,5 @@
+import os
+import logging
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -15,7 +17,18 @@ from backend.api_server.schemas import (
 
 config = Config()
 
-limiter = Limiter(key_func=get_remote_address)
+# ── Rate limiting ────────────────────────────────────────────────────────────
+# DEFAULT_LIMITS applies to every endpoint that doesn't have its own @limiter.limit.
+# "30/minute;300/hour" means: burst up to 30 req/min, but no more than 300/hr total.
+# A human reader hitting refresh is ~1–3 req/min. A scraper draining all conflicts
+# is typically 60+ req/min. This keeps normal UX intact while making bulk scraping slow.
+#
+# The conflicts endpoints use tighter per-route limits (see decorators below)
+# because that data is the core product value.
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["30/minute", "300/hour"],
+)
 app = FastAPI(
     title="CrisisLens API",
     description="Real-time conflict news aggregation with contradiction detection",
@@ -83,11 +96,31 @@ def run_startup_migrations():
     except Exception as e:
         log.warning(f"[startup] migration warning: {e}")
 
+# ── CORS ────────────────────────────────────────────────────────────────────
+# Read allowed origins from env so the domain can change without a redeploy.
+# ALLOWED_ORIGINS env var: comma-separated list, e.g.
+#   "https://crisislens.com,https://www.crisislens.com"
+# If unset (local dev / early deploy), falls back to wildcard with a warning.
+#
+# Note: CORS is a browser-side control only. It does NOT stop curl, Python
+# scripts, or any server-side scraper — those never send an Origin header.
+# For scraping protection the rate limiter below is the real defence.
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+if _raw_origins:
+    _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    logging.getLogger(__name__).info(f"[CORS] Locked to origins: {_allowed_origins}")
+else:
+    _allowed_origins = ["*"]
+    logging.getLogger(__name__).warning(
+        "[CORS] ALLOWED_ORIGINS not set — open wildcard. "
+        "Set ALLOWED_ORIGINS=https://your-domain.com in Render env vars before launch."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten in production
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=_allowed_origins,
+    allow_credentials=False,   # credentials (cookies/auth) not used; False is safer than True
+    allow_methods=["GET"],     # API is read-only; no POST/PUT/DELETE needed from browser
     allow_headers=["*"],
 )
 
@@ -191,7 +224,7 @@ def get_feed(
     articles = [ArticleSchema(**dict(r)) for r in rows]
     return FeedResponse(total=total, limit=limit, offset=offset, articles=articles)
 @app.get("/api/v1/conflicts")
-@limiter.limit("60/minute")
+@limiter.limit("20/minute;100/hour")
 def get_conflicts(
     request: Request,
     min_score: float = Query(0.0, ge=0.0, le=1.0),
@@ -252,7 +285,7 @@ def get_conflicts(
 
 
 @app.get("/api/v1/conflicts/{conflict_id}")
-@limiter.limit("60/minute")
+@limiter.limit("20/minute;100/hour")
 def get_conflict_detail(request: Request, conflict_id: int):
     """Single conflict with full article context — used by the detail view."""
     with get_db_connection() as conn:
