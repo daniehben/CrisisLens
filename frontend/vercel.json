@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://crisislens-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://crisislens-api.onrender.com/health"
+    }
+  ]
+}

@@ -10,8 +10,11 @@
   <link rel="preconnect" href="https://crisislens-api.onrender.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&family=Noto+Naskh+Arabic:wght@600;700&family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
-    window.__CL_API = 'https://crisislens-api.onrender.com';
-    window.__CL_DATA = fetch(window.__CL_API + '/api/v1/conflicts?limit=500').then(r => r.ok ? r.json() : null).catch(() => null);
+    // API base URL — empty string means same origin (Vercel proxies /api/* to Render).
+    // To run locally against the live API, set this to 'https://crisislens-api.onrender.com'
+    // When the Render URL changes, update frontend/vercel.json — not this file.
+    window.__CL_API = '';
+    window.__CL_DATA = fetch('/api/v1/conflicts?limit=500').then(r => r.ok ? r.json() : null).catch(() => null);
   </script>
   <style>
     /* ── PALETTE ───────────────────────────────────────────────────────── */
@@ -2019,7 +2022,7 @@
     }, 4000);
 
     let promise = window.__CL_DATA;
-    if (!promise) promise = fetch(`https://crisislens-api.onrender.com/api/v1/conflicts?limit=100`).then(r=>r.ok?r.json():null).catch(()=>null);
+    if (!promise) promise = fetch('/api/v1/conflicts?limit=500').then(r=>r.ok?r.json():null).catch(()=>null);
     window.__CL_DATA = null;
     const data = await promise;
     clearTimeout(slow);
