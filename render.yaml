@@ -14,6 +14,8 @@ services:
         sync: false
       - key: TELEGRAM_SESSION_B64
         sync: false
+      - key: ARTICLE_RETENTION_DAYS
+        value: "90"   # Tighten to 30-60 if Supabase storage > 400MB. Loosen to 120-180 on Supabase Pro.
 
   - type: web
     name: crisislens-api

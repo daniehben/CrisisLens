@@ -5,6 +5,7 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 from backend.ingestion_worker.worker import run_worker
 from backend.nlp_pipeline.task7_fetch_body import run_task7
 from backend.nlp_pipeline.task7_5_summarize import run_task7_5
@@ -16,6 +17,7 @@ from backend.nlp_pipeline.task12_conflicts import run_task12
 from backend.nlp_pipeline.task13_bias_analysis import run_task13
 from backend.nlp_pipeline.task14_translate_analysis import run_task14
 from backend.nlp_pipeline.task6_images import run_task6
+from backend.nlp_pipeline.task15_cleanup import run_task15
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -57,6 +59,7 @@ def start_health_server():
     print(f"[scheduler] Health server listening on port {port}")
     server.serve_forever()
 
+
 def run_ingestion_and_nlp():
     steps = [
         ("worker",  run_worker),
@@ -77,8 +80,38 @@ def run_ingestion_and_nlp():
             fn()
         except Exception as e:
             log.error(f"[scheduler] {name} crashed: {e}", exc_info=True)
-    
-    
+
+
+def run_daily_cleanup():
+    """
+    Runs once per day at 02:00 UTC — separate from the 15-minute ingestion cycle
+    so cleanup never competes with live article insertion.
+
+    Retention window is controlled by ARTICLE_RETENTION_DAYS env var (default 90).
+    Change it in Render dashboard without redeploying:
+
+      Tighten (delete sooner) — set ARTICLE_RETENTION_DAYS=30 or 60
+        Use when: Supabase storage approaching 400MB, or you want leaner NLP queues.
+        Minimum allowed: 14 (hard floor in task15_cleanup.py).
+
+      Loosen (keep longer) — set ARTICLE_RETENTION_DAYS=120 or 180
+        Use when: upgraded to Supabase Pro, or researchers need longer history.
+        No upper limit enforced — but >180 days on free tier risks storage exhaustion.
+    """
+    log.info("[scheduler] Running daily cleanup (task15)...")
+    try:
+        result = run_task15()
+        log.info(
+            f"[scheduler] Daily cleanup done — "
+            f"articles: {result['articles_deleted']}, "
+            f"pairs: {result['pairs_deleted']}, "
+            f"conflicts: {result['conflicts_deleted']}. "
+            f"{result['storage_note']}"
+        )
+    except Exception as e:
+        log.error(f"[scheduler] task15 (cleanup) crashed: {e}", exc_info=True)
+
+
 def main():
     print("[scheduler] CrisisLens ingestion worker starting...")
 
@@ -98,19 +131,32 @@ def main():
 
     print("[scheduler] Running initial ingestion cycle...")
     run_ingestion_and_nlp()
-    
 
     scheduler = BlockingScheduler()
+
+    # ── 15-minute ingestion + NLP cycle ─────────────────────────────────────
     scheduler.add_job(
         run_ingestion_and_nlp,
         trigger=IntervalTrigger(minutes=15),
         id='ingestion_cycle',
-        name='Fetch all sources every 15 minutes',
+        name='Fetch all sources + run NLP pipeline every 15 minutes',
         max_instances=1,
         coalesce=True,
     )
 
-    print("[scheduler] Scheduler started — running every 15 minutes.")
+    # ── Daily cleanup at 02:00 UTC ───────────────────────────────────────────
+    # Runs in a low-traffic window, separate from ingestion so they never overlap.
+    # Retention window: ARTICLE_RETENTION_DAYS env var (default 90, min 14).
+    scheduler.add_job(
+        run_daily_cleanup,
+        trigger=CronTrigger(hour=2, minute=0, timezone='UTC'),
+        id='daily_cleanup',
+        name='Delete stale articles older than ARTICLE_RETENTION_DAYS',
+        max_instances=1,
+        coalesce=True,
+    )
+
+    print("[scheduler] Scheduler started — ingestion every 15 min, cleanup daily at 02:00 UTC.")
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
