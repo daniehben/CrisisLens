@@ -19,6 +19,7 @@
   <style>
     /* ── PALETTE ───────────────────────────────────────────────────────── */
     :root, [data-theme="light"] {
+      --bg-rgb:      250,246,238;
       --bg:          #faf6ee;
       --bg-card:     #ffffff;
       --bg-featured: #f2ece0;
@@ -35,6 +36,7 @@
       --r-tur:  #3a6a6a; --r-inde: #705570; --r-neut: #6e6358;
     }
     [data-theme="dark"] {
+      --bg-rgb:      15,15,16;
       --bg:          #0f0f10;
       --bg-card:     #161618;
       --bg-featured: #141416;
@@ -541,6 +543,8 @@
     /* ── Skeleton ──────────────────────────────────────────────────────── */
     .skel { background: linear-gradient(90deg, var(--bg-card), var(--line-soft), var(--bg-card)); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 4px; }
     @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+    @keyframes coldpulse { 0%,100%{opacity:.25;transform:scale(.85)} 50%{opacity:1;transform:scale(1)} }
+    @keyframes coldslide { 0%{transform:translateX(-100%)} 60%{transform:translateX(280%)} 100%{transform:translateX(280%)} }
 
     /* ── Modal ─────────────────────────────────────────────────────────── */
     .modal-wrap {
@@ -959,13 +963,25 @@
       </div>
     </div>
 
-    <div id="cold-hint" style="display:none">
-      <div style="max-width:320px;margin:3rem auto;text-align:center;padding:0 1rem">
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:1rem" id="cold-hint-text"></div>
-        <div style="height:2px;background:var(--line);border-radius:999px;overflow:hidden;margin-bottom:.75rem">
-          <div id="cold-progress" style="height:100%;background:var(--accent);border-radius:999px;width:0%;transition:width 1s linear"></div>
+    <!-- Cold-start overlay — sits on top of skeletons, centered in viewport -->
+    <div id="cold-hint" style="
+      display:none;position:fixed;inset:0;z-index:15;
+      background:rgba(var(--bg-rgb,250,246,238),.92);backdrop-filter:blur(3px);
+      align-items:center;justify-content:center;
+    ">
+      <div style="max-width:300px;text-align:center;padding:0 1.5rem">
+        <!-- Pulsing dot spinner -->
+        <div style="display:flex;justify-content:center;gap:.45rem;margin-bottom:1.2rem" id="cold-dots">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:coldpulse 1.2s ease-in-out infinite"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:coldpulse 1.2s ease-in-out .2s infinite"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:coldpulse 1.2s ease-in-out .4s infinite"></span>
         </div>
-        <div style="font-size:.72rem;color:var(--muted-2)" id="cold-hint-sub"></div>
+        <div style="font-size:.88rem;font-weight:600;color:var(--ink);margin-bottom:.5rem" id="cold-hint-text"></div>
+        <div style="font-size:.75rem;color:var(--muted);line-height:1.6" id="cold-hint-sub"></div>
+        <!-- Indeterminate progress bar -->
+        <div style="height:2px;background:var(--line);border-radius:999px;overflow:hidden;margin-top:1.2rem">
+          <div id="cold-progress" style="height:100%;background:var(--accent);border-radius:999px;width:30%;animation:coldslide 1.8s ease-in-out infinite"></div>
+        </div>
       </div>
     </div>
 
@@ -2015,10 +2031,7 @@
     const slow = setTimeout(() => {
       document.getElementById('cold-hint-text').textContent = t('cold_hint');
       document.getElementById('cold-hint-sub').textContent  = t('cold_hint_sub');
-      document.getElementById('cold-hint').style.display = 'block';
-      let pct = 0;
-      const bar = document.getElementById('cold-progress');
-      progressTimer = setInterval(() => { pct = Math.min(pct+(100/45),95); bar.style.width=pct+'%'; }, 1000);
+      document.getElementById('cold-hint').style.display = 'flex'; // overlay needs flex
     }, 4000);
 
     let promise = window.__CL_DATA;
@@ -2026,15 +2039,18 @@
     window.__CL_DATA = null;
     const data = await promise;
     clearTimeout(slow);
-    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
-    const bar = document.getElementById('cold-progress');
-    if (bar) bar.style.width = '100%';
     document.getElementById('cold-hint').style.display = 'none';
     document.getElementById('loading-view').style.display = 'none';
 
     if (!data) {
       const ev = document.getElementById('error-view');
-      ev.textContent = t('error_msg');
+      ev.innerHTML = `
+        <div style="margin-bottom:1rem">${t('error_msg')}</div>
+        <button onclick="load()" style="
+          background:none;border:1px solid var(--line);border-radius:6px;
+          padding:.5rem 1.2rem;font-size:.82rem;font-family:inherit;
+          color:var(--ink-soft);cursor:pointer;
+        ">${preferAr ? 'حاول مجدداً' : 'Try again'}</button>`;
       ev.style.display = 'block';
       return;
     }
