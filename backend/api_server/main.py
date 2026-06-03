@@ -8,6 +8,7 @@ import psycopg2.extras
 
 from backend.shared.database import get_db_connection
 from backend.shared.config import Config
+from backend.shared.groq_client import get_daily_usage
 from backend.api_server.schemas import (
     SourceSchema, ArticleSchema, FeedResponse, HealthResponse
 )
@@ -113,6 +114,7 @@ def health(request: Request):
     return HealthResponse(
         db=db_status,
         articles_count=articles_count,
+        groq_usage=get_daily_usage(),
     )
 
 

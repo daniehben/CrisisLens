@@ -45,3 +45,4 @@ class FeedResponse(BaseModel):
 class HealthResponse(BaseModel):
     db: str
     articles_count: int
+    groq_usage: Optional[dict] = None   # today's Groq request counts per model
