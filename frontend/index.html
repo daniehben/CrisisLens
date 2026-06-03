@@ -686,6 +686,121 @@
     ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
     .ar { font-family: 'Noto Naskh Arabic', serif; }
 
+    /* ── Methodology Panel ─────────────────────────────────────────────── */
+    .meth-overlay {
+      position: fixed; inset: 0; z-index: 60;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(4px);
+      display: none; justify-content: flex-end;
+    }
+    .meth-overlay.open { display: flex; }
+    .meth-panel {
+      background: var(--bg-card); border-left: 1px solid var(--line);
+      width: min(600px, 100vw); height: 100%; overflow-y: auto;
+      animation: slideInRight .22s ease-out;
+      display: flex; flex-direction: column;
+    }
+    @keyframes slideInRight { from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1} }
+    .meth-head {
+      position: sticky; top: 0; z-index: 2;
+      background: var(--bg-card); border-bottom: 1px solid var(--line);
+      padding: 1.2rem 1.4rem; display: flex; align-items: center; gap: .8rem;
+    }
+    .meth-head-title {
+      flex: 1; font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.2rem; font-weight: 900; color: var(--ink);
+    }
+    .meth-close {
+      background: none; border: 1px solid var(--line); border-radius: 6px;
+      cursor: pointer; color: var(--muted); font-size: 1rem; padding: .2rem .55rem;
+      transition: color .15s, border-color .15s; line-height: 1.5;
+    }
+    .meth-close:hover { color: var(--ink); border-color: var(--muted-2); }
+    .meth-toc {
+      padding: .75rem 1.4rem; background: var(--bg-featured);
+      border-bottom: 1px solid var(--line);
+      display: flex; flex-wrap: wrap; gap: .3rem .5rem;
+    }
+    .meth-toc a {
+      font-size: .72rem; color: var(--muted); text-decoration: none;
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: .2rem .45rem; border-radius: 3px;
+      transition: color .15s, background .15s;
+    }
+    .meth-toc a:hover { color: var(--accent); background: var(--accent-soft); }
+    .meth-body { padding: 1.6rem 1.4rem 3rem; flex: 1; }
+    .meth-section { margin-bottom: 2.4rem; }
+    .meth-section:last-child { margin-bottom: 0; }
+    .meth-section-head {
+      font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--accent); font-weight: 700; margin-bottom: .7rem;
+    }
+    .meth-h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.15rem; font-weight: 800; color: var(--ink);
+      margin: 0 0 .6rem; line-height: 1.25;
+    }
+    .meth-p {
+      font-size: .88rem; line-height: 1.72; color: var(--ink-soft);
+      margin: 0 0 .7rem;
+    }
+    .meth-p:last-child { margin-bottom: 0; }
+    .meth-table {
+      width: 100%; border-collapse: collapse; font-size: .8rem;
+      margin: .8rem 0 0; color: var(--ink-soft);
+    }
+    .meth-table th {
+      text-align: left; font-size: .65rem; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted); padding: .3rem .5rem;
+      border-bottom: 1px solid var(--line); background: var(--bg-featured);
+    }
+    .meth-table td {
+      padding: .4rem .5rem; border-bottom: 1px solid var(--line-soft);
+      vertical-align: top;
+    }
+    .meth-table tr:last-child td { border-bottom: none; }
+    .meth-table .trust-bar {
+      display: inline-block; height: 6px; border-radius: 3px;
+      background: var(--accent); vertical-align: middle; margin-left: .4rem;
+    }
+    .meth-score-pill {
+      display: inline-block; font-size: .68rem; font-weight: 600;
+      padding: .12rem .45rem; border-radius: 100px;
+      background: var(--accent-soft); color: var(--accent); white-space: nowrap;
+    }
+    .meth-score-pill.neutral { background: rgba(110,99,88,.1); color: var(--muted); }
+    .meth-divider {
+      border: none; border-top: 1px solid var(--line);
+      margin: 1.8rem 0;
+    }
+    .meth-callout {
+      background: var(--bg-featured); border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0; padding: .8rem 1rem;
+      font-size: .84rem; line-height: 1.65; color: var(--ink-soft);
+      margin: .8rem 0;
+    }
+    .meth-step {
+      display: flex; gap: .75rem; margin-bottom: .75rem; align-items: flex-start;
+    }
+    .meth-step-num {
+      flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: .68rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; margin-top: .1rem;
+    }
+    .meth-step-text { font-size: .86rem; line-height: 1.65; color: var(--ink-soft); flex: 1; }
+    .meth-pair-row {
+      display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
+      margin: .3rem 0; font-size: .82rem;
+    }
+    .meth-pair-a { color: #3d6e8a; font-weight: 600; }
+    .meth-pair-b { color: #a06b5a; font-weight: 600; }
+    .meth-pair-sep { color: var(--muted); font-size: .7rem; }
+    @media (max-width: 640px) {
+      .meth-panel { width: 100vw; }
+      .meth-body { padding: 1.2rem 1rem 3rem; }
+      .meth-head { padding: .9rem 1rem; }
+      .meth-toc { padding: .6rem 1rem; }
+    }
+
     /* ── Mobile ────────────────────────────────────────────────────────── */
     @media (max-width: 640px) {
       .masthead-inner { padding: .7rem 1rem; }
@@ -728,6 +843,7 @@
         <button class="nav-btn" id="search-btn" title="Search" style="display:flex;align-items:center;gap:.3rem">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
+        <button class="nav-btn" id="methodology-btn">Methodology</button>
         <button class="nav-btn" id="lang-btn">العربية</button>
         <div class="nav-divider"></div>
         <button class="nav-btn" id="theme-btn" title="Toggle theme">
@@ -872,6 +988,179 @@
   </div>
 
   <!-- MODAL -->
+  <!-- METHODOLOGY PANEL -->
+  <div id="meth-overlay" class="meth-overlay" role="dialog" aria-modal="true" aria-label="Methodology">
+    <div class="meth-panel" id="meth-panel">
+      <div class="meth-head">
+        <div class="meth-head-title">How CrisisLens Works</div>
+        <button class="meth-close" id="meth-close" aria-label="Close">✕</button>
+      </div>
+      <nav class="meth-toc" aria-label="Jump to section">
+        <a href="#meth-overview">Overview</a>
+        <a href="#meth-sources">Sources &amp; Trust</a>
+        <a href="#meth-pipeline">Pipeline</a>
+        <a href="#meth-scoring">Conflict Scoring</a>
+        <a href="#meth-framing">Framing Detection</a>
+        <a href="#meth-limits">Limitations</a>
+      </nav>
+      <div class="meth-body">
+
+        <!-- OVERVIEW -->
+        <div class="meth-section" id="meth-overview">
+          <div class="meth-section-head">Overview</div>
+          <h2 class="meth-h2">What this site does</h2>
+          <p class="meth-p">CrisisLens aggregates news from 37+ sources across Arabic, Western, and independent media and uses natural language processing to surface moments where they <em>directly contradict each other</em> — different casualty figures, opposing framings of the same event, or one side's silence where another speaks loudly.</p>
+          <p class="meth-p">It does not tell you who is right. It shows you where the disagreement is.</p>
+          <div class="meth-callout">This is a beta product built and maintained by one person. The pipeline makes automated editorial decisions that reasonable people would disagree with. Every number and threshold on this page is public so you can judge them yourself.</div>
+        </div>
+
+        <hr class="meth-divider">
+
+        <!-- SOURCES -->
+        <div class="meth-section" id="meth-sources">
+          <div class="meth-section-head">Sources &amp; Trust Scores</div>
+          <h2 class="meth-h2">Who we read and how much we weight them</h2>
+          <p class="meth-p">Every source has a <strong>trust score</strong> between 0.10 and 1.00. Scores were assigned based on editorial independence, track record of corrections, funding transparency, and third-party ratings from AllSides, Ad Fontes Media, and Media Bias/Fact Check where available. They are not claims about accuracy — they are weights that influence how conflict scores are calculated.</p>
+          <p class="meth-p">Higher-trust pairs produce higher conflict scores. Two state-funded sources contradicting each other produce a lower score than a wire service contradicting a state broadcaster.</p>
+          <table class="meth-table">
+            <thead><tr><th>Source</th><th>Trust</th><th>Region Group</th><th>Type</th></tr></thead>
+            <tbody>
+              <tr><td>Reuters</td><td>0.85 <span class="trust-bar" style="width:51px"></span></td><td>Western</td><td>Wire</td></tr>
+              <tr><td>Associated Press</td><td>0.80 <span class="trust-bar" style="width:48px"></span></td><td>Western</td><td>Wire</td></tr>
+              <tr><td>BBC News</td><td>0.80 <span class="trust-bar" style="width:48px"></span></td><td>Western</td><td>Broadcaster</td></tr>
+              <tr><td>BBC Arabic</td><td>0.80 <span class="trust-bar" style="width:48px"></span></td><td>Western*</td><td>Broadcaster</td></tr>
+              <tr><td>Al Jazeera</td><td>1.00 <span class="trust-bar" style="width:60px"></span></td><td>MENA</td><td>Broadcaster</td></tr>
+              <tr><td>France 24 Ar</td><td>0.80 <span class="trust-bar" style="width:48px"></span></td><td>Western</td><td>Broadcaster</td></tr>
+              <tr><td>Deutsche Welle Ar</td><td>0.80 <span class="trust-bar" style="width:48px"></span></td><td>Western</td><td>Broadcaster</td></tr>
+              <tr><td>The Guardian</td><td>0.78 <span class="trust-bar" style="width:47px"></span></td><td>Western</td><td>Print</td></tr>
+              <tr><td>Washington Post</td><td>0.75 <span class="trust-bar" style="width:45px"></span></td><td>Western</td><td>Print</td></tr>
+              <tr><td>CNN</td><td>0.75 <span class="trust-bar" style="width:45px"></span></td><td>Western</td><td>Broadcaster</td></tr>
+              <tr><td>WAFA (Palestinian NA)</td><td>0.65 <span class="trust-bar" style="width:39px"></span></td><td>Palestinian</td><td>State agency</td></tr>
+              <tr><td>Al Arabiya</td><td>0.65 <span class="trust-bar" style="width:39px"></span></td><td>Gulf</td><td>Broadcaster</td></tr>
+              <tr><td>Sky News Arabia</td><td>0.65 <span class="trust-bar" style="width:39px"></span></td><td>Gulf</td><td>Broadcaster</td></tr>
+              <tr><td>Jerusalem Post</td><td>0.70 <span class="trust-bar" style="width:42px"></span></td><td>Israeli</td><td>Print</td></tr>
+              <tr><td>Anadolu Agency</td><td>0.70 <span class="trust-bar" style="width:42px"></span></td><td>MENA</td><td>State agency</td></tr>
+              <tr><td>Sudan Tribune</td><td>0.60 <span class="trust-bar" style="width:36px"></span></td><td>Independent</td><td>Online</td></tr>
+              <tr><td>Middle East Eye</td><td>0.60 <span class="trust-bar" style="width:36px"></span></td><td>Independent</td><td>Online</td></tr>
+              <tr><td>Drop Site News</td><td>0.55 <span class="trust-bar" style="width:33px"></span></td><td>Independent</td><td>Online</td></tr>
+              <tr><td>Electronic Intifada</td><td>0.55 <span class="trust-bar" style="width:33px"></span></td><td>Palestinian</td><td>Advocacy</td></tr>
+              <tr><td>Mondoweiss</td><td>0.55 <span class="trust-bar" style="width:33px"></span></td><td>Palestinian</td><td>Advocacy</td></tr>
+              <tr><td>BNO News</td><td>0.50 <span class="trust-bar" style="width:30px"></span></td><td>Independent</td><td>Breaking</td></tr>
+              <tr><td>AJ Plus Arabic (TG)</td><td>0.50 <span class="trust-bar" style="width:30px"></span></td><td>MENA</td><td>Social</td></tr>
+              <tr><td>Democracy Now!</td><td>0.50 <span class="trust-bar" style="width:30px"></span></td><td>Independent</td><td>Video</td></tr>
+              <tr><td>Antiwar.com</td><td>0.45 <span class="trust-bar" style="width:27px"></span></td><td>Independent</td><td>Advocacy</td></tr>
+              <tr><td>The Cradle</td><td>0.45 <span class="trust-bar" style="width:27px"></span></td><td>Independent</td><td>Online</td></tr>
+              <tr><td>Al Mayadeen EN</td><td>0.45 <span class="trust-bar" style="width:27px"></span></td><td>Independent</td><td>Online</td></tr>
+              <tr><td>The Real News</td><td>0.45 <span class="trust-bar" style="width:27px"></span></td><td>Independent</td><td>Video</td></tr>
+              <tr><td>Al-Akhbar Lebanon</td><td>0.55 <span class="trust-bar" style="width:33px"></span></td><td>Independent</td><td>Print</td></tr>
+              <tr><td>RT Arabic</td><td>0.35 <span class="trust-bar" style="width:21px"></span></td><td>State</td><td>State media</td></tr>
+              <tr><td>Tasnim (Iranian)</td><td>0.40 <span class="trust-bar" style="width:24px"></span></td><td>State</td><td>State agency</td></tr>
+              <tr><td>Press TV</td><td>0.40 <span class="trust-bar" style="width:24px"></span></td><td>State</td><td>State media</td></tr>
+              <tr><td>The Grayzone</td><td>0.40 <span class="trust-bar" style="width:24px"></span></td><td>Independent</td><td>Advocacy</td></tr>
+              <tr><td>Glenn Greenwald</td><td>0.50 <span class="trust-bar" style="width:30px"></span></td><td>Independent</td><td>Newsletter</td></tr>
+              <tr><td>Caitlin Johnstone</td><td>0.35 <span class="trust-bar" style="width:21px"></span></td><td>Independent</td><td>Newsletter</td></tr>
+              <tr><td>Breaking Points</td><td>0.35 <span class="trust-bar" style="width:21px"></span></td><td>Independent</td><td>Video</td></tr>
+              <tr><td>War Monitor (TG)</td><td>0.25 <span class="trust-bar" style="width:15px"></span></td><td>Independent</td><td>Breaking</td></tr>
+              <tr><td>Spectator Index (TG)</td><td>0.10 <span class="trust-bar" style="width:6px"></span></td><td>Independent</td><td>Breaking</td></tr>
+            </tbody>
+          </table>
+          <p class="meth-p" style="margin-top:.8rem;font-size:.78rem;color:var(--muted)">* BBC Arabic is classified as <em>Western</em> despite its Arabic language. This reflects its editorial independence from MENA state structures and its funding source (UK licence fee). It is an editorial judgment that affects scoring — articles from BBC Arabic are treated as cross-regional when paired with Al Jazeera or Al Arabiya.</p>
+        </div>
+
+        <hr class="meth-divider">
+
+        <!-- PIPELINE -->
+        <div class="meth-section" id="meth-pipeline">
+          <div class="meth-section-head">Pipeline</div>
+          <h2 class="meth-h2">From raw headline to displayed conflict</h2>
+          <p class="meth-p">Every 15 minutes the pipeline runs end-to-end automatically:</p>
+          <div class="meth-step"><div class="meth-step-num">1</div><div class="meth-step-text"><strong>Ingest</strong> — RSS feeds and public Telegram channels are fetched. Articles are deduplicated by URL.</div></div>
+          <div class="meth-step"><div class="meth-step-num">2</div><div class="meth-step-text"><strong>Translate</strong> — Arabic headlines and summaries are machine-translated to English using Google Translate (free tier). Bias analysis labels are also translated back to Arabic for the Arabic UI.</div></div>
+          <div class="meth-step"><div class="meth-step-num">3</div><div class="meth-step-text"><strong>Embed</strong> — Each article is converted to a 384-dimensional semantic vector using <code>paraphrase-multilingual-MiniLM-L12-v2</code>, a local CPU model that handles Arabic and English natively. The embedding is built from headline + summary so topically similar but factually different articles are separated.</div></div>
+          <div class="meth-step"><div class="meth-step-num">4</div><div class="meth-step-text"><strong>Pair</strong> — Articles with cosine similarity above 0.70 are paired as candidate contradictions. Same-source pairs are excluded. The pool is limited to recent articles (within 72 hours of each other) to avoid pairing stale reports.</div></div>
+          <div class="meth-step"><div class="meth-step-num">5</div><div class="meth-step-text"><strong>NLI</strong> — Each pair is run through <code>mDeBERTa-v3-base-xnli-multilingual-nli-2mil7</code>, a zero-shot natural language inference model. It classifies the pair as <em>entailment</em>, <em>neutral</em>, or <em>contradiction</em>. Pairs scoring below the contradiction threshold are discarded.</div></div>
+          <div class="meth-step"><div class="meth-step-num">6</div><div class="meth-step-text"><strong>Score</strong> — A conflict score is computed from the NLI contradiction probability, source trust weights, and a diversity bonus. The result is a single number from 0 to 1.</div></div>
+          <div class="meth-step"><div class="meth-step-num">7</div><div class="meth-step-text"><strong>Bias analysis</strong> — A language model (Groq Llama 3) reads the article pair and writes a short prose analysis of the framing differences, emotional language, and named-party treatment between the two sources.</div></div>
+        </div>
+
+        <hr class="meth-divider">
+
+        <!-- SCORING -->
+        <div class="meth-section" id="meth-scoring">
+          <div class="meth-section-head">Conflict Scoring</div>
+          <h2 class="meth-h2">How the conflict score is calculated</h2>
+          <p class="meth-p">The conflict score shown on each card is computed as follows:</p>
+          <div class="meth-callout">
+            <strong>Base score</strong> = NLI contradiction probability × avg(trust_A, trust_B)<br>
+            <strong>+ Numeric boost</strong>: +0.20 if the two articles contain conflicting numbers (casualties, distances, dates)<br>
+            <strong>+ Framing boost</strong>: +0.15 if opposite framing vocabulary is detected (see Framing section)<br>
+            <strong>+ Diversity bonus</strong>: +0.08 if the sources are from different region groups (e.g. Western vs Arab)<br>
+            <strong>Threshold</strong>: pairs with a final score below 0.55 are not shown
+          </div>
+          <p class="meth-p">The <strong>diversity bonus (+0.08)</strong> is the most contested decision in this pipeline. It means two sources from different editorial traditions get a slightly higher conflict score than two sources from the same tradition, even if the contradiction is identical in severity. The rationale: a contradiction between CNN and Al Jazeera is more editorially significant for CrisisLens's purpose (cross-narrative divergence) than a contradiction between two Western wire services covering the same story differently. You can disagree with this choice — it is explicit, not hidden.</p>
+          <h3 style="font-size:.9rem;font-weight:700;color:var(--ink);margin:1rem 0 .5rem">Region groups used for diversity bonus</h3>
+          <table class="meth-table">
+            <thead><tr><th>Group</th><th>Sources included</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Western</strong></td><td>BBC, BBC Arabic, Reuters, AP, Washington Post, CNN, Guardian, France 24 Arabic, DW Arabic</td></tr>
+              <tr><td><strong>Arab/MENA</strong></td><td>Al Jazeera, Anadolu Agency</td></tr>
+              <tr><td><strong>Gulf</strong></td><td>Al Arabiya, Sky News Arabia</td></tr>
+              <tr><td><strong>Israeli</strong></td><td>Jerusalem Post</td></tr>
+              <tr><td><strong>Palestinian</strong></td><td>WAFA, Electronic Intifada, Mondoweiss</td></tr>
+              <tr><td><strong>State</strong></td><td>RT Arabic, Tasnim, Press TV</td></tr>
+              <tr><td><strong>Independent</strong></td><td>Middle East Eye, Drop Site News, The Cradle, Al Mayadeen, Grayzone, and others</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr class="meth-divider">
+
+        <!-- FRAMING -->
+        <div class="meth-section" id="meth-framing">
+          <div class="meth-section-head">Framing Detection</div>
+          <h2 class="meth-h2">How we detect language framing differences</h2>
+          <p class="meth-p">Framing detection looks for opposing vocabulary within the same article pair. If source A uses a word from one cluster and source B uses a word from the opposing cluster on the same event, a framing boost is applied to the conflict score.</p>
+          <p class="meth-p">The current vocabulary pairs are rule-based and were chosen to reflect documented framing differences in Middle East conflict journalism:</p>
+          <div class="meth-pair-row"><span class="meth-pair-a">martyred / استشهد / شهيد</span><span class="meth-pair-sep">vs</span><span class="meth-pair-b">killed / died</span></div>
+          <div class="meth-pair-row"><span class="meth-pair-a">terrorist / إرهابي</span><span class="meth-pair-sep">vs</span><span class="meth-pair-b">resistance / مقاوم / مجاهد</span></div>
+          <div class="meth-pair-row"><span class="meth-pair-a">genocide / إبادة</span><span class="meth-pair-sep">vs</span><span class="meth-pair-b">conflict / war / operation</span></div>
+          <div class="meth-pair-row"><span class="meth-pair-a">occupation / احتلال</span><span class="meth-pair-sep">vs</span><span class="meth-pair-b">defense / security operation / self-defense</span></div>
+          <div class="meth-pair-row"><span class="meth-pair-a">civilian / مدني</span><span class="meth-pair-sep">vs</span><span class="meth-pair-b">militant / combatant / fighter / مسلح</span></div>
+          <p class="meth-p" style="margin-top:.8rem">These are heuristics, not claims. A headline that uses "killed" is not more accurate than one that uses "martyred" — they reflect the editorial traditions and political positions of the publication. The framing boost does not penalise either side; it flags that a framing difference exists between the two sources in a pair.</p>
+          <p class="meth-p">The bias analysis prose (generated by an LLM on each conflict card) provides a more nuanced description of the specific framing differences in that pair.</p>
+        </div>
+
+        <hr class="meth-divider">
+
+        <!-- LIMITATIONS -->
+        <div class="meth-section" id="meth-limits">
+          <div class="meth-section-head">Limitations</div>
+          <h2 class="meth-h2">What this site cannot do</h2>
+          <div class="meth-callout">
+            <strong>Translation quality.</strong> Arabic → English machine translation loses nuance. NLI runs on the translated text, not the original Arabic. A subtlety that disappears in translation is a contradiction we will miss.
+          </div>
+          <div class="meth-callout">
+            <strong>NLI is not fact-checking.</strong> The model detects textual contradiction. Two articles can contradict each other and both be wrong. This is not a truth engine.
+          </div>
+          <div class="meth-callout">
+            <strong>Trust scores are editorial judgments.</strong> They were assigned by one person based on available third-party data. They have not been independently validated. A source scored 0.40 may publish accurate reporting; a source scored 0.85 may have blind spots.
+          </div>
+          <div class="meth-callout">
+            <strong>Coverage gaps.</strong> Sources that block the hosting server's IP (including some major Arabic outlets) are not included. The dataset skews toward sources with open RSS feeds and public Telegram channels.
+          </div>
+          <div class="meth-callout">
+            <strong>LLM bias analysis.</strong> The prose framing analysis on each card is generated by Llama 3 (Groq). LLMs have documented political and cultural biases. The analysis is a starting point for reading, not a verdict.
+          </div>
+          <div class="meth-callout">
+            <strong>This is a beta.</strong> Thresholds, weights, and source lists will change. The methodology page will be updated when they do.
+          </div>
+          <p class="meth-p" style="margin-top:1rem;font-size:.8rem;color:var(--muted)">Questions or disagreements with the methodology? Open an issue on <a href="https://github.com/daniehben/CrisisLens" style="color:var(--accent)">GitHub</a>.</p>
+        </div>
+
+      </div><!-- .meth-body -->
+    </div><!-- .meth-panel -->
+  </div><!-- .meth-overlay -->
+
   <div id="modal-wrap" class="modal-wrap">
     <div class="modal-box" id="modal-box"></div>
   </div>
@@ -1810,6 +2099,27 @@
     localStorage.setItem('cl.theme', theme);
     applyTheme(theme);
   };
+
+  // Methodology panel
+  (function() {
+    const overlay = document.getElementById('meth-overlay');
+    const openBtn  = document.getElementById('methodology-btn');
+    const closeBtn = document.getElementById('meth-close');
+    function open()  { overlay.classList.add('open');    document.body.style.overflow = 'hidden'; }
+    function close() { overlay.classList.remove('open'); document.body.style.overflow = ''; }
+    openBtn.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    // anchor links inside panel scroll panel, not page
+    overlay.querySelectorAll('.meth-toc a').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.getElementById(a.getAttribute('href').slice(1));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  })();
 
   // Hero dismiss
   (function() {
