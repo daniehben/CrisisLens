@@ -125,11 +125,12 @@ app.add_middleware(
 )
 
 @app.api_route("/", methods=["GET", "HEAD"])
+@limiter.exempt
 def root():
     return {"status": "ok"}
 
 @app.get("/health", response_model=HealthResponse)
-@limiter.limit("60/minute")
+@limiter.exempt
 def health(request: Request):
     db_status = "error"
     articles_count = 0
