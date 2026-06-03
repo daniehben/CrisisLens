@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&family=Noto+Naskh+Arabic:wght@600;700&family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <script>
     window.__CL_API = 'https://crisislens-api.onrender.com';
-    window.__CL_DATA = fetch(window.__CL_API + '/api/v1/conflicts?limit=100').then(r => r.ok ? r.json() : null).catch(() => null);
+    window.__CL_DATA = fetch(window.__CL_API + '/api/v1/conflicts?limit=500').then(r => r.ok ? r.json() : null).catch(() => null);
   </script>
   <style>
     /* ── PALETTE ───────────────────────────────────────────────────────── */
@@ -980,6 +980,13 @@
         </div>
       </div>
       <div id="feed-sections"></div>
+      <div id="load-more-wrap" style="display:none;text-align:center;padding:2rem 0 1rem">
+        <button id="load-more-btn" style="
+          background:none;border:1px solid var(--line);border-radius:6px;
+          padding:.6rem 1.6rem;font-size:.84rem;font-family:inherit;
+          color:var(--ink-soft);cursor:pointer;transition:border-color .15s,color .15s;
+        ">Load more</button>
+      </div>
       <div id="empty-msg" class="msg-box" style="display:none"></div>
     </div>
 
@@ -1328,7 +1335,9 @@
     other:     { label: 'Other',               labelAr: 'أخرى' },
   };
 
-  const SECTION_PREVIEW = 4; // cards visible before "show more"
+  const SECTION_PREVIEW = 4; // cards visible before "show more" inside a topic section
+  const PAGE_SIZE       = 50; // conflicts loaded per "Load more" click
+  let   visibleCount    = PAGE_SIZE; // resets on every filter/search change
 
   function regionOf(code)    { return REGION_MAP[code] || 'neutral'; }
   function regionColor(code) { return REGION_COLOR_MAP[regionOf(code)] || 'var(--r-neut)'; }
@@ -1708,17 +1717,35 @@
     }
 
     // Feed: everything after top 4
-    const rest = filtered.filter(c => !top4.includes(c));
+    const rest    = filtered.filter(c => !top4.includes(c));
+    const visible = rest.slice(0, visibleCount);
+    const hasMore = rest.length > visibleCount;
+
     document.getElementById('feed-label').textContent =
       topicFilter==='all' ? t('feed_label_all') : t('feed_label_topic', topicFilter);
 
     const feedSections = document.getElementById('feed-sections');
     // Topic sections only when browsing "All" with no active search
     if (topicFilter === 'all' && !searchQuery) {
-      feedSections.innerHTML = buildTopicSections(groupByTopic(rest));
+      feedSections.innerHTML = buildTopicSections(groupByTopic(visible));
     } else {
       // Flat grid for filtered/search views
-      feedSections.innerHTML = `<div class="feed-grid">${rest.map((c,i) => buildCard(c,false,i)).join('')}</div>`;
+      feedSections.innerHTML = `<div class="feed-grid">${visible.map((c,i) => buildCard(c,false,i)).join('')}</div>`;
+    }
+
+    // Load more button
+    const loadMoreWrap = document.getElementById('load-more-wrap');
+    if (loadMoreWrap) {
+      if (hasMore) {
+        const remaining = rest.length - visibleCount;
+        loadMoreWrap.style.display = '';
+        loadMoreWrap.querySelector('#load-more-btn').textContent =
+          preferAr
+            ? `تحميل المزيد (${remaining} متبقية)`
+            : `Load more — ${remaining} remaining`;
+      } else {
+        loadMoreWrap.style.display = 'none';
+      }
     }
 
     document.getElementById('empty-msg').textContent = searchQuery ? t('search_empty', searchQuery) : t('empty_msg');
@@ -2016,32 +2043,42 @@
   }
 
   // ── Controls ──────────────────────────────────────────────────────────
+  function resetAndRender() { visibleCount = PAGE_SIZE; render(); }
+
+  const loadMoreBtn = document.getElementById('load-more-btn');
+  loadMoreBtn.onmouseenter = () => { loadMoreBtn.style.borderColor = 'var(--muted-2)'; loadMoreBtn.style.color = 'var(--ink)'; };
+  loadMoreBtn.onmouseleave = () => { loadMoreBtn.style.borderColor = 'var(--line)';    loadMoreBtn.style.color = 'var(--ink-soft)'; };
+  loadMoreBtn.onclick = () => {
+    visibleCount += PAGE_SIZE;
+    render();
+  };
+
   document.getElementById('cat-tabs').querySelectorAll('.cat-tab').forEach(btn => {
     btn.onclick = () => {
       topicFilter = btn.dataset.topic;
       document.querySelectorAll('.cat-tab').forEach(b=>b.classList.toggle('active', b===btn));
-      render();
+      resetAndRender();
     };
   });
   document.getElementById('type-tabs').querySelectorAll('.type-tab').forEach(btn => {
     btn.onclick = () => {
       typeFilter = btn.dataset.type;
       document.querySelectorAll('.type-tab').forEach(b=>b.classList.toggle('active', b===btn));
-      render();
+      resetAndRender();
     };
   });
   document.querySelectorAll('.filter-lang').forEach(btn => {
     btn.onclick = () => {
       langFilter = btn.dataset.lang;
       document.querySelectorAll('.filter-lang').forEach(b=>b.classList.toggle('active', b===btn));
-      render();
+      resetAndRender();
     };
   });
   document.querySelectorAll('.filter-sort').forEach(btn => {
     btn.onclick = () => {
       sortMode = btn.dataset.sort;
       document.querySelectorAll('.filter-sort').forEach(b=>b.classList.toggle('active', b===btn));
-      render();
+      resetAndRender();
     };
   });
   document.getElementById('refresh-btn').onclick = load;
@@ -2065,13 +2102,13 @@
   searchInput.addEventListener('input', () => {
     searchQuery = searchInput.value.trim();
     searchClear.classList.toggle('visible', !!searchQuery);
-    if (cache) render();
+    if (cache) resetAndRender();
   });
   searchClear.onclick = () => {
     searchQuery = ''; searchInput.value = '';
     searchClear.classList.remove('visible');
     searchInput.focus();
-    if (cache) render();
+    if (cache) resetAndRender();
   };
   searchInput.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.getElementById('search-btn').click();

@@ -173,7 +173,7 @@ def get_feed(
     request: Request,
     language: str = Query(None, description="Filter by language: ar or en"),
     source: str = Query(None, description="Filter by source code e.g. AJA"),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
     filters = []
@@ -228,7 +228,7 @@ def get_feed(
 def get_conflicts(
     request: Request,
     min_score: float = Query(0.0, ge=0.0, le=1.0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
     with get_db_connection() as conn:
