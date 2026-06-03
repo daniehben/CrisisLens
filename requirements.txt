@@ -16,3 +16,4 @@ beautifulsoup4
 deep-translator
 trafilatura
 groq
+sentence-transformers

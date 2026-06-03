@@ -1,69 +1,72 @@
-import gc
+"""Task 9 — Generate sentence embeddings for article headlines.
+
+Model: paraphrase-multilingual-MiniLM-L12-v2 (local, CPU inference)
+  - 384-dim vectors, multilingual (Arabic + English in same space)
+  - ~120MB download on first run, cached at ~/.cache/huggingface/
+  - ~50-150ms per sentence on CPU — acceptable for background worker
+  - Zero API quota, zero cost, no external dependency
+
+Why local over HF Inference API:
+  - HF free tier: ~100 req/day hard cap, silently stalls on busy days
+  - Local: unlimited, faster (no network), same model quality
+  - Render free tier has 512MB RAM; model loads in ~200MB
+
+Why this model:
+  - Handles Arabic and English in the same vector space
+  - Enables cross-lingual contradiction detection (AP English vs AJA+ Arabic
+    about the same event will land close in embedding space)
+  - Lightweight enough for Render free tier CPU inference
+
+Future upgrade path: OpenAI text-embedding-3-small at $0.02/1M tokens
+  (~$0.004/month at current scale). See docs/BUDGET.md.
+"""
 import logging
-import json
-import httpx
 import os
+
 from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
-HF_API_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/pipeline/feature-extraction"
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+# Module-level cache — model loads once per worker process, not per cycle
+_model = None
 
 
+def _get_model():
+    """Lazy-load the sentence-transformers model. Cached after first call."""
+    global _model
+    if _model is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            log.info(f"[Task9] Loading embedding model {MODEL_NAME} (first run may download ~120MB)...")
+            _model = SentenceTransformer(MODEL_NAME)
+            log.info("[Task9] Model loaded.")
+        except ImportError:
+            log.error("[Task9] sentence-transformers not installed — run: pip install sentence-transformers")
+            return None
+        except Exception as e:
+            log.error(f"[Task9] Failed to load model: {e}")
+            return None
+    return _model
 
-def _normalize_embedding(raw) -> list[float] | None:
-    """HF returns either a sentence vector [floats] or token vectors [[floats]].
-    Mean-pool token vectors so we always return one vector per input."""
-    if not raw:
-        return None
-    if isinstance(raw[0], list):
-        import numpy as np
-        return np.mean(raw, axis=0).tolist()
-    return raw
 
+def get_embeddings_local(texts: list[str], batch_size: int = 32) -> list[list[float] | None]:
+    """Embed a list of texts locally. Returns one 384-dim vector per input, or None on failure."""
+    model = _get_model()
+    if model is None:
+        return [None] * len(texts)
 
-def get_embeddings_from_api(texts: list[str], hf_token: str, batch_size: int = 16) -> list[list[float] | None]:
-    """Batch embed texts via HF Inference API.
-    Sends batch_size texts per request instead of one. Falls back to per-text
-    on batch error so a single malformed input doesn't drop the whole batch."""
-    headers = {"Authorization": f"Bearer {hf_token}"}
     results: list[list[float] | None] = []
-
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
         try:
-            response = httpx.post(
-                HF_API_URL,
-                headers=headers,
-                json={"inputs": batch},
-                timeout=60,
-            )
-            if response.status_code == 200:
-                payload = response.json()
-                # Batch response: list of embeddings, one per input
-                for raw in payload:
-                    results.append(_normalize_embedding(raw))
-                continue
-            log.warning(f"[Task9] HF batch error {response.status_code}: {response.text[:120]}")
+            vecs = model.encode(batch, show_progress_bar=False, convert_to_numpy=True)
+            for vec in vecs:
+                results.append(vec.tolist())
         except Exception as e:
-            log.warning(f"[Task9] HF batch request failed: {e}")
-
-        # Batch failed — fall back to one-at-a-time for this batch only
-        for text in batch:
-            try:
-                response = httpx.post(
-                    HF_API_URL,
-                    headers=headers,
-                    json={"inputs": text},
-                    timeout=30,
-                )
-                if response.status_code == 200:
-                    results.append(_normalize_embedding(response.json()))
-                else:
-                    results.append(None)
-            except Exception as e:
-                log.warning(f"[Task9] Per-text fallback failed: {e}")
-                results.append(None)
+            log.warning(f"[Task9] Batch {i}–{i+len(batch)} failed: {e} — appending Nones")
+            results.extend([None] * len(batch))
 
     return results
 
@@ -71,18 +74,16 @@ def get_embeddings_from_api(texts: list[str], hf_token: str, batch_size: int = 1
 def run_task9():
     log.info("[Task9] Starting embedding generation...")
 
-    hf_token = os.getenv("HF_TOKEN")
-    if not hf_token:
-        log.error("[Task9] HF_TOKEN env var not set — skipping")
-        return 0
-
     with get_db_connection() as conn:
         with conn.cursor() as cur:
+            # Embed whichever headline is available: prefer Arabic, fall back to English.
+            # This ensures English-only sources (AP, BBC, Reuters…) also get embeddings
+            # and can participate in cross-lingual contradiction detection.
             cur.execute("""
-                SELECT article_id, headline_ar
+                SELECT article_id,
+                       COALESCE(headline_ar, headline_en) AS headline
                 FROM articles
-                WHERE headline_ar IS NOT NULL
-                  AND processed_nlp = FALSE
+                WHERE (headline_ar IS NOT NULL OR headline_en IS NOT NULL)
                   AND embedding IS NULL
                 ORDER BY article_id
                 LIMIT 100
@@ -96,9 +97,9 @@ def run_task9():
     log.info(f"[Task9] Generating embeddings for {len(rows)} articles...")
 
     article_ids = [r[0] for r in rows]
-    headlines = [r[1] for r in rows]
+    headlines   = [r[1] for r in rows]
 
-    embeddings = get_embeddings_from_api(headlines, hf_token)
+    embeddings = get_embeddings_local(headlines)
 
     stored = 0
     with get_db_connection() as conn:
