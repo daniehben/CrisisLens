@@ -5,9 +5,34 @@ articles contradict each other. Input priority: LLM-cleaned summary > raw
 body snippet > headline. Using body text gives dramatically better signal than
 headline-only comparison — headlines are marketing copy, contradictions live
 in the reported facts.
+
+Truncation strategy
+-------------------
+mDeBERTa-v3 has a 512-token context window for the combined input:
+
+    [CLS] premise [SEP][SEP] hypothesis [SEP]   (= 3 special tokens)
+
+We use the model's own tokenizer to measure and truncate, not character counts.
+Character counts are unreliable: Arabic is ~1.5-2× denser than English per char,
+so a fixed 400-char limit gives Arabic summaries ~120 tokens and English ~80.
+The truncation budget is split 60/40 (premise: 290 tokens, hypothesis: 190 tokens)
+because the premise is typically the more detailed/authoritative source.
+
+This ensures the contradicting claim — usually in the final sentence of a summary
+— is not silently dropped before the model sees it.
+
+HF Inference API note
+---------------------
+Task11 still calls the HF Inference API (not local inference). The mDeBERTa model
+is 280M params and requires ~1.1GB RAM to run locally — too large for Render's
+512MB free tier. HF free tier allows ~100 req/day; at 50 pairs/cycle this is
+2 full cycles before hitting the cap. A circuit breaker is not yet implemented
+here. See docs/BUDGET.md for the local inference upgrade path when RAM allows.
 """
 import logging
 import os
+from functools import lru_cache
+from typing import Optional
 
 import httpx
 
@@ -15,25 +40,82 @@ from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
-# Multilingual NLI model — supports Arabic, English, and ~100 other langs.
-# ~280M params, runs on free HF Inference tier.
-# Force /pipeline/text-classification because HF defaults this model to
-# zero-shot-classification, which expects a different input shape.
 HF_NLI_URL = (
     "https://router.huggingface.co/hf-inference/models/"
     "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
     "/pipeline/text-classification"
 )
 
+# Token budget for each side of the NLI pair.
+# Total must be <= 512 - 3 special tokens = 509.
+# 60/40 split: premise gets more room (typically the reference source).
+PREMISE_TOKEN_BUDGET    = 290
+HYPOTHESIS_TOKEN_BUDGET = 190
+
+
+@lru_cache(maxsize=1)
+def _get_tokenizer():
+    """
+    Load the mDeBERTa tokenizer once per process (cached).
+    Used only for token-aware truncation — no model weights loaded,
+    so memory cost is negligible (~10MB vocab files).
+    Falls back to None if transformers is not installed.
+    """
+    try:
+        from transformers import AutoTokenizer
+        tok = AutoTokenizer.from_pretrained(
+            "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
+        )
+        log.info("[Task11] NLI tokenizer loaded.")
+        return tok
+    except Exception as e:
+        log.warning(f"[Task11] Could not load tokenizer: {e} — falling back to char truncation")
+        return None
+
+
+def _truncate_to_tokens(text: str, max_tokens: int) -> str:
+    """
+    Truncate text so it fits within max_tokens using the model's own tokenizer.
+    Falls back to a conservative character estimate (max_tokens * 3 chars) if
+    the tokenizer is unavailable.
+    """
+    tokenizer = _get_tokenizer()
+    if tokenizer is None:
+        # Fallback: 1 token ≈ 3 chars average across Arabic/English
+        return text[: max_tokens * 3]
+
+    ids = tokenizer.encode(text, add_special_tokens=False)
+    if len(ids) <= max_tokens:
+        return text
+
+    # Decode the truncated token ids back to a string
+    truncated_ids = ids[:max_tokens]
+    return tokenizer.decode(truncated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+
+
+def _best_text(summary: Optional[str], body: Optional[str],
+               hl_ar: Optional[str], hl_en: Optional[str]) -> Optional[str]:
+    """
+    Pick the richest available text for one article side.
+    Priority: summary (LLM-cleaned facts) > body_snippet > headline.
+    Returns None only if all fields are empty.
+    """
+    for candidate in (summary, body, hl_ar, hl_en):
+        if candidate and len(candidate.strip()) > 20:
+            return candidate.strip()
+    return None
+
 
 def classify_pair(premise: str, hypothesis: str, hf_token: str) -> dict:
-    """Returns {label, contradiction_score, scores} for one (premise, hypothesis) pair.
-    Falls back to neutral/0.0 on any error so the caller can still record a row."""
+    """
+    Run NLI on one (premise, hypothesis) pair.
+    Returns {label, contradiction_score, scores}.
+    Falls back to neutral/0.0 on any error so the caller can still record a row.
+    """
     headers = {"Authorization": f"Bearer {hf_token}"}
 
-    # mDeBERTa expects premise </s></s> hypothesis (XNLI training format)
-    # top_k=None returns scores for ALL classes (entailment/neutral/contradiction)
-    # instead of just the winning one.
+    # mDeBERTa expects premise </s></s> hypothesis (XNLI training format).
+    # top_k=None returns scores for ALL classes.
     payload = {
         "inputs": f"{premise}</s></s>{hypothesis}",
         "parameters": {"top_k": None},
@@ -83,7 +165,7 @@ def run_task11():
                        a1.summary     AS h1_sum, a1.body_snippet AS h1_body,
                        a2.headline_ar AS h2_ar, a2.headline_en AS h2_en,
                        a2.summary     AS h2_sum, a2.body_snippet AS h2_body,
-                       a1.published_at AS pub1, a2.published_at AS pub2
+                       a1.published_at AS pub1,  a2.published_at AS pub2
                 FROM article_pairs ap
                 JOIN articles a1 ON a1.article_id = ap.article_id_1
                 JOIN articles a2 ON a2.article_id = ap.article_id_2
@@ -101,38 +183,33 @@ def run_task11():
     classified = 0
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            for pair_id, h1_ar, h1_en, h1_sum, h1_body, \
-                         h2_ar, h2_en, h2_sum, h2_body, \
-                         pub1, pub2 in pairs:
+            for (pair_id,
+                 h1_ar, h1_en, h1_sum, h1_body,
+                 h2_ar, h2_en, h2_sum, h2_body,
+                 pub1, pub2) in pairs:
 
-                # Build the richest possible text for each side.
-                # Priority: summary (LLM-cleaned) > body_snippet > headline.
-                # We truncate to 400 chars so the NLI model doesn't choke —
-                # mDeBERTa has a 512-token limit; 400 chars ≈ 100 tokens.
-                def best_text(summary, body, hl_ar, hl_en) -> str:
-                    if summary and len(summary.strip()) > 20:
-                        return summary.strip()[:400]
-                    if body and len(body.strip()) > 20:
-                        return body.strip()[:400]
-                    return (hl_ar or hl_en or "").strip()[:400]
+                raw_premise    = _best_text(h1_sum, h1_body, h1_ar, h1_en)
+                raw_hypothesis = _best_text(h2_sum, h2_body, h2_ar, h2_en)
 
-                premise    = best_text(h1_sum, h1_body, h1_ar, h1_en)
-                hypothesis = best_text(h2_sum, h2_body, h2_ar, h2_en)
-
-                if not premise or not hypothesis:
+                if not raw_premise or not raw_hypothesis:
                     cur.execute(
                         "UPDATE article_pairs SET status='error' WHERE pair_id=%s",
                         (pair_id,),
                     )
                     continue
 
+                # Truncate using the tokenizer's own vocabulary, not character counts.
+                # This preserves whole words/subwords and never cuts mid-token.
+                premise    = _truncate_to_tokens(raw_premise,    PREMISE_TOKEN_BUDGET)
+                hypothesis = _truncate_to_tokens(raw_hypothesis, HYPOTHESIS_TOKEN_BUDGET)
+
                 result = classify_pair(premise, hypothesis, hf_token)
 
                 cur.execute("""
                     UPDATE article_pairs
-                    SET nli_label = %s,
+                    SET nli_label           = %s,
                         contradiction_score = %s,
-                        status = 'processed'
+                        status              = 'processed'
                     WHERE pair_id = %s
                 """, (result["label"], result["contradiction_score"], pair_id))
 
@@ -146,4 +223,3 @@ def run_task11():
 
     log.info(f"[Task11] Complete — {classified} pairs classified")
     return classified
-
