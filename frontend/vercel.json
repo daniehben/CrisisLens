@@ -7,6 +7,19 @@
     {
       "source": "/health",
       "destination": "https://crisislens-api.onrender.com/health"
+    },
+    {
+      "source": "/og-image.png",
+      "destination": "/og-image.svg"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/og-image.svg",
+      "headers": [
+        { "key": "Content-Type", "value": "image/svg+xml" },
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
     }
   ]
 }

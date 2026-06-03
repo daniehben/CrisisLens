@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://crisis-lens-six.vercel.app/sitemap.xml

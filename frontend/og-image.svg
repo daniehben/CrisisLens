@@ -1,0 +1,69 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#faf6ee"/>
+      <stop offset="100%" stop-color="#f2ece0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Top accent bar -->
+  <rect width="1200" height="6" fill="#991010"/>
+
+  <!-- Decorative vertical rule -->
+  <rect x="80" y="80" width="3" height="470" fill="#ddd6c8"/>
+
+  <!-- Wordmark -->
+  <text x="110" y="160" font-family="Georgia, serif" font-size="82" font-weight="900"
+        fill="#1a1816" letter-spacing="-2">Crisis</text>
+  <text x="110" y="160" font-family="Georgia, serif" font-size="82" font-weight="900"
+        fill="#991010" letter-spacing="-2" dx="285">Lens</text>
+
+  <!-- Tagline -->
+  <text x="112" y="218" font-family="'Helvetica Neue', Arial, sans-serif" font-size="26"
+        fill="#6e6358" letter-spacing="1">WHERE THE NEWS DISAGREES</text>
+
+  <!-- Divider -->
+  <rect x="110" y="250" width="980" height="1.5" fill="#ddd6c8"/>
+
+  <!-- Description -->
+  <text x="112" y="308" font-family="'Helvetica Neue', Arial, sans-serif" font-size="30"
+        fill="#3a342e">Real-time contradiction detection across 37 news sources.</text>
+  <text x="112" y="354" font-family="'Helvetica Neue', Arial, sans-serif" font-size="30"
+        fill="#3a342e">Arabic · Western · Independent · State media.</text>
+
+  <!-- Source pills -->
+  <g font-family="'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#6e6358">
+    <!-- Row 1 -->
+    <rect x="112" y="400" width="130" height="34" rx="4" fill="#ffffff" stroke="#ddd6c8" stroke-width="1"/>
+    <text x="127" y="423" fill="#3d6e8a">Reuters</text>
+
+    <rect x="254" y="400" width="146" height="34" rx="4" fill="#ffffff" stroke="#ddd6c8" stroke-width="1"/>
+    <text x="269" y="423" fill="#3d6e8a">Al Jazeera</text>
+
+    <rect x="412" y="400" width="108" height="34" rx="4" fill="#ffffff" stroke="#ddd6c8" stroke-width="1"/>
+    <text x="427" y="423" fill="#3d6e8a">BBC</text>
+
+    <rect x="532" y="400" width="80" height="34" rx="4" fill="#ffffff" stroke="#ddd6c8" stroke-width="1"/>
+    <text x="547" y="423" fill="#804e3e">RT</text>
+
+    <rect x="624" y="400" width="90" height="34" rx="4" fill="#ffffff" stroke="#ddd6c8" stroke-width="1"/>
+    <text x="639" y="423" fill="#3a342e">AP</text>
+
+    <rect x="726" y="400" width="180" height="34" rx="4" fill="#ffffff" stroke="#ddd6c8" stroke-width="1"/>
+    <text x="741" y="423" fill="#9a6840">Al Arabiya</text>
+
+    <rect x="918" y="400" width="172" height="34" rx="4" fill="#ffffff" stroke="#ddd6c8" stroke-width="1"/>
+    <text x="933" y="423" fill="#3a342e">+ 30 more</text>
+  </g>
+
+  <!-- Bottom meta -->
+  <text x="112" y="540" font-family="'Helvetica Neue', Arial, sans-serif" font-size="20"
+        fill="#a09488" letter-spacing="1">LIVE · UPDATED EVERY 15 MINUTES · FREE</text>
+
+  <!-- URL -->
+  <text x="1088" y="540" font-family="'Helvetica Neue', Arial, sans-serif" font-size="20"
+        fill="#a09488" text-anchor="end">crisis-lens-six.vercel.app</text>
+</svg>

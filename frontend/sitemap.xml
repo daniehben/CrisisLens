@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://crisis-lens-six.vercel.app/</loc>
+    <changefreq>always</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crisis-lens-six.vercel.app/"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://crisis-lens-six.vercel.app/"/>
+  </url>
+</urlset>
