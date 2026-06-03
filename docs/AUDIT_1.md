@@ -233,33 +233,327 @@ The upgrade path is documented with full price breakdown in `docs/BUDGET.md`. Sw
 
 ---
 
-## Pending Items (Not Yet Fixed)
+## Pending Items After Fix 6 (Resolved in Fixes 7–14 Below)
 
-These were identified in the audit but not addressed in this session. They are ordered by deployment risk.
+Items 2 and 3 from this table were resolved in the same session. Items 4–8 remain open.
 
-| # | Issue | Risk | Notes |
+| # | Issue | Risk | Status |
 |---|---|---|---|
-| 1 | `netlify.toml` committed unnecessarily | Low | Frontend already on Render Static Site. Run `git rm netlify.toml` from terminal |
-| 2 | Groq daily token cap — no circuit breaker | Medium | If cap hit, task7.5 (summarise) and task13 (bias) silently fail. Add try/except with logged skip |
-| 3 | CORS `allow_origins=["*"]` in API | Medium | Should be locked to frontend domain before launch |
-| 4 | No DB size tracking | Low | Supabase free tier is 500MB. Add a `/health` field or scheduled alert |
-| 5 | No error state for Render spin-down in frontend | Low | Free tier spins down after inactivity. First request takes 50s. Frontend shows blank, not "loading" |
-| 6 | No SEO | Low | Pure client-side render — not indexable. Accepted until Next.js migration (Phase 3) |
-| 7 | No permalink/share URLs | Low | Individual conflict views have no shareable URL |
-| 8 | HF_TOKEN still in render.yaml | Trivial | No longer used by task9. Audit other tasks before removing |
+| 1 | `netlify.toml` committed unnecessarily | Low | ✅ Removed |
+| 2 | Groq daily token cap — no circuit breaker | Medium | ✅ Fixed — see Fix 7 |
+| 3 | CORS `allow_origins=["*"]` in API | Medium | ✅ Fixed — see Fix 11 |
+| 4 | No DB size tracking | Low | Open |
+| 5 | No error state for Render spin-down in frontend | Low | Open |
+| 6 | No SEO | Low | Open — accepted for now |
+| 7 | No permalink/share URLs | Low | Open |
+| 8 | HF_TOKEN still in render.yaml | Trivial | Open |
 
 ---
 
-## System State After Audit 1
+## Fix 7 — Groq Daily Cap Circuit Breaker
+
+### Problem
+`backend/shared/groq_client.py` called the Groq API with no awareness of daily quota limits. Groq's free tier enforces hard daily caps: 14,400 requests/day for the fast model (`llama-3.1-8b-instant`) and 1,000 requests/day for the smart model (`llama-3.3-70b-versatile`). When the cap was hit, the API returned a `429 Too Many Requests`. The existing retry logic treated 429 the same as a transient network error and retried immediately — burning through the remaining quota even faster. Downstream tasks (task7.5 summarisation, task13/14 bias analysis) received `None` from `chat()` and silently skipped the article, producing gaps in the data with no log evidence of why.
+
+### Root Cause
+Groq was integrated as a simple API wrapper. Daily quota management was not considered during initial implementation.
+
+### Fix
+Rewrote `backend/shared/groq_client.py` with a per-model daily counter:
+
+- `_DAILY_CAPS = {FAST_MODEL: 14_400, SMART_MODEL: 1_000}` — hard limits per model
+- `_daily: dict[str, dict]` — tracks `{"date": "YYYY-MM-DD", "count": int}` per model, resets automatically at midnight UTC when the date changes
+- `_cap_logged: dict[str, bool]` — fires a single `WARNING` log entry the first time a cap is hit per day, not once per skipped call (prevents log flooding)
+- `_check_daily_cap(model)` — called before every API request; returns `False` and skips the call if at cap
+- `_increment_daily(model)` — called only after a successful API response, so failed retries don't inflate the counter
+- `get_daily_usage()` — returns `{model: {"date", "count", "cap"}}` for the `/health` endpoint
+
+The `/health` endpoint now includes `groq_usage` in its response. Note: the counter lives in the worker process — the API process makes no Groq calls, so its `/health` will always show an empty `groq_usage` dict. Real usage is in the worker logs.
+
+### Impact on System
+The pipeline no longer retries into a spent quota. When the 70B cap is hit, task13/14 skip gracefully with a single warning log. The cap resets at 00:00 UTC without a worker restart. Downstream tasks already handle `None` returns correctly — this fix makes the reason for `None` observable.
+
+### What This Means for System Design
+Any background job that calls a rate-limited external API needs a circuit breaker. The pattern established here (in-memory counter keyed by date, single log per breach, auto-reset on date change) is the minimum viable implementation. It is intentionally simple — no persistence, no cross-process visibility — which is appropriate for a single-worker system.
+
+### Better Options at Cost
+The counter is in-memory and lost on worker restart (Render free tier restarts frequently due to spin-down). At scale, a shared counter in the existing Supabase DB (`groq_usage` table with `upsert` per call) gives cross-process visibility and survives restarts. Cost: $0 — uses existing infrastructure. Implementation: ~30 minutes. Full specification in `docs/BUDGET.md`.
+
+---
+
+## Fix 8 — NLI Premise/Hypothesis Token-Aware Truncation
+
+### Problem
+`backend/nlp_pipeline/task11_nli.py` passed article text to the NLI model (`mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`) by naively slicing the string to 400 characters: `text[:400]`. The mDeBERTa model has a hard 512-token context window. Character count and token count are not the same — Arabic script tokens are often 1–3 characters each while some English subwords span multiple characters. A 400-character slice could produce anywhere from 80 to 600 tokens depending on language and vocabulary. When the combined premise + hypothesis exceeded 512 tokens, the model's tokenizer silently truncated the overflow, cutting mid-claim and degrading inference quality. Long articles about high-casualty events — where the specific numbers are the contradiction — were most affected.
+
+### Root Cause
+The 400-character constant was a quick heuristic added during initial development. The developer assumed character count was a sufficient proxy for token count.
+
+### Fix
+Replaced character slicing with token-aware truncation using the model's own tokenizer:
+
+```python
+PREMISE_TOKEN_BUDGET    = 290  # 60% of 512 minus special tokens overhead
+HYPOTHESIS_TOKEN_BUDGET = 190  # 40% of 512 minus special tokens overhead
+
+@lru_cache(maxsize=1)
+def _get_tokenizer():
+    return AutoTokenizer.from_pretrained(
+        "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
+    )
+
+def _truncate_to_tokens(text: str, max_tokens: int) -> str:
+    tokenizer = _get_tokenizer()
+    ids = tokenizer.encode(text, add_special_tokens=False)
+    if len(ids) <= max_tokens:
+        return text
+    return tokenizer.decode(ids[:max_tokens], skip_special_tokens=True,
+                            clean_up_tokenization_spaces=True)
+```
+
+The tokenizer is loaded once per worker process via `@lru_cache(maxsize=1)`. The 60/40 split between premise and hypothesis reflects that the premise (full article text) contains more factual content than the hypothesis (opposing headline), so it gets more budget. Fallback: if the tokenizer fails to load, the function falls back to `text[:max_tokens * 3]` (a character approximation) rather than crashing.
+
+### Impact on System
+NLI inference now operates within the model's actual context window on every pair. High-stakes contradictions involving long casualty reports, detailed operational summaries, or multi-sentence Arabic prose are now fully represented in the model's input rather than arbitrarily truncated. Contradiction detection quality improves most noticeably for Arabic articles (which tend to be token-dense relative to character count).
+
+### What This Means for System Design
+Any code that passes text to a transformer model must respect the model's token budget, not a character budget. The correct implementation is always: tokenize → truncate → decode. Character-based heuristics are only acceptable when no tokenizer is available and the text is exclusively ASCII.
+
+### Better Options at Cost
+None at current scale. The mDeBERTa model's 512-token limit is fixed. The only way to process longer documents is to split them into chunks and aggregate predictions — a technique called "sliding window NLI" — which adds complexity and latency for marginal gain on news headlines and summaries.
+
+---
+
+## Fix 9 — Stale Article Cleanup (Task 15)
+
+### Problem
+The ingestion worker inserted articles continuously but never deleted them. At the observed rate of ~200 articles/day on a quiet news day (and up to 500+ during major events), the `articles` table would grow by approximately 36MB/month. Supabase's free tier has a 500MB storage limit. Hitting this limit causes the database to go **read-only** — the pipeline would silently stop ingesting with no user-visible error. The estimated time to hit 500MB at current volume was 14 months, but a sustained high-news period (a major offensive, a regional escalation) could compress this to 6 months.
+
+Two secondary problems: (1) task9/10/11 query `WHERE embedding IS NULL` or `WHERE status = 'pending'` — these full-table scans slow down as the table grows, even with indexes. (2) Task10 compares new articles against the full article pool — old articles generate stale pairs between 6-month-old reports nobody will read, polluting task11's NLI queue.
+
+### Root Cause
+Deletion logic was never implemented. The focus during initial development was on ingestion and NLP processing; storage management was deferred.
+
+### Fix
+Created `backend/nlp_pipeline/task15_cleanup.py`:
+
+- Deletes articles older than `ARTICLE_RETENTION_DAYS` (env var, default 90, hard floor 14)
+- Cascade deletes in correct FK dependency order: `conflicts` → `article_pairs` → `articles`
+- Returns a summary dict with counts and estimated storage reclaimed (~6KB per fully-processed article)
+- Logs a `WARNING` if more than 500 articles are deleted in one run (signals unexpectedly large backlog)
+- Clamped minimum of 14 days — prevents an accidental `ARTICLE_RETENTION_DAYS=1` from wiping the entire dataset
+
+Added to `backend/ingestion_worker/scheduler.py` as a separate APScheduler job:
+- `CronTrigger(hour=2, minute=0, timezone='UTC')` — runs daily at 02:00 UTC
+- Completely separate from the 15-minute ingestion cycle — never competes with live article insertion
+- `max_instances=1, coalesce=True` — if the previous run is still executing at 02:00 the next day, the new run is skipped
+
+Added `ARTICLE_RETENTION_DAYS: "90"` to `render.yaml` with inline comments explaining when to tighten (approaching 400MB) or loosen (after Supabase Pro upgrade).
+
+### Impact on System
+Storage exhaustion is now managed automatically. The daily cleanup at 02:00 UTC reclaims storage from the lowest-traffic window. Retention window is configurable from the Render dashboard without redeployment. The NLP pipeline's full-table scans stay fast because old processed rows are regularly removed.
+
+### What This Means for System Design
+Any system that writes continuously to a bounded storage layer needs a deletion policy from day one. The correct default is conservative (90 days gives plenty of history) with a hard floor (14 days prevents accidental data loss) and a configurable ceiling (no upper limit — the operator decides when to upgrade storage). The cleanup job runs separately from ingestion because competing with live writes during peak hours risks deadlocks and slows both operations.
+
+### Better Options at Cost
+At 90-day retention, approximately 18,000 articles are kept in the database at steady state. If longer history is needed for research or trend analysis, the options are:
+- **Supabase Pro** ($25/month, 500GB) — raise retention to 365+ days
+- **Cold storage archive** — export old articles to Supabase Storage (JSON/CSV, $0 on free tier 1GB) before deleting from the DB. Preserves historical data without paying for live DB storage.
+
+Full cost table in `docs/BUDGET.md`.
+
+---
+
+## Fix 10 — Methodology Page
+
+### Problem
+The CrisisLens frontend had no explanation of how conflict scores are calculated, how sources are weighted, or what the framing vocabulary pairs are. The pipeline makes several contested editorial decisions — BBC Arabic classified as "Western", a +0.08 diversity bonus for cross-regional pairs, framing vocabulary that includes terms like "martyr/killed" and "terrorist/resistance" — none of which were documented or visible to users. A product that surfaces politically sensitive contradictions between state media and independent journalists, with no explanation of its own methodology, is not credible.
+
+### Root Cause
+Methodology documentation was deferred during the MVP build phase. There was no template or structure defined for it.
+
+### Fix
+Added a slide-in methodology panel to `frontend/index.html`, accessible via a "Methodology" button in the masthead navigation between the search icon and the language toggle.
+
+The panel opens from the right (600px wide on desktop, full-width on mobile), closes on ✕, backdrop click, or Escape key. Six anchor-linked sections at the top allow direct navigation:
+
+1. **Overview** — plain-language description of what the site does and does not do. Explicit beta disclaimer.
+2. **Sources & Trust** — full table of all 37 sources with trust scores (0.10–1.00), visual trust bars, and region group assignments. Includes editorial note explaining why BBC Arabic is classified as Western despite its language.
+3. **Pipeline** — 7-step numbered walkthrough: ingest → translate → embed → pair → NLI → score → bias analysis.
+4. **Conflict Scoring** — explicit formula: `NLI contradiction probability × avg(trust_A, trust_B) + numeric boost (+0.20) + framing boost (+0.15) + diversity bonus (+0.08)`, threshold 0.55. Full region group table. Plain-language defence of the diversity bonus.
+5. **Framing Detection** — all 5 vocabulary pairs with Arabic terms. Explicit statement that neither side is penalised — the flag marks the difference, not a verdict.
+6. **Limitations** — 6 callout boxes: translation quality, NLI ≠ fact-checking, trust scores are editorial judgments, coverage gaps, LLM bias in the analysis prose, beta status.
+
+Design inspired by Ground News (`/media-bias` page with sourced third-party ratings) and NewsGuard (per-criterion point weights, anchor-linked sections, explicit process documentation).
+
+### Impact on System
+The product is now transparent about every contested decision in its pipeline. Users can disagree with the diversity bonus, the BBC Arabic classification, or the framing vocabulary — the methodology page makes those disagreements possible by surfacing the decisions. This is a requirement for credibility with journalists, researchers, and analysts.
+
+### What This Means for System Design
+Methodology documentation is not an optional add-on for a data product — it is part of the product. Every number and threshold that shapes what users see must be public and findable within one click from the main interface. When pipeline parameters change (thresholds, weights, source list), the methodology page must be updated in the same commit.
+
+---
+
+## Fix 11 — CORS Locked, Methods Restricted, Rate Limits Tuned
+
+### Problem
+Three related security and reliability issues in `backend/api_server/main.py`:
+
+1. `allow_origins=["*"]` — any website could call the API from browser JavaScript, enabling parasite frontends that build on CrisisLens data without attribution.
+2. `allow_methods=["*"]` — POST, PUT, DELETE were allowed by CORS policy even though the API has no write endpoints. A misconfigured browser request that somehow passed auth checks could trigger unexpected behaviour.
+3. `allow_credentials=True` with wildcard origin — this combination is a CORS security misconfiguration. Browsers block credentialed requests to wildcard origins per the CORS spec; setting it to `True` when no credentials (cookies, auth headers) are used is misleading and potentially dangerous if auth is added later.
+4. All endpoints had the same 60/minute rate limit with no hourly cap — a scraper could drain all conflict data at 60 req/min continuously with no slowdown.
+
+### Root Cause
+CORS and rate limits were set permissively during development and never revisited before deployment.
+
+### Fix
+**CORS:**
+- `allow_origins` now reads from `ALLOWED_ORIGINS` environment variable (comma-separated list)
+- If unset, falls back to `["*"]` with a `WARNING` log entry: "ALLOWED_ORIGINS not set — open wildcard"
+- `allow_credentials` changed `True → False`
+- `allow_methods` changed `["*"] → ["GET"]` (API is read-only)
+
+**Rate limits:**
+- Global default: `30/minute, 300/hour` (via `default_limits` on the `Limiter` instance)
+- `/api/v1/conflicts` and `/api/v1/conflicts/{id}`: `20/minute, 100/hour` — tighter because this is the core product data
+- `/` and `/health`: `@limiter.exempt` — see Fix 12
+
+To activate: set `ALLOWED_ORIGINS=https://crisis-lens-six.vercel.app` in Render dashboard → crisislens-api → Environment.
+
+### Impact on System
+Browser-based parasite frontends are blocked once `ALLOWED_ORIGINS` is set. Bulk scraping of conflict data is rate-limited to 100 requests/hour per IP. CORS configuration is now correct per spec. The domain can change (custom domain, migration) by updating one Render env var — no code change or redeploy needed.
+
+### What This Means for System Design
+CORS controls only browser-to-server requests — curl, Python scripts, and any server-side scraper bypass it entirely. Rate limiting per IP is the actual scraping defence. The combination of domain-locked CORS (stops parasite browser apps) and hourly rate limits (slows bulk scrapers) is the correct two-layer approach at zero additional cost.
+
+---
+
+## Fix 12 — Health and Root Endpoints Exempt from Rate Limiting
+
+### Problem
+Render's health checker pings the service endpoint on a regular interval from its own server IP. That IP was subject to the same rate limiter as all other callers. If the health checker fired 30+ times in a minute — which it does when Render suspects a service is unhealthy — it would exhaust the rate limit, receive a `429`, interpret that as the service being down, and trigger a restart. The restart caused more health checks, which caused more 429s. A restart loop driven by the infrastructure's own monitoring.
+
+### Root Cause
+Rate limits were applied globally to all endpoints including infrastructure-facing ones.
+
+### Fix
+Added `@limiter.exempt` to both the root `/` and `/health` endpoints:
+
+```python
+@app.api_route("/", methods=["GET", "HEAD"])
+@limiter.exempt
+def root():
+    return {"status": "ok"}
+
+@app.get("/health", response_model=HealthResponse)
+@limiter.exempt
+def health(request: Request):
+    ...
+```
+
+`@limiter.exempt` tells slowapi to skip rate limit enforcement for those endpoints entirely. They will always return 200 regardless of call frequency.
+
+### Impact on System
+Render health checks can no longer trigger a 429-induced restart loop. The data endpoints (`/api/v1/*`) retain their rate limits unchanged.
+
+### What This Means for System Design
+Infrastructure endpoints (health checks, readiness probes, liveness probes) must always be exempt from rate limiting. They are called by the hosting platform itself, not by users. Applying user-facing rate limits to infrastructure endpoints conflates two entirely different callers and creates a class of self-inflicted outage.
+
+---
+
+## Fix 13 — Load More Button / Pagination
+
+### Problem
+The frontend fetched `/api/v1/conflicts?limit=100` on page load and rendered all 100 cards at once. With 112 conflicts already in the database, the 13 newest or lowest-scored were never shown. As the database grows to thousands of conflicts, the single-shot fetch would become progressively slower and the fixed cap would hide the majority of content from users.
+
+### Root Cause
+Pagination was not considered during the initial frontend build. The 100-item limit was a development-time placeholder.
+
+### Fix
+Three changes:
+
+**1. API limit raised:** `le=100 → le=500` in both the `/api/v1/feed` and `/api/v1/conflicts` query parameter validators. The frontend now fetches 500 conflicts on load — workable while the database is under a few thousand conflicts.
+
+**2. Client-side pagination with a "Load more" button:**
+- `PAGE_SIZE = 50` — first 50 conflicts render on page load
+- `visibleCount` variable tracks how many are currently shown
+- `render()` slices `rest.slice(0, visibleCount)` before passing to both the topic-sections and flat-grid render paths
+- A "Load more — N remaining" button appears below the feed when more items exist
+- On click: `visibleCount += PAGE_SIZE`, `render()` — user stays in place, no scroll jump
+- Arabic UI: "تحميل المزيد (N متبقية)"
+
+**3. `resetAndRender()` replaces direct `render()` calls on all filter/search changes:**
+Every tab change, filter change, language toggle, and search input resets `visibleCount` back to `PAGE_SIZE` before re-rendering. This prevents the state where a user has loaded 200 items, switches topic filter, and sees 200 cards in a new category.
+
+### Impact on System
+All conflicts are now accessible. Users land on the 50 highest-scored contradictions (the most editorially significant) and opt in to loading more. Switching filters always starts fresh at 50. The API can serve up to 500 conflicts per request without server changes.
+
+### What This Means for System Design
+Client-side pagination with a "Load more" button is the correct pattern for a single-page app that fetches all data at load time. It avoids the complexity of cursor-based server pagination while giving users control over how much they load. Infinite scroll was explicitly rejected — it removes user control, causes accessibility problems with keyboard navigation, and is associated with addictive dark patterns inappropriate for a serious news product.
+
+---
+
+## Fix 14 — Hardcoded API URL Removed (Vercel Proxy)
+
+### Problem
+`window.__CL_API = 'https://crisislens-api.onrender.com'` was hardcoded in `frontend/index.html`. Any change to the API's hosting (custom domain, platform migration, URL restructure) required editing the HTML file and redeploying the frontend — a two-step process with a gap where the old URL and new URL would be inconsistent. The Render URL was also publicly visible in the page source.
+
+### Root Cause
+The URL was hardcoded during initial development for simplicity. No build pipeline existed to inject environment variables.
+
+### Fix
+Used Vercel's rewrite feature to proxy API calls through the Vercel edge, eliminating the need for any hardcoded URL in the HTML:
+
+**`frontend/vercel.json`** (new file):
+```json
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://crisislens-api.onrender.com/api/:path*" },
+    { "source": "/health",     "destination": "https://crisislens-api.onrender.com/health" }
+  ]
+}
+```
+
+**`frontend/index.html`** changes:
+- `window.__CL_API = ''` (empty string — all fetches use relative paths)
+- All `fetch()` calls use `/api/v1/conflicts`, `/api/v1/feed` etc. — no domain in the path
+- The fallback fetch inside `load()` also updated from the old hardcoded URL
+
+When the Render URL changes, only `vercel.json` needs updating — the HTML is never touched. Bonus: CORS headers are no longer required for the frontend, since the browser sees same-origin requests to `crisis-lens-six.vercel.app/api/*` which Vercel transparently proxies to Render.
+
+### Impact on System
+The Render URL is now in one place (`vercel.json`) rather than scattered through the HTML. Domain migrations require one file change. The API's internal hosting URL is no longer visible to users in page source. Same-origin requests bypass browser CORS checks entirely — the `ALLOWED_ORIGINS` env var on Render remains important for direct API access, but the Vercel frontend no longer depends on it.
+
+### What This Means for System Design
+For static frontends with no build pipeline, a hosting-level proxy (Vercel rewrites, Netlify redirects, Cloudflare Workers) is the correct pattern for externalising backend URLs. It is simpler than a build-time env var injection, requires no tooling, and the rewrite config is the single source of truth for where the backend lives.
+
+---
+
+## System State After Audit 1 (All Fixes)
 
 | Component | Status |
 |---|---|
-| Ingestion pipeline | ✅ Fully operational — 36 sources, 3 Telegram, rate-limited |
+| Ingestion pipeline | ✅ Fully operational — 37 sources, 3 Telegram, rate-limited |
 | Deduplication | ✅ In-memory set, DB-backed, Redis removed |
 | Config validation | ✅ Only gates on DATABASE_URL |
 | Credentials | ✅ No secrets in codebase |
 | Embedding generation | ✅ Local model, all languages, no quota |
-| Contradiction detection | ✅ Cross-lingual pairs now possible |
-| Frontend | ✅ Editorial style, no emoji, deployed on Render Static |
+| Contradiction detection | ✅ Cross-lingual pairs, token-aware NLI truncation |
+| Groq usage | ✅ Daily cap circuit breaker, single log per breach |
+| Storage management | ✅ Daily cleanup at 02:00 UTC, configurable retention |
+| Frontend | ✅ Deployed on Vercel, load-more pagination, methodology panel |
+| API security | ✅ CORS env-var driven, read-only methods, rate limits tuned |
+| Infrastructure endpoints | ✅ Health + root exempt from rate limiting |
+| API URL | ✅ Vercel proxy — no hardcoded domain in HTML |
 | Database | ✅ Supabase eu-central-1, no expiry |
-| Deployment | ⚠️ Pending: `git rm netlify.toml`, push all commits |
+
+## Remaining Open Items
+
+| # | Issue | Risk |
+|---|---|---|
+| 1 | No DB size tracking in /health | Low |
+| 2 | No SEO (client-side render not indexable) | Low — accepted for now |
+| 3 | No permalink/share URLs for individual conflicts | Low |
+| 4 | HF_TOKEN in render.yaml no longer used by task9 | Trivial |
