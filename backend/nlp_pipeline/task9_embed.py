@@ -45,9 +45,15 @@ from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
-MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+# L6 (6-layer) instead of L12 (12-layer) — identical 384-dim output, half the RAM.
+# L12 loaded ~480MB; with Python overhead that exceeded Render's 512MB free tier limit.
+# L6 loads ~200MB; total process RAM ~310MB, leaving ~200MB headroom.
+# Quality impact: negligible for headline+summary similarity matching. NLI (task11)
+# is the quality gate — task9 only needs to place similar articles in the same neighbourhood.
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L6-v2"
 
-# Module-level cache — model loads once per worker process, not per cycle
+# Module-level cache — model loads once per worker process, not per cycle.
+# Call release_model() after run_task9() completes to free RAM before task11 loads.
 _model = None
 
 
@@ -57,7 +63,7 @@ def _get_model():
     if _model is None:
         try:
             from sentence_transformers import SentenceTransformer
-            log.info(f"[Task9] Loading embedding model {MODEL_NAME} (first run may download ~120MB)...")
+            log.info(f"[Task9] Loading embedding model {MODEL_NAME} (first run may download ~80MB)...")
             _model = SentenceTransformer(MODEL_NAME)
             log.info("[Task9] Model loaded.")
         except ImportError:
@@ -67,6 +73,21 @@ def _get_model():
             log.error(f"[Task9] Failed to load model: {e}")
             return None
     return _model
+
+
+def release_model():
+    """
+    Explicitly free the embedding model from RAM.
+    Called by the scheduler after run_task9() completes so the ~200MB is
+    reclaimed before the next tasks run. The model reloads on the next cycle
+    (adds ~2s cold start, acceptable for a 15-minute background job).
+    """
+    global _model
+    if _model is not None:
+        import gc
+        _model = None
+        gc.collect()
+        log.info("[Task9] Embedding model released from RAM.")
 
 
 def _build_embed_text(headline: str | None, summary: str | None) -> str | None:

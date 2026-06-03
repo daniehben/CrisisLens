@@ -10,7 +10,7 @@ from backend.ingestion_worker.worker import run_worker
 from backend.nlp_pipeline.task7_fetch_body import run_task7
 from backend.nlp_pipeline.task7_5_summarize import run_task7_5
 from backend.nlp_pipeline.task8_translate import run_task8, run_task8b
-from backend.nlp_pipeline.task9_embed import run_task9
+from backend.nlp_pipeline.task9_embed import run_task9, release_model as release_task9_model
 from backend.nlp_pipeline.task10_pairs import run_task10
 from backend.nlp_pipeline.task11_nli import run_task11
 from backend.nlp_pipeline.task12_conflicts import run_task12
@@ -69,6 +69,7 @@ def run_ingestion_and_nlp():
         ("task8",   run_task8),
         ("task8b",  run_task8b),
         ("task9",   run_task9),
+        ("task9_release", release_task9_model),  # free ~200MB before task10/11 load
         ("task10",  run_task10),
         ("task11",  run_task11),
         ("task12",  run_task12),
