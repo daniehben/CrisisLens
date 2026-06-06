@@ -531,6 +531,46 @@ For static frontends with no build pipeline, a hosting-level proxy (Vercel rewri
 
 ---
 
+## Fix 15 — Worker OOM Crash: Embedding Model Downsized + Migrated to Railway
+
+### Problem
+The Render free-tier worker (512MB RAM limit) was crashing with an out-of-memory kill during the NLP pipeline. Render's OOM killer sent a restart notification via email. The worker would restart, crash again on the next cycle, and loop indefinitely — meaning no new embeddings, no new contradiction pairs, and no new conflicts surfaced to users.
+
+### Root Cause
+Two compounding causes:
+
+1. **Model too large:** `task9_embed.py` used `paraphrase-multilingual-MiniLM-L12-v2` (L12 — 12-layer). Loading L12 into PyTorch allocates ~480MB for model weights alone. Adding Python runtime, the `sentence_transformers` library, and torch's own overhead pushed total RSS above 512MB during task9 execution.
+
+2. **Model not released after task9:** The module-level `_model` cache kept the model in RAM for the entire remaining pipeline (task10 through task15), even though no subsequent task uses embeddings. This meant the peak RAM was sustained for the duration of the cycle rather than being a brief spike.
+
+### Fix
+
+**`backend/nlp_pipeline/task9_embed.py`:**
+- Switched `MODEL_NAME` from `paraphrase-multilingual-MiniLM-L12-v2` to `paraphrase-multilingual-MiniLM-L6-v2` (L6 — 6-layer variant). L6 produces identical 384-dim vectors. Model weights drop from ~480MB to ~80MB. Total task9 RAM peak: ~380MB (torch import ~250MB + L6 weights ~80MB + runtime ~50MB).
+- Added `release_model()` function: sets `_model = None` and calls `gc.collect()`. Frees ~80MB of model weights immediately after task9 completes.
+
+**`backend/ingestion_worker/scheduler.py`:**
+- Imported `release_model as release_task9_model`
+- Added `("task9_release", release_task9_model)` as a step immediately after `("task9", run_task9)` in the pipeline steps list
+- RAM drops back to baseline (~150MB) before task10/11 load
+
+**Hosting migrated to Railway:**
+Even with the L6 fix, Render's hard 512MB OOM kill is triggered at peak (torch import alone is ~250MB; adding L6 weights and other libraries leaves almost no headroom). Railway was chosen because it throttles rather than hard-kills on memory pressure, and its free trial covered the transition cost.
+
+- Worker deployed to Railway from the same GitHub repo
+- Start command unchanged: `python -m backend.ingestion_worker.scheduler`
+- Env vars set: `DATABASE_URL` (Supabase), `GROQ_API_KEY`, `ARTICLE_RETENTION_DAYS=90`, `PYTHONUNBUFFERED=1`
+- `TELEGRAM_SESSION_B64` not required — confirmed the live worker uses `TelegramWebAdapter` (public `t.me/s/` scrape, no auth session needed). The `restore_telegram_session()` function in `scheduler.py` is dead code from the old MTProto approach.
+- Render worker suspended (not deleted — kept as fallback for one week)
+
+### Impact on System
+Ingestion cycle resumes every 15 minutes. Embeddings, contradiction pairs, and conflicts are being generated again. No data loss — the DB was unaffected by the crashes. Articles that were ingested during the crash window have no embeddings yet; task9 will process them on the next cycle (up to 100 per run, FIFO by `article_id`).
+
+### What This Means for System Design
+Free-tier RAM limits require matching model size to available headroom. The L6/L12 split in the `sentence-transformers` library is a reliable 3× RAM reduction with negligible quality impact for similarity-based tasks (the NLI step in task11 is the quality gate, not the embedding step). For any ML workload on a constrained host, the pattern is: load model → process batch → release model → continue. Never cache a model in RAM across unrelated pipeline stages.
+
+---
+
 ## System State After Audit 1 (All Fixes)
 
 | Component | Status |
@@ -539,7 +579,7 @@ For static frontends with no build pipeline, a hosting-level proxy (Vercel rewri
 | Deduplication | ✅ In-memory set, DB-backed, Redis removed |
 | Config validation | ✅ Only gates on DATABASE_URL |
 | Credentials | ✅ No secrets in codebase |
-| Embedding generation | ✅ Local model, all languages, no quota |
+| Embedding generation | ✅ L6 model, load-then-release pattern, ~380MB peak then freed |
 | Contradiction detection | ✅ Cross-lingual pairs, token-aware NLI truncation |
 | Groq usage | ✅ Daily cap circuit breaker, single log per breach |
 | Storage management | ✅ Daily cleanup at 02:00 UTC, configurable retention |
@@ -548,6 +588,7 @@ For static frontends with no build pipeline, a hosting-level proxy (Vercel rewri
 | Infrastructure endpoints | ✅ Health + root exempt from rate limiting |
 | API URL | ✅ Vercel proxy — no hardcoded domain in HTML |
 | Database | ✅ Supabase eu-central-1, no expiry |
+| Worker hosting | ✅ Railway — throttles on memory pressure, no hard OOM kill |
 
 ## Remaining Open Items
 

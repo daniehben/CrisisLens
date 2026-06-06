@@ -1,10 +1,10 @@
 """Task 14 — Translate bias analysis fields to Arabic using Groq.
 
-For each conflict that has a bias_analysis but no Arabic translations,
+For each conflict that has a framing_analysis but no Arabic translations,
 sends all 4 fields in a single Groq JSON call (efficient) and merges the
-results back into the existing bias_analysis JSONB:
+results back into the existing framing_analysis JSONB:
 
-  bias_analysis = {
+  framing_analysis = {
     "claims_a":                "...",          # existing English
     "claims_b":                "...",
     "factual_disagreement":    "..." | null,
@@ -63,13 +63,13 @@ def run_task14():
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("""
-                SELECT conflict_id, bias_analysis
+                SELECT conflict_id, framing_analysis
                 FROM conflicts
-                WHERE bias_analysis IS NOT NULL
+                WHERE framing_analysis IS NOT NULL
                   AND (
-                    (bias_analysis->>'claims_a_ar') IS NULL
-                    OR (bias_analysis->>'narrative' IS NOT NULL
-                        AND (bias_analysis->>'narrative_ar') IS NULL)
+                    (framing_analysis->>'claims_a_ar') IS NULL
+                    OR (framing_analysis->>'narrative' IS NOT NULL
+                        AND (framing_analysis->>'narrative_ar') IS NULL)
                   )
                 ORDER BY weighted_score DESC
                 LIMIT %s
@@ -86,7 +86,7 @@ def run_task14():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             for row in rows:
-                ba = row["bias_analysis"]
+                ba = row["framing_analysis"]
                 if isinstance(ba, str):
                     try:
                         ba = json.loads(ba)
@@ -98,6 +98,7 @@ def run_task14():
                     "narrative":            ba.get("narrative"),
                     "claims_a":             ba.get("claims_a"),
                     "claims_b":             ba.get("claims_b"),
+                    "key_question":         ba.get("key_question"),
                     "factual_disagreement": ba.get("factual_disagreement"),
                     "framing_difference":   ba.get("framing_difference"),
                 }
@@ -121,7 +122,7 @@ def run_task14():
                     ba.update(ar)
 
                 cur.execute(
-                    "UPDATE conflicts SET bias_analysis = %s WHERE conflict_id = %s",
+                    "UPDATE conflicts SET framing_analysis = %s WHERE conflict_id = %s",
                     (json.dumps(ba, ensure_ascii=False), row["conflict_id"]),
                 )
                 written += 1

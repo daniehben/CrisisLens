@@ -21,9 +21,12 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
   - **Never need to run DB migrations manually** — always embed them in `run_startup_migrations()` and push
 - **Redis:** Removed entirely (2026-06-02). Was unreachable from Render internal network anyway.
   Deduplication now uses an in-memory URL hash set in `backend/shared/deduplication.py` — loads all known URLs from DB on startup, O(1) lookups, no external dependency.
-- **Render Web Services** (both free tier, Frankfurt):
-  - crisislens-api: https://crisislens-api.onrender.com — LIVE ✅
-  - crisislens-worker: https://crisislens-worker.onrender.com — LIVE ✅
+- **Render Web Services** (Frankfurt):
+  - crisislens-api: https://crisislens-api.onrender.com — LIVE ✅ (free tier)
+  - crisislens-worker: https://crisislens-worker.onrender.com — ⏸ SUSPENDED (migrated to Railway)
+- **Railway** (worker, migrated 2026-06-06):
+  - crisislens-worker: https://web-production-f03a4.up.railway.app — LIVE ✅
+  - Trial credit: $4.92 / 28 days (expires ~2026-07-04). Upgrade to Hobby ($5/mo) before expiry.
 
 ## Render Deployment Notes (CRITICAL)
 - Both services must be `type: web` in render.yaml — `type: worker` has no HTTP server and times out

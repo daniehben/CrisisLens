@@ -48,6 +48,18 @@ def run_startup_migrations():
                 cur.execute("ALTER TABLE articles ADD COLUMN IF NOT EXISTS summary_ar TEXT")
                 cur.execute("ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_url TEXT")
                 cur.execute("ALTER TABLE articles ADD COLUMN IF NOT EXISTS headline_en_translated BOOLEAN DEFAULT FALSE")
+
+                # Rename bias_analysis → framing_analysis (idempotent)
+                cur.execute("""
+                    DO $$ BEGIN
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name='conflicts' AND column_name='bias_analysis'
+                        ) THEN
+                            ALTER TABLE conflicts RENAME COLUMN bias_analysis TO framing_analysis;
+                        END IF;
+                    END $$
+                """)
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_articles_needs_summary_ar
                     ON articles (article_id)
@@ -244,7 +256,7 @@ def get_conflicts(
                 SELECT
                     c.conflict_id,
                     c.conflict_type,
-                    c.bias_analysis,
+                    c.framing_analysis,
                     c.weighted_score AS conflict_score,
                     c.weighted_score,
                     c.nli_confidence AS contradiction_score,
