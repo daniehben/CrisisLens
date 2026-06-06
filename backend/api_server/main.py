@@ -66,6 +66,23 @@ def run_startup_migrations():
                     WHERE summary IS NOT NULL AND summary_ar IS NULL AND language = 'en'
                 """)
 
+                # Drop the feed_type CHECK constraint if it doesn't include
+                # telegram_web (created before Telegram sources were added).
+                cur.execute("""
+                    DO $$ DECLARE _cname text;
+                    BEGIN
+                        SELECT conname INTO _cname
+                        FROM pg_constraint
+                        WHERE conrelid = 'sources'::regclass
+                          AND contype = 'c'
+                          AND pg_get_constraintdef(oid) NOT LIKE '%telegram_web%'
+                          AND pg_get_constraintdef(oid) LIKE '%feed_type%';
+                        IF _cname IS NOT NULL THEN
+                            EXECUTE 'ALTER TABLE sources DROP CONSTRAINT ' || quote_ident(_cname);
+                        END IF;
+                    END $$
+                """)
+
                 # ── Source rows (014/016) — all active sources, idempotent upsert ──
                 # ON CONFLICT DO UPDATE keeps name/url/type current on every deploy.
                 cur.execute("""
