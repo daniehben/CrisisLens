@@ -45,4 +45,5 @@ class FeedResponse(BaseModel):
 class HealthResponse(BaseModel):
     db: str
     articles_count: int
+    db_size_mb: Optional[float] = None  # Supabase free tier limit: 500MB
     groq_usage: Optional[dict] = None   # today's Groq request counts per model

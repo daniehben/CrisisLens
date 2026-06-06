@@ -134,6 +134,7 @@ def root():
 def health(request: Request):
     db_status = "error"
     articles_count = 0
+    db_size_mb = None
     try:
         with get_db_connection() as conn:
             conn.set_session(autocommit=True)
@@ -141,6 +142,10 @@ def health(request: Request):
                 cur.execute("SET statement_timeout = '3000'")
                 cur.execute("SELECT COUNT(*) FROM articles")
                 articles_count = cur.fetchone()[0]
+                cur.execute(
+                    "SELECT ROUND(pg_database_size(current_database()) / 1048576.0, 1)"
+                )
+                db_size_mb = float(cur.fetchone()[0])
                 db_status = "ok"
     except Exception as e:
         db_status = f"error: {str(e)[:50]}"
@@ -148,6 +153,7 @@ def health(request: Request):
     return HealthResponse(
         db=db_status,
         articles_count=articles_count,
+        db_size_mb=db_size_mb,
         groq_usage=get_daily_usage(),
     )
 
