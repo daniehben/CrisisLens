@@ -1154,7 +1154,7 @@
           <div class="meth-step"><div class="meth-step-num">4</div><div class="meth-step-text"><strong>Pair</strong> — Articles with cosine similarity above 0.70 are paired as candidate contradictions. Same-source pairs are excluded. The pool is limited to recent articles (within 72 hours of each other) to avoid pairing stale reports.</div></div>
           <div class="meth-step"><div class="meth-step-num">5</div><div class="meth-step-text"><strong>NLI</strong> — Each pair is run through <code>mDeBERTa-v3-base-xnli-multilingual-nli-2mil7</code>, a zero-shot natural language inference model. It classifies the pair as <em>entailment</em>, <em>neutral</em>, or <em>contradiction</em>. Pairs scoring below the contradiction threshold are discarded.</div></div>
           <div class="meth-step"><div class="meth-step-num">6</div><div class="meth-step-text"><strong>Score</strong> — A conflict score is computed from the NLI contradiction probability, source trust weights, and a diversity bonus. The result is a single number from 0 to 1.</div></div>
-          <div class="meth-step"><div class="meth-step-num">7</div><div class="meth-step-text"><strong>Bias analysis</strong> — A language model (Groq Llama 3) reads the article pair and writes a short prose analysis of the framing differences, emotional language, and named-party treatment between the two sources.</div></div>
+          <div class="meth-step"><div class="meth-step-num">7</div><div class="meth-step-text"><strong>Framing analysis</strong> — A language model (Groq Llama 3) reads the article pair and writes a short prose analysis of the framing differences, emotional language, and named-party treatment between the two sources.</div></div>
         </div>
 
         <hr class="meth-divider">
@@ -1229,6 +1229,25 @@
             <strong>This is a beta.</strong> Thresholds, weights, and source lists will change. The methodology page will be updated when they do.
           </div>
           <p class="meth-p" style="margin-top:1rem;font-size:.8rem;color:var(--muted)">Questions or disagreements with the methodology? Open an issue on <a href="https://github.com/daniehben/CrisisLens" style="color:var(--accent)">GitHub</a>.</p>
+        </div>
+
+        <hr class="meth-divider">
+
+        <!-- SOURCE ETHICS -->
+        <div class="meth-section" id="meth-ethics">
+          <div class="meth-section-head">Source Ethics</div>
+          <h2 class="meth-h2">Why we include state-controlled and low-trust sources</h2>
+          <p class="meth-p">CrisisLens includes sources that several governments have designated as state-controlled propaganda outlets — including RT Arabic (Russia), Press TV (Iran), and Tasnim News Agency (Iran). These sources carry trust weights of 0.35–0.40, the lowest in the dataset. We include them deliberately, and we want to explain why.</p>
+          <div class="meth-callout" style="border-left-color:var(--accent)">
+            <strong>The contradiction between state media and independent reporting is itself the story.</strong> When RT Arabic and Reuters describe the same event in irreconcilable terms, that divergence is not noise to be filtered out — it is the signal CrisisLens exists to surface. Removing state media would eliminate the most editorially significant contradictions on the platform.
+          </div>
+          <p class="meth-p">This is the same reasoning that drives quality journalism: the BBC, New York Times, and Al Jazeera all quote and report on state media output — not to endorse it, but because understanding what state-controlled outlets are claiming is essential context for readers trying to understand a conflict.</p>
+          <h3 style="font-size:.9rem;font-weight:700;color:var(--ink);margin:1rem 0 .5rem">What the trust weight does — and does not do</h3>
+          <p class="meth-p">A trust weight of 0.35 means a conflict pair involving that source receives a lower base score than one involving high-trust sources. State media articles are <em>harder</em> to surface as top conflicts when paired against each other. They surface prominently when paired against high-trust sources — precisely because that cross-narrative gap is what the platform is designed to show.</p>
+          <p class="meth-p">The trust weight does not suppress or hide the source. It does not label the source's content as false. It is a weighting factor in the scoring formula, not an editorial verdict on any individual article.</p>
+          <h3 style="font-size:.9rem;font-weight:700;color:var(--ink);margin:1rem 0 .5rem">Transparency over curation</h3>
+          <p class="meth-p">CrisisLens's position is that readers are better served by seeing the full spectrum of claims — with clear trust weights and source attribution — than by a curated feed that pre-filters which narratives are worth knowing about. Every source card shows the source name and links to the original article. Readers can evaluate the source themselves.</p>
+          <p class="meth-p" style="font-size:.8rem;color:var(--muted)">If you believe a source should be removed entirely, or that a trust weight is miscalibrated, open an issue on <a href="https://github.com/daniehben/CrisisLens" style="color:var(--accent)">GitHub</a>. The source list and weights are public and subject to revision.</p>
         </div>
 
       </div><!-- .meth-body -->
