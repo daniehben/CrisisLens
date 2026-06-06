@@ -716,6 +716,7 @@
     [dir="rtl"] .cmp-narrative { border-inline-start-color: var(--accent); border-radius: 8px 0 0 8px; }
     .cmp-narrative--empty { opacity: .55; font-style: italic; }
     .cmp-detail { font-size: .88rem; line-height: 1.65; color: var(--ink-soft); margin: .4rem 0 0; }
+    .cmp-profile { font-size: .68rem; color: var(--muted); margin: .15rem 0 .4rem; font-style: italic; }
     /* emotion chart */
     .emotion-chart { margin-top:.5rem; display:flex; flex-direction:column; gap:.45rem; }
     .em-row { display:grid; grid-template-columns:6rem 1fr; align-items:center; gap:.5rem; }
@@ -2052,10 +2053,12 @@
           <div class="cmp-grid">
             <div class="cmp-block" style="border-inline-start-color:${c1}">
               <div class="cmp-src" style="color:${c1}">${n1} <span style="color:var(--muted);font-weight:400">· ${regionLabel(c.source_1)}</span></div>
+              ${c.source_1_profile ? `<div class="cmp-profile">${c.source_1_profile}</div>` : ''}
               <div class="cmp-text" dir="auto">${claimsA||'—'}</div>
             </div>
             <div class="cmp-block" style="border-inline-start-color:${c2}">
               <div class="cmp-src" style="color:${c2}">${n2} <span style="color:var(--muted);font-weight:400">· ${regionLabel(c.source_2)}</span></div>
+              ${c.source_2_profile ? `<div class="cmp-profile">${c.source_2_profile}</div>` : ''}
               <div class="cmp-text" dir="auto">${claimsB||'—'}</div>
             </div>
           </div>

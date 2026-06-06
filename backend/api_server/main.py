@@ -17,6 +17,51 @@ from backend.api_server.schemas import (
 
 config = Config()
 
+# ── Source editorial profiles ────────────────────────────────────────────────
+# One-line description of each source's editorial position and funding.
+# Returned by the API so the frontend can display inline context without
+# requiring the client to maintain its own lookup table.
+SOURCE_PROFILE: dict[str, str] = {
+    "AJA":  "Qatari state-funded · Pan-Arab editorial line",
+    "AJA+": "Al Jazeera digital · youth-oriented · Pan-Arab",
+    "ARB":  "Saudi-owned · Gulf editorial line",
+    "ASH":  "Saudi-owned · London-based broadsheet",
+    "BBC":  "UK public broadcaster · editorially independent",
+    "BBAR": "BBC World Service Arabic · UK public broadcaster",
+    "AP":   "US wire service · factual reporting standard",
+    "REU":  "UK-based wire service · factual reporting standard",
+    "WP":   "US liberal broadsheet",
+    "CNN":  "US cable news · centre-left editorial line",
+    "GUA":  "UK left-liberal broadsheet",
+    "DW":   "German public broadcaster · Arabic service",
+    "F24":  "French public broadcaster · Arabic service",
+    "JRP":  "Israeli centre-right broadsheet",
+    "SKA":  "UAE/Saudi joint venture · Gulf editorial line",
+    "ANA":  "Turkish state news agency",
+    "MEE":  "UK-based independent · pro-Palestinian editorial line",
+    "MND":  "US-based · explicitly pro-Palestinian",
+    "WAF":  "Palestinian Authority official news agency",
+    "AKH":  "Lebanese left-wing · Hezbollah-aligned",
+    "EI":   "US-based · explicitly pro-Palestinian",
+    "TAS":  "Iranian state news agency",
+    "PTV":  "Iranian state broadcaster",
+    "RTA":  "Russian state media",
+    "GG":   "Independent journalist · anti-establishment",
+    "GZ":   "US-based · anti-NATO editorial line",
+    "CJ":   "Australian independent commentator · anti-war",
+    "AW":   "US anti-interventionist",
+    "CRA":  "Lebanon-based · resistance-axis editorial line",
+    "DSN":  "US investigative · independent",
+    "BNO":  "Breaking news aggregator",
+    "MAYE": "Lebanon-based · resistance-axis editorial line",
+    "SDT":  "Independent · Africa-focused",
+    "WM":   "OSINT Telegram channel · unverified",
+    "SI":   "Breaking news Telegram · unverified",
+    "YT_BP":"US independent political commentary",
+    "YT_DN":"US progressive public media",
+    "YT_RT":"US progressive independent",
+}
+
 # ── Rate limiting ────────────────────────────────────────────────────────────
 # DEFAULT_LIMITS applies to every endpoint that doesn't have its own @limiter.limit.
 # "30/minute;300/hour" means: burst up to 30 req/min, but no more than 300/hr total.
@@ -317,7 +362,14 @@ def get_conflicts(
                 LIMIT %s OFFSET %s
             """, (min_score, limit, offset))
             rows = cur.fetchall()
-    return [dict(r) for r in rows]
+
+    result = []
+    for r in rows:
+        d = dict(r)
+        d["source_1_profile"] = SOURCE_PROFILE.get(d.get("source_1", ""), "")
+        d["source_2_profile"] = SOURCE_PROFILE.get(d.get("source_2", ""), "")
+        result.append(d)
+    return result
 
 
 @app.get("/api/v1/conflicts/{conflict_id}")
@@ -366,4 +418,7 @@ def get_conflict_detail(request: Request, conflict_id: int):
             row = cur.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Conflict not found")
-    return dict(row)
+    d = dict(row)
+    d["source_1_profile"] = SOURCE_PROFILE.get(d.get("source_1", ""), "")
+    d["source_2_profile"] = SOURCE_PROFILE.get(d.get("source_2", ""), "")
+    return d
