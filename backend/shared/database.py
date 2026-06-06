@@ -14,7 +14,12 @@ def get_db_connection():
             with conn.cursor() as cur:
                 cur.execute(...)
     """
-    conn = psycopg2.connect(config.DATABASE_URL, connect_timeout=10)
+    # psycopg2 < 2.9 doesn't recognise the postgres:// scheme (used by Supabase
+    # pooler URLs). Normalise to postgresql:// so it always parses correctly.
+    _url = config.DATABASE_URL
+    if _url.startswith("postgres://"):
+        _url = "postgresql://" + _url[len("postgres://"):]
+    conn = psycopg2.connect(_url, connect_timeout=10)
     try:
         yield conn
         conn.commit()

@@ -716,6 +716,15 @@
     [dir="rtl"] .cmp-narrative { border-inline-start-color: var(--accent); border-radius: 8px 0 0 8px; }
     .cmp-narrative--empty { opacity: .55; font-style: italic; }
     .cmp-detail { font-size: .88rem; line-height: 1.65; color: var(--ink-soft); margin: .4rem 0 0; }
+    /* emotion chart */
+    .emotion-chart { margin-top:.5rem; display:flex; flex-direction:column; gap:.45rem; }
+    .em-row { display:grid; grid-template-columns:6rem 1fr; align-items:center; gap:.5rem; }
+    .em-label { font-size:.72rem; font-weight:600; color:var(--muted); text-transform:capitalize; white-space:nowrap; }
+    .em-bars { display:flex; flex-direction:column; gap:.18rem; }
+    .em-bar-wrap { display:flex; align-items:center; gap:.4rem; height:.9rem; }
+    .em-bar { height:.55rem; border-radius:2px; min-width:2px; transition:width .3s; opacity:.85; }
+    .em-val { font-size:.65rem; color:var(--muted); min-width:1.5rem; }
+    .em-legend { font-size:.68rem; color:var(--muted); margin-top:.5rem; }
     .signal-details {
       margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1rem;
     }
@@ -2013,6 +2022,8 @@
     const keyQuestion  = ba ? ((preferAr ? ba.key_question_ar : null) || ba.key_question || null) : null;
     const factual      = ba ? ((preferAr ? ba.factual_disagreement_ar : null) || ba.factual_disagreement || null) : null;
     const framing      = ba ? ((preferAr ? ba.framing_difference_ar  : null) || ba.framing_difference  || null) : null;
+    const emotionA     = ba ? ba.emotion_a : null;
+    const emotionB     = ba ? ba.emotion_b : null;
 
     return `
       <div class="modal-pane" data-pane="cmp">
@@ -2046,6 +2057,34 @@
             <div class="cmp-block" style="border-inline-start-color:${c2}">
               <div class="cmp-src" style="color:${c2}">${n2} <span style="color:var(--muted);font-weight:400">· ${regionLabel(c.source_2)}</span></div>
               <div class="cmp-text" dir="auto">${claimsB||'—'}</div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${(emotionA && emotionB) ? `
+          <div class="sub-label" style="margin-top:1.25rem">Emotional register</div>
+          <div class="emotion-chart" aria-label="Emotional register comparison">
+            ${['anger','fear','sadness','hope','neutral'].map(em => {
+              const vA = Math.round((emotionA[em]||0)*100);
+              const vB = Math.round((emotionB[em]||0)*100);
+              const icons = {anger:'🔥',fear:'⚠️',sadness:'😔',hope:'✨',neutral:'📋'};
+              return `<div class="em-row">
+                <div class="em-label">${icons[em]} ${em}</div>
+                <div class="em-bars">
+                  <div class="em-bar-wrap" title="${n1}: ${vA}%">
+                    <div class="em-bar em-bar-a" style="width:${vA}%;background:${c1}"></div>
+                    <span class="em-val">${vA}</span>
+                  </div>
+                  <div class="em-bar-wrap" title="${n2}: ${vB}%">
+                    <div class="em-bar em-bar-b" style="width:${vB}%;background:${c2}"></div>
+                    <span class="em-val">${vB}</span>
+                  </div>
+                </div>
+              </div>`;
+            }).join('')}
+            <div class="em-legend">
+              <span style="color:${c1}">■</span> ${n1} &nbsp;
+              <span style="color:${c2}">■</span> ${n2}
             </div>
           </div>
         ` : ''}

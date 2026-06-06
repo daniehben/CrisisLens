@@ -116,6 +116,18 @@ is purely about framing.
 described differently (word choice, who is called what, what is omitted, \
 active vs passive voice), or null if minimal.
 
+- "emotion_a": An object with exactly these 5 keys scoring the emotional \
+register of {source_a_name}'s article on a 0.0–1.0 scale: \
+"anger" (outrage, condemnation, accusations), \
+"fear" (threat, danger, alarm), \
+"sadness" (grief, loss, mourning), \
+"hope" (resolution, progress, optimism), \
+"neutral" (dry factual reporting, no emotional charge). \
+Scores do not need to sum to 1. Each is independent. Example: \
+{{"anger": 0.7, "fear": 0.3, "sadness": 0.5, "hope": 0.1, "neutral": 0.2}}
+
+- "emotion_b": Same structure as emotion_a but for {source_b_name}'s article.
+
 Rules:
 - Be strictly neutral. Describe both perspectives fairly.
 - Write in English unless both article bodies are entirely in Arabic.
@@ -211,9 +223,9 @@ def run_task13():
                     body_b=body_b,
                 )
 
-                analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=1000)
+                analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=1200)
                 if not analysis:
-                    analysis = chat_json(prompt, model=FAST_MODEL, max_tokens=1000)
+                    analysis = chat_json(prompt, model=FAST_MODEL, max_tokens=1200)
                 if not analysis or "narrative" not in analysis:
                     log.warning(f"[Task13] Conflict {r['conflict_id']}: no usable analysis from either model")
                     failed += 1
