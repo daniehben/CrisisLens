@@ -726,6 +726,26 @@
     .em-bar { height:.55rem; border-radius:2px; min-width:2px; transition:width .3s; opacity:.85; }
     .em-val { font-size:.65rem; color:var(--muted); min-width:1.5rem; }
     .em-legend { font-size:.68rem; color:var(--muted); margin-top:.5rem; }
+
+    /* ── Comparison pane meta row ──────────────────────────────────────── */
+    .cmp-meta-row { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .ctype-badge { font-size:.6rem; font-weight:700; letter-spacing:.08em; padding:.2rem .5rem; border-radius:3px; text-transform:uppercase; }
+    .cmp-timedelta { font-size:.7rem; color:var(--muted); }
+    .cmp-copy-btn {
+      margin-left:auto; font-size:.7rem; padding:.25rem .6rem; border-radius:4px;
+      border:1px solid var(--line); background:transparent; color:var(--muted);
+      cursor:pointer; transition:border-color .15s,color .15s;
+    }
+    .cmp-copy-btn:hover { border-color:var(--ink-soft); color:var(--ink-soft); }
+
+    /* ── Read original buttons ─────────────────────────────────────────── */
+    .read-originals { display:flex; gap:.6rem; flex-wrap:wrap; margin:1rem 0 .5rem; }
+    .read-btn {
+      font-size:.72rem; padding:.3rem .7rem; border-radius:4px; border:1px solid;
+      text-decoration:none; transition:opacity .15s; white-space:nowrap;
+    }
+    .read-btn:hover { opacity:.75; }
+
     .signal-details {
       margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1rem;
     }
@@ -2026,8 +2046,40 @@
     const emotionA     = ba ? ba.emotion_a : null;
     const emotionB     = ba ? ba.emotion_b : null;
 
+    // conflict type badge config
+    const ctypeMap = {
+      factual:  { label: 'FACTUAL DISPUTE',    bg: '#b91c1c', text: '#fff' },
+      framing:  { label: 'FRAMING DIFFERENCE', bg: '#1d4ed8', text: '#fff' },
+      mixed:    { label: 'MIXED',              bg: '#92400e', text: '#fff' },
+    };
+    const ctypeBadge = c.conflict_type && ctypeMap[c.conflict_type]
+      ? `<span class="ctype-badge" style="background:${ctypeMap[c.conflict_type].bg};color:${ctypeMap[c.conflict_type].text}">${ctypeMap[c.conflict_type].label}</span>`
+      : '';
+
+    // time delta between articles
+    const timeDelta = (() => {
+      if (!c.published_1 || !c.published_2) return '';
+      const diff = Math.abs(new Date(c.published_1) - new Date(c.published_2));
+      const mins = Math.round(diff / 60000);
+      if (mins < 60) return `${mins}m apart`;
+      const hrs = Math.round(diff / 3600000);
+      if (hrs < 24) return `${hrs}h apart`;
+      return `${Math.round(hrs/24)}d apart`;
+    })();
+
     return `
       <div class="modal-pane" data-pane="cmp">
+
+        <div class="cmp-meta-row">
+          ${ctypeBadge}
+          ${timeDelta ? `<span class="cmp-timedelta">🕐 Published ${timeDelta}</span>` : ''}
+          <button class="cmp-copy-btn" title="Copy link to this conflict" onclick="
+            navigator.clipboard.writeText('https://crisis-lens-six.vercel.app/?conflict=${c.conflict_id}').then(()=>{
+              this.textContent='✓ Copied';setTimeout(()=>this.textContent='⎘ Share',1500);
+            });
+          ">⎘ Share</button>
+        </div>
+
         ${narrative ? `
           <div class="cmp-narrative" dir="auto">${narrative}</div>
           <p style="font-size:.7rem;color:var(--muted-2);margin:.4rem 0 0;font-style:italic">AI-generated framing analysis · Not a statement of fact</p>
@@ -2094,6 +2146,12 @@
 
         ${factual ? `<div class="sub-label" style="margin-top:1rem">${t('factual_disagreement')}</div><p class="cmp-detail" dir="auto">${factual}</p>` : ''}
         ${framing ? `<div class="sub-label" style="margin-top:.75rem">${t('framing_difference')}</div><p class="cmp-detail" dir="auto">${framing}</p>` : ''}
+
+        ${(c.url_a || c.url_b) ? `
+        <div class="read-originals">
+          ${c.url_a ? `<a href="${c.url_a}" target="_blank" rel="noopener noreferrer" class="read-btn" style="border-color:${c1};color:${c1}">↗ ${n1}</a>` : ''}
+          ${c.url_b ? `<a href="${c.url_b}" target="_blank" rel="noopener noreferrer" class="read-btn" style="border-color:${c2};color:${c2}">↗ ${n2}</a>` : ''}
+        </div>` : ''}
 
         <details class="signal-details">
           <summary>${t('signal_breakdown')}</summary>
