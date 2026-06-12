@@ -40,6 +40,7 @@ Future upgrade path: OpenAI text-embedding-3-small at $0.02/1M tokens
   (~$0.004/month at current scale). See docs/BUDGET.md.
 """
 import logging
+import os
 
 from backend.shared.database import get_db_connection
 
@@ -64,7 +65,10 @@ def _get_model():
         try:
             from sentence_transformers import SentenceTransformer
             log.info(f"[Task9] Loading embedding model {MODEL_NAME} (first run may download ~80MB)...")
-            _model = SentenceTransformer(MODEL_NAME)
+            # HuggingFace now requires a token even for public model downloads.
+            # Pass HF_TOKEN if available — harmless when not set but needed on Railway.
+            hf_token = os.getenv("HF_TOKEN") or None
+            _model = SentenceTransformer(MODEL_NAME, token=hf_token)
             log.info("[Task9] Model loaded.")
         except ImportError:
             log.error("[Task9] sentence-transformers not installed — run: pip install sentence-transformers")
