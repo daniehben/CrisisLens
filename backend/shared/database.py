@@ -14,11 +14,13 @@ def get_db_connection():
             with conn.cursor() as cur:
                 cur.execute(...)
     """
-    # psycopg2 < 2.9 doesn't recognise the postgres:// scheme (used by Supabase
-    # pooler URLs). Normalise to postgresql:// so it always parses correctly.
+    # Normalise common DATABASE_URL variants that psycopg2 rejects:
+    #   postgres://...      → postgresql://...  (Supabase pooler default scheme)
+    #   postgresql:/user... → postgresql://user... (single-slash typo from copy-paste)
+    import re
     _url = config.DATABASE_URL
-    if _url.startswith("postgres://"):
-        _url = "postgresql://" + _url[len("postgres://"):]
+    _url = re.sub(r'^postgres://', 'postgresql://', _url)          # scheme alias
+    _url = re.sub(r'^postgresql:/([^/])', r'postgresql://\1', _url) # single-slash fix
     conn = psycopg2.connect(_url, connect_timeout=10)
     try:
         yield conn
