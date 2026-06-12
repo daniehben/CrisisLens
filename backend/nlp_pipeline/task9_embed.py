@@ -46,12 +46,11 @@ from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
-# L6 (6-layer) instead of L12 (12-layer) — identical 384-dim output, half the RAM.
-# L12 loaded ~480MB; with Python overhead that exceeded Render's 512MB free tier limit.
-# L6 loads ~200MB; total process RAM ~310MB, leaving ~200MB headroom.
-# Quality impact: negligible for headline+summary similarity matching. NLI (task11)
-# is the quality gate — task9 only needs to place similar articles in the same neighbourhood.
-MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L6-v2"
+# L12 (12-layer) multilingual paraphrase model — the only multilingual MiniLM variant
+# that actually exists on HuggingFace. The L6 variant does NOT exist and causes 404.
+# L12 loads ~480MB; Railway Hobby plan (~1GB RAM) handles this fine.
+# Render free tier (512MB) was too tight for L12, but worker is now on Railway — not Render.
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 # Module-level cache — model loads once per worker process, not per cycle.
 # Call release_model() after run_task9() completes to free RAM before task11 loads.

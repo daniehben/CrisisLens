@@ -169,7 +169,7 @@ If you see `invalid dsn` errors in logs, check the URL format in the relevant se
 5. **feed_type_check constraint:** Original DB constraint didn't include `telegram_web`. Startup migration in `main.py` dynamically detects and drops the old constraint before inserting Telegram sources.
 6. **IPv6 unreachable:** Supabase direct connection is IPv6-only. Render/Railway both IPv4. Always use Session Pooler URL — see Infrastructure section.
 7. **HF Inference API rate limit (RESOLVED):** Was ~100 req/day; caused task11 to silently return `neutral` for all pairs after 2 cycles, blocking all conflict creation. Fixed by migrating task11 to Groq (2026-06-13).
-8. **task9 OOM on Render free tier:** Switched from MiniLM-L12 to MiniLM-L6 (smaller model), added explicit model release after task9 before task10/11 run.
+8. **task9 model 404 on Railway:** `paraphrase-multilingual-MiniLM-L6-v2` does NOT exist on HuggingFace (cached on first run; 404 on fresh Railway container). Reverted to `paraphrase-multilingual-MiniLM-L12-v2` — the only multilingual MiniLM that exists. Railway Hobby (~1GB RAM) handles L12 fine. Explicit model release after task9 still in place. Also requires `HF_TOKEN` env var on Railway (HuggingFace requires auth even for public model downloads).
 
 ## Legal
 - `LEGAL.md` in repo root — EU Copyright Directive Article 15 analysis, publisher contact for takedowns, data retention policy.
