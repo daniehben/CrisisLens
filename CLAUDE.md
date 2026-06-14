@@ -27,7 +27,7 @@ Real-time Arabic-first conflict news aggregation platform. Zero budget, free-tie
 - **Railway** (worker, migrated 2026-06-06):
   - crisislens-worker: https://web-production-f03a4.up.railway.app — LIVE ✅
   - Trial credit: $4.92 / 28 days (expires ~2026-07-04). Upgrade to Hobby ($5/mo) before expiry.
-  - Required env vars: `DATABASE_URL`, `GROQ_API_KEY`, `HF_TOKEN`. HuggingFace now requires a token even for public model downloads (task9 embedding model). `HF_TOKEN` is no longer needed for task11 (migrated to Groq) but IS still required for task9.
+  - Required env vars: `DATABASE_URL`, `GROQ_API_KEY`, `JINA_API_KEY`. `HF_TOKEN` no longer needed anywhere (task9 migrated to Jina AI API 2026-06-14, task11 already on Groq).
 - **Supabase (PostgreSQL host):**
   - ⚠️ **Direct connection URL (`db.xxxx.supabase.co:5432`) resolves to IPv6 — Render and Railway cannot reach it.**
   - ✅ **Always use the Session Pooler URL** (`aws-0-eu-central-1.pooler.supabase.com:6543`) — this is IPv4 compatible.
@@ -100,7 +100,7 @@ If you see `invalid dsn` errors in logs, check the URL format in the relevant se
 | task7 | task7_fetch_body.py | Fetch full article body via trafilatura | Prioritises articles in conflicts/pairs |
 | task7_5 | task7_5_summarize.py | Groq LLM summaries | FAST_MODEL, per-article |
 | task8/8b | task8_translate.py | Groq translation EN↔AR | Both directions |
-| task9 | task9_embed.py | Sentence embeddings (MiniLM-L6-v2, 384-dim) | Model released after task9 to free RAM |
+| task9 | task9_embed.py | Sentence embeddings via Jina AI API (384-dim) | Zero RAM — replaces local MiniLM-L12 that caused OOM |
 | task10 | task10_pairs.py | Cosine similarity pairing (threshold 0.70, 48h window) | Top-10 pairs per article, LIMIT 50 |
 | task11 | task11_nli.py | Contradiction classification via **Groq** (FAST_MODEL) | See note below |
 | task12 | task12_conflicts.py | Conflict scoring and storage | CONTRADICTION_THRESHOLD=0.55 |
@@ -169,7 +169,7 @@ If you see `invalid dsn` errors in logs, check the URL format in the relevant se
 5. **feed_type_check constraint:** Original DB constraint didn't include `telegram_web`. Startup migration in `main.py` dynamically detects and drops the old constraint before inserting Telegram sources.
 6. **IPv6 unreachable:** Supabase direct connection is IPv6-only. Render/Railway both IPv4. Always use Session Pooler URL — see Infrastructure section.
 7. **HF Inference API rate limit (RESOLVED):** Was ~100 req/day; caused task11 to silently return `neutral` for all pairs after 2 cycles, blocking all conflict creation. Fixed by migrating task11 to Groq (2026-06-13).
-8. **task9 model 404 on Railway:** `paraphrase-multilingual-MiniLM-L6-v2` does NOT exist on HuggingFace (cached on first run; 404 on fresh Railway container). Reverted to `paraphrase-multilingual-MiniLM-L12-v2` — the only multilingual MiniLM that exists. Railway Hobby (~1GB RAM) handles L12 fine. Explicit model release after task9 still in place. Also requires `HF_TOKEN` env var on Railway (HuggingFace requires auth even for public model downloads).
+8. **task9 OOM on Railway (RESOLVED 2026-06-14):** MiniLM-L12 loads ~480MB; Railway Trial is 512MB total → OOM SIGKILL before APScheduler starts → 15-minute cycle never fires → article count stuck at ~500. Root cause: the OOM kills the process during the startup run, so the scheduler interval never gets scheduled. **Fixed:** task9 now uses Jina AI free embeddings API (`jina-embeddings-v3`, 384-dim via MRL truncation). Zero RAM footprint. Requires `JINA_API_KEY` env var in Railway (free at jina.ai). `sentence-transformers` removed from requirements.txt.
 
 ## Legal
 - `LEGAL.md` in repo root — EU Copyright Directive Article 15 analysis, publisher contact for takedowns, data retention policy.

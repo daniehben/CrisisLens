@@ -16,4 +16,5 @@ beautifulsoup4
 deep-translator
 trafilatura
 groq
-sentence-transformers
+# sentence-transformers removed 2026-06-14 — replaced by Jina AI API in task9
+# (480MB torch dependency caused OOM on Railway Trial 512MB, crashing the scheduler)
