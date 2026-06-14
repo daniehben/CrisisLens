@@ -2074,7 +2074,10 @@
           ${ctypeBadge}
           ${timeDelta ? `<span class="cmp-timedelta">🕐 Published ${timeDelta}</span>` : ''}
           <button class="cmp-copy-btn" title="Copy link to this conflict" onclick="
-            navigator.clipboard.writeText('https://crisis-lens-six.vercel.app/?conflict=${c.conflict_id}').then(()=>{
+            const _u=location.origin+location.pathname+'#c${c.conflict_id}';
+            navigator.clipboard.writeText(_u).then(()=>{
+              this.textContent='✓ Copied';setTimeout(()=>this.textContent='⎘ Share',1500);
+            }).catch(()=>{
               this.textContent='✓ Copied';setTimeout(()=>this.textContent='⎘ Share',1500);
             });
           ">⎘ Share</button>
@@ -2223,11 +2226,9 @@
     document.getElementById('modal-close').onclick = closeModal;
     document.getElementById('modal-share').onclick = () => {
       const url   = `${location.origin}${location.pathname}#c${c.conflict_id}`;
-      const title = t('share_title', c.source_1, c.source_2);
       const toast = document.getElementById('share-toast');
       const show  = () => { toast.textContent=t('share_copied'); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1800); };
-      if (navigator.share) navigator.share({ title, url }).catch(()=>{});
-      else navigator.clipboard.writeText(url).then(show).catch(show);
+      navigator.clipboard.writeText(url).then(show).catch(show);
     };
     const panes = document.querySelectorAll('.modal-pane');
     const tabs  = document.querySelectorAll('.modal-tab');
