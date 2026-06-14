@@ -193,9 +193,19 @@ def run_task13():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             for r in rows:
-                body_a = (r["body_a_sum"] or r["body_a_raw"] or "")[:1500]
-                body_b = (r["body_b_sum"] or r["body_b_raw"] or "")[:1500]
+                # Prefer LLM summary, fall back to raw snippet, then fall back to
+                # headline — older articles may have no body yet (task7/task7_5
+                # haven't processed them). Headline-only is weaker but still
+                # produces a usable analysis.
+                h1 = r["h1_en"] or r["h1_ar"] or ""
+                h2 = r["h2_en"] or r["h2_ar"] or ""
+                body_a = (r["body_a_sum"] or r["body_a_raw"] or h1)[:1500]
+                body_b = (r["body_b_sum"] or r["body_b_raw"] or h2)[:1500]
                 if not body_a or not body_b:
+                    log.warning(
+                        f"[Task13] Conflict {r['conflict_id']}: skipping — "
+                        f"no body or headline for {'source A' if not body_a else 'source B'}"
+                    )
                     failed += 1
                     continue
 
@@ -208,20 +218,29 @@ def run_task13():
                     f"{r['source_b_name']} — trust {r['trust_b']:.2f}"
                 )
 
-                prompt = PROMPT.format(
-                    similarity_score=float(r["similarity_score"] or 0),
-                    nli_label=r["nli_label"] or "unknown",
-                    nli_confidence=float(r["nli_confidence"] or 0),
-                    conflict_type=r["conflict_type"] or "unknown",
-                    source_a_name=r["source_a_name"] or r["source_a"],
-                    source_a_profile=source_a_profile,
-                    headline_a=r["h1_en"] or r["h1_ar"] or "",
-                    body_a=body_a,
-                    source_b_name=r["source_b_name"] or r["source_b"],
-                    source_b_profile=source_b_profile,
-                    headline_b=r["h2_en"] or r["h2_ar"] or "",
-                    body_b=body_b,
-                )
+                # Escape curly braces in article text to prevent str.format() errors
+                def _escape(s: str) -> str:
+                    return s.replace("{", "{{").replace("}", "}}")
+
+                try:
+                    prompt = PROMPT.format(
+                        similarity_score=float(r["similarity_score"] or 0),
+                        nli_label=r["nli_label"] or "unknown",
+                        nli_confidence=float(r["nli_confidence"] or 0),
+                        conflict_type=r["conflict_type"] or "unknown",
+                        source_a_name=r["source_a_name"] or r["source_a"],
+                        source_a_profile=source_a_profile,
+                        headline_a=_escape(h1),
+                        body_a=_escape(body_a),
+                        source_b_name=r["source_b_name"] or r["source_b"],
+                        source_b_profile=source_b_profile,
+                        headline_b=_escape(h2),
+                        body_b=_escape(body_b),
+                    )
+                except Exception as e:
+                    log.warning(f"[Task13] Conflict {r['conflict_id']}: prompt format failed: {e}")
+                    failed += 1
+                    continue
 
                 analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=1200)
                 if not analysis:
