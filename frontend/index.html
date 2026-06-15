@@ -1490,6 +1490,12 @@
       r_mena: 'Pan-Arab', r_gulf: 'Gulf', r_west: 'Western', r_isr: 'Israeli',
       r_pal: 'Palestinian', r_res: 'Resistance media', r_tur: 'Turkish',
       r_inde: 'Independent', r_neut: 'Unaligned',
+      emotional_register: 'Emotional register',
+      em_anger: 'anger', em_fear: 'fear', em_sadness: 'sadness', em_hope: 'hope', em_neutral: 'neutral',
+      key_question_label: 'Key question to verify',
+      ai_disclaimer: 'AI-generated framing analysis · Not a statement of fact',
+      ctype_factual_badge: 'FACTUAL DISPUTE', ctype_framing_badge: 'FRAMING DIFFERENCE', ctype_mixed_badge: 'MIXED',
+      time_apart: h => `Published ${h}`,
     },
     ar: {
       beta: 'تجريبي', lang_toggle: 'English', wordmark: 'كرايسيس لنز',
@@ -1545,6 +1551,12 @@
       r_mena: 'عربي', r_gulf: 'خليجي', r_west: 'غربي', r_isr: 'إسرائيلي',
       r_pal: 'فلسطيني', r_res: 'إعلام المقاومة', r_tur: 'تركي',
       r_inde: 'مستقل', r_neut: 'محايد',
+      emotional_register: 'السجل العاطفي',
+      em_anger: 'غضب', em_fear: 'خوف', em_sadness: 'حزن', em_hope: 'أمل', em_neutral: 'محايد',
+      key_question_label: 'السؤال المحوري للتحقق',
+      ai_disclaimer: 'تحليل إطاري بالذكاء الاصطناعي · ليس بياناً بالوقائع',
+      ctype_factual_badge: 'خلاف حقائقي', ctype_framing_badge: 'اختلاف في الإطار', ctype_mixed_badge: 'مختلط',
+      time_apart: h => `نُشرا ${h}`,
     }
   };
 
@@ -2070,6 +2082,52 @@
       </div>`;
   }
 
+  // Arabic source editorial profiles (client-side override — backend always returns English)
+  const AR_PROFILE = {
+    AJA:  'ممولة قطرياً · خط تحريري عربي شامل',
+    'AJA+':'الجزيرة الرقمي · موجه للشباب العربي',
+    ARB:  'قناة سعودية · خط تحريري خليجي',
+    BBC:  'هيئة الإذاعة البريطانية · مستقلة تحريرياً',
+    BBAR: 'خدمة البث البريطاني العالمي · بالعربية',
+    AP:   'وكالة إخبارية أمريكية · معيار التقرير الواقعي',
+    REU:  'وكالة إخبارية بريطانية · معيار التقرير الواقعي',
+    WP:   'صحيفة أمريكية ليبرالية',
+    CNN:  'قناة إخبارية أمريكية · وسط-يسار',
+    GUA:  'صحيفة بريطانية يسارية-ليبرالية',
+    DW:   'هيئة الإذاعة الألمانية العامة · خدمة عربية',
+    F24:  'هيئة الإذاعة الفرنسية العامة · خدمة عربية',
+    JRP:  'صحيفة إسرائيلية وسط-يمين',
+    SKA:  'مشروع مشترك إماراتي-سعودي · خليجي',
+    ANA:  'وكالة الأنباء التركية الرسمية',
+    MEE:  'بريطانية مستقلة · خط مؤيد للفلسطينيين',
+    MND:  'أمريكية · مؤيدة صراحة للفلسطينيين',
+    WAF:  'وكالة الأنباء الفلسطينية الرسمية',
+    AKH:  'يسارية لبنانية · موالية لحزب الله',
+    EI:   'أمريكية · مؤيدة صراحة للفلسطينيين',
+    TAS:  'وكالة أنباء إيرانية رسمية',
+    PTV:  'قناة إيرانية رسمية',
+    RTA:  'إعلام روسي رسمي',
+    GG:   'صحفي مستقل · معارض للمؤسسات',
+    GZ:   'أمريكية · خط معارض لحلف الناتو',
+    CJ:   'مستقلة أسترالية · معارضة للحرب',
+    AW:   'أمريكية · معارضة للتدخل العسكري',
+    CRA:  'لبنانية · خط محور المقاومة',
+    DSN:  'تحقيقية أمريكية مستقلة',
+    BNO:  'منصة تجميع أخبار عاجلة',
+    MAYE: 'لبنانية · خط محور المقاومة',
+    SDT:  'مستقلة · متخصصة في الشأن الأفريقي',
+    WM:   'قناة OSINT على تيليغرام · غير موثقة',
+    SI:   'تيليغرام أخبار عاجلة · غير موثق',
+    YT_BP:'تعليق سياسي أمريكي مستقل',
+    YT_DN:'إعلام عام أمريكي تقدمي',
+    YT_RT:'تقدمي أمريكي مستقل',
+  };
+
+  function sourceProfile(code, fallback) {
+    if (preferAr && AR_PROFILE[code]) return AR_PROFILE[code];
+    return fallback || null;
+  }
+
   function buildCmpPane(c) {
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
     const sim  = Math.round(parseFloat(c.similarity_score)*100);
@@ -2093,9 +2151,9 @@
 
     // conflict type badge config
     const ctypeMap = {
-      factual:  { label: 'FACTUAL DISPUTE',    bg: '#b91c1c', text: '#fff' },
-      framing:  { label: 'FRAMING DIFFERENCE', bg: '#1d4ed8', text: '#fff' },
-      mixed:    { label: 'MIXED',              bg: '#92400e', text: '#fff' },
+      factual:  { label: t('ctype_factual_badge'),  bg: '#b91c1c', text: '#fff' },
+      framing:  { label: t('ctype_framing_badge'),  bg: '#1d4ed8', text: '#fff' },
+      mixed:    { label: t('ctype_mixed_badge'),     bg: '#92400e', text: '#fff' },
     };
     const ctypeBadge = c.conflict_type && ctypeMap[c.conflict_type]
       ? `<span class="ctype-badge" style="background:${ctypeMap[c.conflict_type].bg};color:${ctypeMap[c.conflict_type].text}">${ctypeMap[c.conflict_type].label}</span>`
@@ -2106,10 +2164,10 @@
       if (!c.published_1 || !c.published_2) return '';
       const diff = Math.abs(new Date(c.published_1) - new Date(c.published_2));
       const mins = Math.round(diff / 60000);
-      if (mins < 60) return `${mins}m apart`;
+      if (mins < 60) return preferAr ? `فارق ${mins} د` : `${mins}m apart`;
       const hrs = Math.round(diff / 3600000);
-      if (hrs < 24) return `${hrs}h apart`;
-      return `${Math.round(hrs/24)}d apart`;
+      if (hrs < 24) return preferAr ? `فارق ${hrs} س` : `${hrs}h apart`;
+      return preferAr ? `فارق ${Math.round(hrs/24)} ي` : `${Math.round(hrs/24)}d apart`;
     })();
 
     return `
@@ -2117,7 +2175,7 @@
 
         <div class="cmp-meta-row">
           ${ctypeBadge}
-          ${timeDelta ? `<span class="cmp-timedelta">🕐 Published ${timeDelta}</span>` : ''}
+          ${timeDelta ? `<span class="cmp-timedelta">🕐 ${t('time_apart', timeDelta)}</span>` : ''}
           <button class="cmp-copy-btn" title="Copy link to this conflict" onclick="
             const _u=location.origin+location.pathname+'#c${c.conflict_id}';
             navigator.clipboard.writeText(_u).then(()=>{
@@ -2130,7 +2188,7 @@
 
         ${narrative ? `
           <div class="cmp-narrative" dir="auto">${narrative}</div>
-          <p style="font-size:.7rem;color:var(--muted-2);margin:.4rem 0 0;font-style:italic">AI-generated framing analysis · Not a statement of fact</p>
+          <p style="font-size:.7rem;color:var(--muted-2);margin:.4rem 0 0;font-style:italic">${t('ai_disclaimer')}</p>
         ` : ba ? `
           <div class="cmp-narrative cmp-narrative--empty">
             <span style="color:var(--muted)">${t('analysis_pending')}</span>
@@ -2144,7 +2202,7 @@
         `}
 
         ${keyQuestion ? `
-          <div class="sub-label" style="margin-top:1.25rem">Key question to verify</div>
+          <div class="sub-label" style="margin-top:1.25rem">${t('key_question_label')}</div>
           <p class="cmp-detail" dir="auto" style="font-style:italic;color:var(--ink-soft)">${keyQuestion}</p>
         ` : ''}
 
@@ -2153,20 +2211,20 @@
           <div class="cmp-grid">
             <div class="cmp-block" style="border-inline-start-color:${c1}">
               <div class="cmp-src" style="color:${c1}">${n1} <span style="color:var(--muted);font-weight:400">· ${regionLabel(c.source_1)}</span></div>
-              ${c.source_1_profile ? `<div class="cmp-profile">${c.source_1_profile}</div>` : ''}
+              ${sourceProfile(c.source_1, c.source_1_profile) ? `<div class="cmp-profile">${sourceProfile(c.source_1, c.source_1_profile)}</div>` : ''}
               <div class="cmp-text" dir="auto">${claimsA||'—'}</div>
             </div>
             <div class="cmp-block" style="border-inline-start-color:${c2}">
               <div class="cmp-src" style="color:${c2}">${n2} <span style="color:var(--muted);font-weight:400">· ${regionLabel(c.source_2)}</span></div>
-              ${c.source_2_profile ? `<div class="cmp-profile">${c.source_2_profile}</div>` : ''}
+              ${sourceProfile(c.source_2, c.source_2_profile) ? `<div class="cmp-profile">${sourceProfile(c.source_2, c.source_2_profile)}</div>` : ''}
               <div class="cmp-text" dir="auto">${claimsB||'—'}</div>
             </div>
           </div>
         ` : ''}
 
         ${(emotionA && emotionB) ? `
-          <div class="sub-label" style="margin-top:1.25rem">Emotional register</div>
-          <div class="emotion-chart" aria-label="Emotional register comparison">
+          <div class="sub-label" style="margin-top:1.25rem">${t('emotional_register')}</div>
+          <div class="emotion-chart" aria-label="${t('emotional_register')}">
             ${['anger','fear','sadness','hope','neutral'].map(em => {
               const vA = Math.round((emotionA[em]||0)*100);
               const vB = Math.round((emotionB[em]||0)*100);
@@ -2178,7 +2236,7 @@
                 neutral: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:#717d7e;flex-shrink:0"><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
               };
               return `<div class="em-row">
-                <div class="em-label">${EM_ICON[em]} ${em}</div>
+                <div class="em-label">${EM_ICON[em]} ${t('em_'+em)}</div>
                 <div class="em-bars">
                   <div class="em-bar-wrap" title="${n1}: ${vA}%">
                     <div class="em-bar em-bar-a" style="width:${vA}%;background:${c1}"></div>
