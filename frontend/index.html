@@ -208,20 +208,28 @@
     .ctrl-chip:hover { color: var(--ink); border-color: var(--muted-2); }
     .ctrl-chip.active { color: var(--ink); border-color: var(--ink-soft); background: var(--line-soft); }
 
-    /* ── Search Bar ────────────────────────────────────────────────────── */
+    /* ── Search Bar — always visible, prominent ────────────────────────── */
     .search-bar {
       background: var(--bg); border-bottom: 1px solid var(--line);
-      max-height: 0; overflow: hidden; transition: max-height .22s ease;
+      padding: .9rem 1.5rem;
     }
-    .search-bar.open { max-height: 64px; }
     .search-inner {
-      max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
+      max-width: 860px; margin: 0 auto;
       display: flex; align-items: center; gap: .75rem;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      padding: .6rem 1rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .search-inner:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
     .search-input {
       flex: 1; background: none; border: none; outline: none;
-      font-family: inherit; font-size: .92rem; color: var(--ink);
-      padding: .9rem 0; caret-color: var(--accent);
+      font-family: inherit; font-size: .95rem; color: var(--ink);
+      padding: .2rem 0; caret-color: var(--accent);
     }
     .search-input::placeholder { color: var(--muted-2); }
     .search-clear {
@@ -926,9 +934,7 @@
         </div>
       </div>
       <nav class="masthead-nav">
-        <button class="nav-btn" id="search-btn" title="Search" style="display:flex;align-items:center;gap:.3rem">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </button>
+        <button class="nav-btn" id="search-btn" title="Search" style="display:none"></button>
         <button class="nav-btn" id="methodology-btn">Methodology</button>
         <button class="nav-btn" id="lang-btn">العربية</button>
         <div class="nav-divider"></div>
@@ -944,7 +950,7 @@
   <div id="search-bar" class="search-bar">
     <div class="search-inner">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="search-input" class="search-input" type="search" autocomplete="off" spellcheck="false">
+      <input id="search-input" class="search-input" type="search" autocomplete="off" spellcheck="false" placeholder="Search contradictions, sources, topics…">
       <span id="search-count" class="search-count" style="display:none"></span>
       <button id="search-clear" class="search-clear" aria-label="Clear">✕</button>
     </div>
@@ -991,6 +997,9 @@
       <div class="cat-controls">
         <button class="ctrl-chip filter-lang active" data-lang="all">All langs</button>
         <button class="ctrl-chip filter-lang" data-lang="ar">عربي</button>
+        <button class="ctrl-chip filter-score active" data-score="all">All scores</button>
+        <button class="ctrl-chip filter-score" data-score="0.45">Strong ≥0.45</button>
+        <button class="ctrl-chip filter-score" data-score="0.65">Critical ≥0.65</button>
         <button class="ctrl-chip filter-sort active" data-sort="score">Strongest</button>
         <button class="ctrl-chip filter-sort" data-sort="recent">Recent</button>
       </div>
@@ -1602,10 +1611,11 @@
   // ── State ─────────────────────────────────────────────────────────────
   let cache = null;
   let preferAr   = localStorage.getItem('cl.lang') === 'ar';
-  let langFilter = 'all';
-  let sortMode   = 'score';
+  let langFilter  = 'all';
+  let sortMode    = 'score';
   let topicFilter = 'all';
   let typeFilter  = 'all';
+  let scoreFilter = 'all';   // 'all' | '0.45' | '0.65'
   let searchQuery = '';
 
   function pickHL(c, side) {
@@ -1635,6 +1645,7 @@
     if (!matchesType(c)) return false;
     if (langFilter === 'ar' && !(c.headline_1_ar||c.headline_2_ar)) return false;
     if (langFilter === 'en' && !(c.headline_1_en||c.headline_2_en)) return false;
+    if (scoreFilter !== 'all' && parseFloat(c.weighted_score) < parseFloat(scoreFilter)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const hay = [c.headline_1_en,c.headline_2_en,c.headline_1_ar,c.headline_2_ar,
@@ -2385,22 +2396,9 @@
   });
   document.getElementById('refresh-btn').onclick = load;
 
-  // Search
-  const searchBar   = document.getElementById('search-bar');
+  // Search — bar is always visible, no toggle
   const searchInput = document.getElementById('search-input');
   const searchClear = document.getElementById('search-clear');
-  document.getElementById('search-btn').onclick = () => {
-    const opening = !searchBar.classList.contains('open');
-    searchBar.classList.toggle('open');
-    if (opening) {
-      searchInput.placeholder = t('search_placeholder');
-      setTimeout(() => searchInput.focus(), 220);
-    } else {
-      searchQuery = ''; searchInput.value = '';
-      searchClear.classList.remove('visible');
-      if (cache) render();
-    }
-  };
   searchInput.addEventListener('input', () => {
     searchQuery = searchInput.value.trim();
     searchClear.classList.toggle('visible', !!searchQuery);
@@ -2413,9 +2411,19 @@
     if (cache) resetAndRender();
   };
   searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.getElementById('search-btn').click();
+    if (e.key === 'Escape') { searchClear.click(); }
   });
   document.getElementById('search-pill-clear').onclick = () => { searchClear.click(); };
+
+  // Score filter chips
+  document.querySelectorAll('.filter-score').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.filter-score').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      scoreFilter = btn.dataset.score;
+      if (cache) resetAndRender();
+    };
+  });
 
   // Lang toggle
   document.getElementById('lang-btn').onclick = () => {
