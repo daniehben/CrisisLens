@@ -63,6 +63,7 @@
     // When the Render URL changes, update frontend/vercel.json — not this file.
     window.__CL_API = '';
     window.__CL_DATA = fetch('/api/v1/conflicts?limit=500').then(r => r.ok ? r.json() : null).catch(() => null);
+    // Response shape: {total, limit, offset, items:[…]}  (total is uncapped DB count)
   </script>
   <style>
     /* ── PALETTE ───────────────────────────────────────────────────────── */
@@ -2334,8 +2335,10 @@
       ev.style.display = 'block';
       return;
     }
-    cache = data;
-    document.getElementById('stat-total').textContent = cache.length;
+    // API returns {total, limit, offset, items} — fall back to bare array for old deploys
+    cache = Array.isArray(data) ? data : (data.items || []);
+    const totalCount = Array.isArray(data) ? cache.length : (data.total ?? cache.length);
+    document.getElementById('stat-total').textContent = totalCount.toLocaleString();
     document.getElementById('main-view').style.display = '';
     render();
     handleHash();

@@ -314,6 +314,13 @@ def get_conflicts(
 ):
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Total count (for display — not capped by limit)
+            cur.execute(
+                "SELECT COUNT(*) AS n FROM conflicts WHERE weighted_score >= %s",
+                (min_score,)
+            )
+            total = cur.fetchone()["n"]
+
             cur.execute("""
                 SELECT
                     c.conflict_id,
@@ -363,13 +370,13 @@ def get_conflicts(
             """, (min_score, limit, offset))
             rows = cur.fetchall()
 
-    result = []
+    items = []
     for r in rows:
         d = dict(r)
         d["source_1_profile"] = SOURCE_PROFILE.get(d.get("source_1", ""), "")
         d["source_2_profile"] = SOURCE_PROFILE.get(d.get("source_2", ""), "")
-        result.append(d)
-    return result
+        items.append(d)
+    return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
 @app.get("/api/v1/conflicts/{conflict_id}")
