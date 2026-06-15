@@ -178,15 +178,16 @@
 
     /* ── Category Nav ──────────────────────────────────────────────────── */
     .cat-nav {
-      border-bottom: 1px solid var(--line); background: var(--bg);
-      position: sticky; top: 74px; z-index: 19;
+      background: var(--bg); position: sticky; top: 74px; z-index: 19;
+      border-bottom: 1px solid var(--line);
     }
-    .cat-nav-inner {
+    /* Row 1 — topic tabs (scrollable) */
+    .cat-tabs-row {
       max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
-      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
       overflow-x: auto; scrollbar-width: none;
+      border-bottom: 1px solid var(--line-soft);
     }
-    .cat-nav-inner::-webkit-scrollbar { display: none; }
+    .cat-tabs-row::-webkit-scrollbar { display: none; }
     .cat-tabs { display: flex; gap: 0; }
     .cat-tab {
       background: none; border: none; cursor: pointer;
@@ -199,9 +200,16 @@
     [dir="rtl"] .cat-tab { letter-spacing: 0; font-size: .88rem; }
     .cat-tab:hover { color: var(--ink-soft); }
     .cat-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .cat-controls { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+    /* Row 2 — filter chips (always visible, never scrolls) */
+    .cat-filter-row {
+      background: var(--bg-featured); padding: .45rem 1.5rem;
+    }
+    .cat-controls {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+    }
     .ctrl-chip {
-      background: none; border: 1px solid var(--line); color: var(--muted);
+      background: var(--bg-card); border: 1px solid var(--line); color: var(--muted);
       font-size: .72rem; font-weight: 500; padding: .3rem .7rem; border-radius: 999px;
       cursor: pointer; white-space: nowrap; transition: all .15s; font-family: inherit;
     }
@@ -211,12 +219,12 @@
     /* ── Search Bar — always visible, prominent ────────────────────────── */
     .search-bar {
       background: var(--bg); border-bottom: 1px solid var(--line);
-      padding: .9rem 1.5rem;
+      padding: .9rem 1.5rem .75rem;
     }
     .search-inner {
       max-width: 860px; margin: 0 auto;
       display: flex; align-items: center; gap: .75rem;
-      background: var(--surface);
+      background: var(--bg-card);
       border: 1.5px solid var(--line);
       border-radius: 10px;
       padding: .6rem 1rem;
@@ -226,6 +234,25 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--accent-soft);
     }
+    /* ── Search suggestions ─────────────────────────────────────────────── */
+    .search-suggestions {
+      max-width: 860px; margin: .45rem auto 0;
+      display: none; align-items: center; gap: .35rem; flex-wrap: wrap;
+      animation: pillFade .15s ease-out;
+    }
+    .search-suggestions.visible { display: flex; }
+    .suggestions-label {
+      font-size: .68rem; color: var(--muted); font-weight: 600;
+      text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+      margin-right: .1rem;
+    }
+    .suggestion-chip {
+      background: var(--bg-card); border: 1px solid var(--line); color: var(--ink-soft);
+      font-size: .72rem; font-weight: 500; padding: .25rem .65rem; border-radius: 999px;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: border-color .12s, color .12s, background .12s;
+    }
+    .suggestion-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
     .search-input {
       flex: 1; background: none; border: none; outline: none;
       font-family: inherit; font-size: .95rem; color: var(--ink);
@@ -902,7 +929,8 @@
       .nav-github { display: none; }
       .masthead-meta { display: none; }
       .cat-nav { top: 60px; }
-      .cat-nav-inner { padding: 0 1rem; }
+      .cat-tabs-row { padding: 0 1rem; }
+      .cat-filter-row { padding: .4rem 1rem; }
       .cat-tab { padding: .8rem .75rem; font-size: .72rem; }
       .page { padding: 0 1rem 4rem; }
       .breaking-bar-inner { padding: .4rem 1rem; font-size: .68rem; }
@@ -954,6 +982,7 @@
       <span id="search-count" class="search-count" style="display:none"></span>
       <button id="search-clear" class="search-clear" aria-label="Clear">✕</button>
     </div>
+    <div id="search-suggestions" class="search-suggestions"></div>
   </div>
 
   <!-- SEARCH ACTIVE PILL -->
@@ -981,7 +1010,8 @@
 
   <!-- CATEGORY NAV -->
   <nav class="cat-nav">
-    <div class="cat-nav-inner">
+    <!-- Row 1: topic tabs (horizontally scrollable) -->
+    <div class="cat-tabs-row">
       <div class="cat-tabs" id="cat-tabs">
         <button class="cat-tab active" data-topic="all">All</button>
         <button class="cat-tab" data-topic="palestine">Palestine</button>
@@ -994,6 +1024,9 @@
         <button class="cat-tab" data-topic="iraq">Iraq</button>
         <button class="cat-tab" data-topic="finance">Finance</button>
       </div>
+    </div>
+    <!-- Row 2: filter chips (always visible) -->
+    <div class="cat-filter-row">
       <div class="cat-controls">
         <button class="ctrl-chip filter-lang active" data-lang="all">All langs</button>
         <button class="ctrl-chip filter-lang" data-lang="ar">عربي</button>
@@ -2399,9 +2432,47 @@
   // Search — bar is always visible, no toggle
   const searchInput = document.getElementById('search-input');
   const searchClear = document.getElementById('search-clear');
+  const searchSuggestions = document.getElementById('search-suggestions');
+
+  // Static seed keywords — topped up by top source names once cache loads
+  const STATIC_SUGGESTIONS = ['Gaza','ceasefire','Ukraine','Iran','Russia','strikes','hostages','Sudan','missiles','deal'];
+
+  function buildSuggestions() {
+    // Top source names by frequency in loaded cache
+    const freq = {};
+    if (cache) cache.forEach(c => {
+      [c.source_1_name, c.source_2_name].forEach(s => { if (s) freq[s] = (freq[s]||0)+1; });
+    });
+    const topSources = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5).map(e=>e[0]);
+    const all = [...new Set([...topSources, ...STATIC_SUGGESTIONS])].slice(0,12);
+    searchSuggestions.innerHTML =
+      `<span class="suggestions-label">Try:</span>` +
+      all.map(q=>`<button class="suggestion-chip" data-q="${q}">${q}</button>`).join('');
+    searchSuggestions.querySelectorAll('.suggestion-chip').forEach(btn => {
+      btn.onmousedown = (e) => {
+        e.preventDefault(); // prevent blur firing before click
+        searchInput.value = btn.dataset.q;
+        searchQuery = btn.dataset.q;
+        searchClear.classList.add('visible');
+        searchSuggestions.classList.remove('visible');
+        if (cache) resetAndRender();
+        searchInput.focus();
+      };
+    });
+  }
+
+  searchInput.addEventListener('focus', () => {
+    if (!searchQuery) { buildSuggestions(); searchSuggestions.classList.add('visible'); }
+  });
+  searchInput.addEventListener('blur', () => {
+    // Small delay so mousedown on a chip fires first
+    setTimeout(() => searchSuggestions.classList.remove('visible'), 150);
+  });
   searchInput.addEventListener('input', () => {
     searchQuery = searchInput.value.trim();
     searchClear.classList.toggle('visible', !!searchQuery);
+    if (searchQuery) searchSuggestions.classList.remove('visible');
+    else { buildSuggestions(); searchSuggestions.classList.add('visible'); }
     if (cache) resetAndRender();
   });
   searchClear.onclick = () => {
@@ -2411,7 +2482,7 @@
     if (cache) resetAndRender();
   };
   searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { searchClear.click(); }
+    if (e.key === 'Escape') { searchClear.click(); searchSuggestions.classList.remove('visible'); }
   });
   document.getElementById('search-pill-clear').onclick = () => { searchClear.click(); };
 
