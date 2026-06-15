@@ -756,7 +756,7 @@
     /* emotion chart */
     .emotion-chart { margin-top:.5rem; display:flex; flex-direction:column; gap:.45rem; }
     .em-row { display:grid; grid-template-columns:6rem 1fr; align-items:center; gap:.5rem; }
-    .em-label { font-size:.72rem; font-weight:600; color:var(--muted); text-transform:capitalize; white-space:nowrap; }
+    .em-label { font-size:.72rem; font-weight:600; color:var(--muted); text-transform:capitalize; white-space:nowrap; display:flex; align-items:center; gap:.3rem; }
     .em-bars { display:flex; flex-direction:column; gap:.18rem; }
     .em-bar-wrap { display:flex; align-items:center; gap:.4rem; height:.9rem; }
     .em-bar { height:.55rem; border-radius:2px; min-width:2px; transition:width .3s; opacity:.85; }
@@ -2170,9 +2170,15 @@
             ${['anger','fear','sadness','hope','neutral'].map(em => {
               const vA = Math.round((emotionA[em]||0)*100);
               const vB = Math.round((emotionB[em]||0)*100);
-              const icons = {anger:'🔥',fear:'⚠️',sadness:'😔',hope:'✨',neutral:'📋'};
+              const EM_ICON = {
+                anger:   `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#c0392b;flex-shrink:0"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+                fear:    `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#d35400;flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+                sadness: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#2471a3;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+                hope:    `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#1e8449;flex-shrink:0"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`,
+                neutral: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:#717d7e;flex-shrink:0"><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+              };
               return `<div class="em-row">
-                <div class="em-label">${icons[em]} ${em}</div>
+                <div class="em-label">${EM_ICON[em]} ${em}</div>
                 <div class="em-bars">
                   <div class="em-bar-wrap" title="${n1}: ${vA}%">
                     <div class="em-bar em-bar-a" style="width:${vA}%;background:${c1}"></div>
