@@ -1084,10 +1084,9 @@
         <button class="ctrl-chip filter-lang active" data-lang="all">All langs</button>
         <button class="ctrl-chip filter-lang" data-lang="ar">عربي</button>
         <span class="ctrl-divider"></span>
-        <span class="ctrl-group-label" id="ctrl-conf-label">Confidence <span class="ctrl-info" tabindex="0" title="How confident the AI is that this is a genuine contradiction — based on language model NLI score weighted by source trust.">ℹ</span></span>
-        <button class="ctrl-chip filter-score active" data-score="all" id="fs-all">Any</button>
-        <button class="ctrl-chip filter-score" data-score="0.45" id="fs-credible">Credible match</button>
-        <button class="ctrl-chip filter-score" data-score="0.65" id="fs-high">High confidence</button>
+        <span class="ctrl-group-label" id="ctrl-conf-label">Show <span class="ctrl-info" tabindex="0" title="All results includes weak signals. Definitive only shows contradictions the AI is highly confident about — strong NLI score from reliable sources.">ℹ</span></span>
+        <button class="ctrl-chip filter-score active" data-score="all" id="fs-all">All results</button>
+        <button class="ctrl-chip filter-score" data-score="0.65" id="fs-high">Definitive only</button>
         <span class="ctrl-divider"></span>
         <button class="ctrl-chip filter-sort active" data-sort="score" id="fsort-score">Strongest first</button>
         <button class="ctrl-chip filter-sort" data-sort="recent" id="fsort-recent">Most recent</button>
@@ -1102,9 +1101,9 @@
     <div class="breaking-bar" style="margin:0 -1.5rem">
       <div class="breaking-bar-inner">
         <span class="breaking-tag">Live</span>
-        <strong id="stat-total">—</strong>&nbsp;<span id="stat-lbl-contradictions">contradictions detected</span>
+        <span class="stat-pair"><strong id="stat-total">—</strong> <span id="stat-lbl-contradictions">contradictions detected</span></span>
         <span class="breaking-sep">·</span>
-        <strong id="stat-cross">—</strong>&nbsp;<span id="stat-lbl-cross">cross-perspective</span>
+        <span class="stat-pair"><strong id="stat-cross">—</strong> <span id="stat-lbl-cross">cross-perspective</span></span>
         <button class="wire-refresh" id="refresh-btn">↻ Refresh</button>
       </div>
     </div>
