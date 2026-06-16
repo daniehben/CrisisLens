@@ -1026,6 +1026,18 @@
     </div>
   </header>
 
+  <!-- HERO BANNER — first thing after header -->
+  <div id="hero-banner" class="hero-banner">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-tag" id="hero-tag">What is this?</div>
+        <p class="hero-tagline" id="hero-tagline">The same event. Two narratives. You decide.</p>
+        <p class="hero-desc" id="hero-desc">CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.</p>
+      </div>
+      <button class="hero-dismiss" id="hero-dismiss" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
   <!-- SEARCH BAR -->
   <div id="search-bar" class="search-bar">
     <div class="search-inner">
@@ -1037,27 +1049,15 @@
     <div id="search-suggestions" class="search-suggestions"></div>
   </div>
 
-  <!-- SEARCH ACTIVE PILL -->
+  <!-- SEARCH ACTIVE BANNER -->
   <div id="search-pill-wrap" class="search-pill-wrap" style="display:none">
-    <div class="search-pill-inner" style="display:flex;align-items:center;gap:.6rem">
+    <div class="search-pill-inner">
+      <span id="search-pill-count" style="font-size:.8rem;color:var(--ink-soft);font-weight:500"></span>
+      &nbsp;<span style="font-size:.8rem;color:var(--muted)">for</span>&nbsp;
       <span class="search-pill">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span id="search-pill-text"></span>
         <button class="search-pill-x" id="search-pill-clear" aria-label="Clear search">✕</button>
       </span>
-      <span id="search-pill-count" style="font-size:.72rem;color:var(--muted)"></span>
-    </div>
-  </div>
-
-  <!-- HERO BANNER -->
-  <div id="hero-banner" class="hero-banner">
-    <div class="hero-inner">
-      <div class="hero-content">
-        <div class="hero-tag" id="hero-tag">What is this?</div>
-        <p class="hero-tagline" id="hero-tagline">The same event. Two narratives. You decide.</p>
-        <p class="hero-desc" id="hero-desc">CrisisLens detects when major news outlets report the same event differently — comparing Arabic, Western, Israeli, and other sources in real time. Click any card to see the full comparison.</p>
-      </div>
-      <button class="hero-dismiss" id="hero-dismiss" aria-label="Dismiss">✕</button>
     </div>
   </div>
 
@@ -1105,8 +1105,6 @@
         <strong id="stat-total">—</strong>&nbsp;<span id="stat-lbl-contradictions">contradictions detected</span>
         <span class="breaking-sep">·</span>
         <strong id="stat-cross">—</strong>&nbsp;<span id="stat-lbl-cross">cross-perspective</span>
-        <span class="breaking-sep">·</span>
-        <span id="stat-shown">—</span>&nbsp;<span id="stat-lbl-shown">matching filters</span>
         <button class="wire-refresh" id="refresh-btn">↻ Refresh</button>
       </div>
     </div>
@@ -2020,8 +2018,13 @@
   function render() {
     if (!cache) return;
     const filtered = sortRows(cache.filter(rowMatches));
-    document.getElementById('stat-shown').textContent = filtered.length;
-    document.getElementById('stat-cross').textContent = cache.filter(isCross).length;
+    const isFiltered = searchQuery || topicFilter !== 'all' || scoreFilter !== 'all' || langFilter !== 'all';
+    document.getElementById('stat-total').textContent = filtered.length.toLocaleString();
+    document.getElementById('stat-lbl-contradictions').textContent = isFiltered
+      ? (preferAr ? 'تناقض في النتائج' : 'contradictions found')
+      : t('stat_contradictions');
+    document.getElementById('stat-cross').textContent = filtered.filter(isCross).length.toLocaleString();
+    document.getElementById('stat-lbl-cross').textContent = t('stat_cross');
 
     const sc = document.getElementById('search-count');
     if (sc) {
@@ -2032,17 +2035,20 @@
     const pillText  = document.getElementById('search-pill-text');
     const pillCount = document.getElementById('search-pill-count');
     const tabsRow   = document.querySelector('.cat-tabs-row');
+    const heroBanner= document.getElementById('hero-banner');
     if (pillWrap && pillText) {
       if (searchQuery) {
-        pillText.textContent  = searchQuery;
+        pillText.textContent = searchQuery;
         if (pillCount) pillCount.textContent = preferAr
           ? `${filtered.length} نتيجة`
           : `Showing ${filtered.length} result${filtered.length !== 1 ? 's' : ''}`;
         pillWrap.style.display = '';
         if (tabsRow) tabsRow.style.display = 'none';
+        if (heroBanner) heroBanner.style.display = 'none';
       } else {
         pillWrap.style.display = 'none';
         if (tabsRow) tabsRow.style.display = '';
+        if (heroBanner && !localStorage.getItem('cl.hero.dismissed')) heroBanner.style.display = '';
       }
     }
 
@@ -2508,7 +2514,6 @@
     document.getElementById('beta-label').textContent = t('beta');
     document.getElementById('stat-lbl-contradictions').textContent = t('stat_contradictions');
     document.getElementById('stat-lbl-cross').textContent = t('stat_cross');
-    document.getElementById('stat-lbl-shown').textContent = t('stat_shown');
     document.getElementById('refresh-btn').textContent = t('refresh');
     const cht = document.getElementById('cold-hint-text');
     const chs = document.getElementById('cold-hint-sub');
