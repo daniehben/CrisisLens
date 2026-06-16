@@ -432,11 +432,21 @@
     }
     .hero-vs::before, .hero-vs::after { content: ''; flex: 1; height: 1px; background: var(--line); }
     .hero-verdict {
-      font-size: .78rem; color: var(--muted); font-style: italic; line-height: 1.5;
-      margin: .5rem 0 .7rem;
+      margin: .6rem 0 .5rem;
+      padding: .45rem .7rem;
+      border-inline-start: 3px solid var(--accent);
+      background: color-mix(in srgb, var(--accent) 6%, transparent);
+      border-radius: 0 5px 5px 0;
+    }
+    .hero-verdict-label {
+      font-size: .58rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: .25rem; opacity: .85;
+    }
+    .hero-verdict-text {
+      font-size: .78rem; color: var(--ink-soft); line-height: 1.45;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    [dir="rtl"] .hero-verdict { font-style: normal; }
+    [dir="rtl"] .hero-verdict { border-radius: 5px 0 0 5px; }
     .hero-footer {
       display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
       padding-top: .7rem; border-top: 1px solid var(--line-soft); margin-top: auto;
@@ -589,11 +599,21 @@
     }
     .fc-vs::before, .fc-vs::after { content: ''; flex: 1; height: 1px; background: var(--line-soft); }
     .fc-verdict {
-      font-size: .68rem; color: var(--muted); font-style: italic; line-height: 1.45;
-      margin-bottom: .45rem;
+      margin: .6rem 0 .5rem;
+      padding: .4rem .6rem;
+      border-inline-start: 2.5px solid var(--accent);
+      background: color-mix(in srgb, var(--accent) 6%, transparent);
+      border-radius: 0 4px 4px 0;
+    }
+    .fc-verdict-label {
+      font-size: .58rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: .2rem; opacity: .85;
+    }
+    .fc-verdict-text {
+      font-size: .72rem; color: var(--ink-soft); line-height: 1.45;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    [dir="rtl"] .fc-verdict { font-style: normal; }
+    [dir="rtl"] .fc-verdict { border-radius: 4px 0 0 4px; }
     .fc-footer {
       display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
       padding-top: .55rem; border-top: 1px solid var(--line-soft); margin-top: auto;
@@ -1647,7 +1667,7 @@
     syria:     ['syria','damascus','aleppo','idlib','hts','rebel','سوريا','دمشق','حلب','إدلب'],
     yemen:     ['yemen','houthi','sanaa','hodeidah','red sea','اليمن','الحوثي','صنعاء','البحر الأحمر'],
     sudan:     ['sudan','darfur','khartoum','rsf','rapid support','السودان','دارفور','الخرطوم'],
-    iraq:      ['iraq','baghdad','mosul','kurdish','peshmerga','العراق','بغداد','الموصل'],
+    iraq:      ['iraq','baghdad','mosul','basra','erbil','peshmerga','العراق','بغداد','الموصل','البصرة','أربيل'],
     finance:   ['oil','dollar','gdp','inflation','economy','barrel','brent','opec','markets','النفط','الاقتصاد','أوبك'],
   };
 
@@ -1760,12 +1780,15 @@
   }
 
   function topicOf(c) {
+    const hay = [c.headline_1_en,c.headline_2_en,c.headline_1_ar,c.headline_2_ar]
+      .filter(Boolean).join(' ').toLowerCase();
+    let best = null, bestScore = 0;
+    const order = Object.keys(TOPICS); // used for tie-breaking
     for (const [topic, kws] of Object.entries(TOPICS)) {
-      const hay = [c.headline_1_en,c.headline_2_en,c.headline_1_ar,c.headline_2_ar]
-        .filter(Boolean).join(' ').toLowerCase();
-      if (kws.some(k => hay.includes(k))) return topic;
+      const score = kws.reduce((n, k) => n + (hay.includes(k) ? 1 : 0), 0);
+      if (score > bestScore) { bestScore = score; best = topic; }
     }
-    return 'other';
+    return bestScore > 0 ? best : 'other';
   }
 
   function groupByTopic(rows) {
@@ -1914,7 +1937,7 @@
             <span>${regionLabel(c.source_2)}</span>
           </div>
           <div class="hero-hl-2 ${hl2cls}">${h2||'—'}</div>
-          ${verdict ? `<div class="hero-verdict">${verdict}</div>` : ''}
+          ${verdict ? `<div class="hero-verdict"><div class="hero-verdict-label">${t('at_issue')}</div><div class="hero-verdict-text">${verdict}</div></div>` : ''}
           <div class="hero-footer">
             ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ} ${t('badge_numeric')}</span>` : ''}
             ${framing ? `<span class="badge badge-framing">${ICON_FRAME} ${t('badge_framing')}</span>` : ''}
@@ -1995,7 +2018,11 @@
           <div class="fc-vs">vs</div>
           <div class="fc-src"><span class="src-dot" style="background:${rc2}"></span>${n2}</div>
           <div class="fc-hl-2 ${hl2cls}">${h2||'—'}</div>
-          ${verdict ? `<div class="fc-verdict">${verdict}</div>` : ''}
+          ${verdict ? `
+          <div class="fc-verdict">
+            <div class="fc-verdict-label">${t('at_issue')}</div>
+            <div class="fc-verdict-text">${verdict}</div>
+          </div>` : ''}
           <div class="fc-footer">
             ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ}</span>` : ''}
             ${framing ? `<span class="badge badge-framing">${ICON_FRAME}</span>` : ''}
