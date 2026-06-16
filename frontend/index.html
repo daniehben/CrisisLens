@@ -2031,6 +2031,7 @@
     const pillWrap  = document.getElementById('search-pill-wrap');
     const pillText  = document.getElementById('search-pill-text');
     const pillCount = document.getElementById('search-pill-count');
+    const tabsRow   = document.querySelector('.cat-tabs-row');
     if (pillWrap && pillText) {
       if (searchQuery) {
         pillText.textContent  = searchQuery;
@@ -2038,8 +2039,10 @@
           ? `${filtered.length} نتيجة`
           : `Showing ${filtered.length} result${filtered.length !== 1 ? 's' : ''}`;
         pillWrap.style.display = '';
+        if (tabsRow) tabsRow.style.display = 'none';
       } else {
         pillWrap.style.display = 'none';
+        if (tabsRow) tabsRow.style.display = '';
       }
     }
 
