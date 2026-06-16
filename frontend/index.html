@@ -1016,6 +1016,109 @@
       .modal-body { padding: 1rem; }
       .score-tooltip { right: auto; left: 0; width: 200px; }
     }
+
+    /* ── Story cards ─────────────────────────────────────────────────────── */
+    .story-fc {
+      background: var(--bg-card);
+      border: 1.5px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+      border-radius: 12px; overflow: hidden; cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+      animation: cardIn .3s both;
+      display: flex; flex-direction: column;
+    }
+    .story-fc:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .story-fc-badge {
+      display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+      padding: .65rem .85rem .2rem;
+      font-size: .6rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--accent);
+    }
+    .story-badge-sep { color: var(--line); font-weight: 400; letter-spacing: 0; font-size: .75rem; }
+    .story-fc-dispute {
+      font-size: .84rem; font-weight: 700; color: var(--ink); line-height: 1.4;
+      padding: .1rem .85rem .55rem;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .story-spectrum {
+      padding: .35rem .85rem .55rem; display: flex; flex-direction: column; gap: .3rem;
+    }
+    .story-spectrum-label {
+      font-size: .57rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); display: flex; align-items: center; gap: .4rem;
+    }
+    .story-spectrum-label::after { content:''; flex:1; height:1px; background:var(--line-soft); }
+    .story-spectrum-track { display: flex; align-items: center; gap: .28rem; flex-wrap: wrap; }
+    .story-src-pill {
+      display: inline-flex; align-items: center; gap: .22rem;
+      font-size: .65rem; font-weight: 600; padding: .17rem .48rem .17rem .28rem;
+      border-radius: 999px; color: #fff; white-space: nowrap; opacity: .9;
+    }
+    .story-src-pill-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.55); flex-shrink:0; }
+    .story-fc-footer {
+      display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin-top: auto;
+      padding: .45rem .85rem .65rem; border-top: 1px solid var(--line-soft);
+    }
+
+    /* ── Story modal ─────────────────────────────────────────────────────── */
+    .story-modal-header {
+      padding: 1.1rem 1.4rem .85rem; border-bottom: 1px solid var(--line-soft);
+    }
+    .story-modal-badge {
+      font-size: .6rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: .5rem;
+      display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+    }
+    .story-modal-dispute {
+      font-size: 1.05rem; font-weight: 800; color: var(--ink); line-height: 1.4; margin-bottom: .65rem;
+    }
+    .story-modal-spectrum {
+      display: flex; align-items: center; gap: .28rem; flex-wrap: wrap;
+    }
+    .story-modal-spectrum-lbl {
+      font-size: .6rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); margin-inline-end: .25rem; white-space: nowrap;
+    }
+    .story-modal-body {
+      padding: 1rem 1.4rem; overflow-y: auto; max-height: calc(80vh - 230px);
+    }
+    .story-section-hd {
+      font-size: .6rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin: .85rem 0 .45rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .story-section-hd::after { content:''; flex:1; height:1px; background:var(--line-soft); }
+    .story-headlines-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: .55rem;
+      margin-bottom: .6rem;
+    }
+    .story-hl-card {
+      background: var(--bg-featured); border: 1px solid var(--line); border-radius: 8px;
+      padding: .6rem .7rem;
+    }
+    .story-hl-src {
+      display: flex; align-items: center; gap: .28rem;
+      font-size: .62rem; font-weight: 700; color: var(--ink-soft); margin-bottom: .3rem;
+    }
+    .story-hl-text {
+      font-size: .75rem; color: var(--ink); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .story-pair-row {
+      display: flex; align-items: center; gap: .55rem;
+      padding: .5rem .7rem; border: 1px solid var(--line); border-radius: 8px;
+      cursor: pointer; margin-bottom: .35rem;
+      transition: border-color .12s, background .12s;
+    }
+    .story-pair-row:hover { border-color: var(--accent); background: var(--bg-featured); }
+    .story-pair-score {
+      font-size: .72rem; font-weight: 800; color: var(--accent); flex-shrink: 0; min-width: 2.4rem;
+    }
+    .story-pair-srcs { font-size: .73rem; font-weight: 600; color: var(--ink-soft); flex: 1; }
+    .story-pair-vs { color: var(--muted); font-weight: 400; font-size: .7rem; }
+    .story-pair-arrow { font-size: .75rem; color: var(--muted-2); flex-shrink: 0; }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 </head>
@@ -1728,6 +1831,8 @@
 
   // ── State ─────────────────────────────────────────────────────────────
   let cache = null;
+  let storyById        = {};   // storyId → story object
+  let conflictToStoryId = {};  // conflict_id → storyId
   let preferAr   = localStorage.getItem('cl.lang') === 'ar';
   let langFilter  = 'all';
   let sortMode    = 'score';
@@ -1795,11 +1900,81 @@
     const order = [...Object.keys(TOPICS), 'other'];
     const groups = {};
     order.forEach(t => groups[t] = []);
-    rows.forEach(c => {
-      const t = topicOf(c);
-      groups[t].push(c);
+    rows.forEach(item => {
+      // Accept both raw conflict objects and {type,data} feed items
+      const pair = (item && item.type) ? (item.type === 'story' ? item.data.bestPair : item.data) : item;
+      const t = topicOf(pair);
+      groups[t].push(item);
     });
     return order.filter(t => groups[t].length > 0).map(t => ({ topic: t, items: groups[t] }));
+  }
+
+  // ── Story clustering ──────────────────────────────────────────────────
+  function buildStoryClusters(conflicts) {
+    const parent = {};
+    const find = x => {
+      if (!parent[x]) parent[x] = x;
+      if (parent[x] !== x) parent[x] = find(parent[x]);
+      return parent[x];
+    };
+    const union = (a, b) => { parent[find(a)] = find(b); };
+
+    conflicts.forEach(c => {
+      if (c.article_id_1 && c.article_id_2) union(`a${c.article_id_1}`, `a${c.article_id_2}`);
+    });
+
+    const clusterPairs = {};
+    conflicts.forEach(c => {
+      if (!c.article_id_1) return;
+      const root = find(`a${c.article_id_1}`);
+      if (!clusterPairs[root]) clusterPairs[root] = [];
+      clusterPairs[root].push(c);
+    });
+
+    const result = {};
+    Object.entries(clusterPairs).forEach(([, pairs]) => {
+      // Collect unique sources; score divergence by avg contradiction score against others
+      const srcMap = {};
+      pairs.forEach(p => {
+        [['source_1','source_1_name'], ['source_2','source_2_name']].forEach(([ck, nk]) => {
+          const code = p[ck]; if (!code) return;
+          if (!srcMap[code]) srcMap[code] = { code, name: p[nk]||code, color: regionColor(code), total:0, n:0 };
+          srcMap[code].total += parseFloat(p.contradiction_score||0);
+          srcMap[code].n++;
+        });
+      });
+      const sources = Object.values(srcMap)
+        .map(s => ({ ...s, divergence: s.n ? s.total/s.n : 0 }))
+        .sort((a,b) => b.divergence - a.divergence);
+
+      const bestPair = [...pairs].sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score))[0];
+      const storyId  = `S${bestPair.conflict_id}`;
+      result[storyId] = { id: storyId, pairs, sources, score: parseFloat(bestPair.weighted_score), detected_at: bestPair.detected_at, bestPair };
+    });
+    return result;
+  }
+
+  // Convert a filtered flat array of pairs → mixed [{type:'story',data}|{type:'pair',data}]
+  // preserving sort order, deduplicating stories to one card per cluster
+  function toFeedItems(pairs) {
+    const rendered = new Set();
+    const items    = [];
+    pairs.forEach(c => {
+      const sid = conflictToStoryId[c.conflict_id];
+      if (!sid) { items.push({ type:'pair', data:c }); return; }
+      if (rendered.has(sid)) return;
+      rendered.add(sid);
+      const story = storyById[sid];
+      if (story && story.sources.length >= 3) items.push({ type:'story', data:story });
+      else items.push({ type:'pair', data: story ? story.bestPair : c });
+    });
+    return items;
+  }
+
+  function renderFeedItem(item, i) {
+    if (item && item.type === 'story') return buildStoryCard(item.data, i);
+    const c = (item && item.type === 'pair') ? item.data : item;
+    return buildCard(c, false, i);
   }
 
   function buildTopicSections(groups) {
@@ -1820,11 +1995,11 @@
           </div>
           <div class="topic-section-body">
             <div class="feed-grid">
-              ${preview.map((c,i) => buildCard(c,false,i)).join('')}
+              ${preview.map((item,i) => renderFeedItem(item,i)).join('')}
             </div>
             ${overflow.length ? `
               <div class="feed-grid fc-overflow" style="display:none;margin-top:.75rem">
-                ${overflow.map((c,i) => buildCard(c,false,SECTION_PREVIEW+i)).join('')}
+                ${overflow.map((item,i) => renderFeedItem(item,SECTION_PREVIEW+i)).join('')}
               </div>
               <button class="section-expand-btn" onclick="expandSection(this)">
                 ${preferAr ? `عرض ${overflow.length} المزيد` : `Show ${overflow.length} more`}
@@ -2040,6 +2215,103 @@
       </div>`;
   }
 
+  // ── Story card & modal ────────────────────────────────────────────────
+  function buildStoryCard(story, idx) {
+    const dispute = shortVerdict(story.bestPair) || (preferAr ? 'تناقض متعدد المصادر' : 'Multi-source contradiction');
+    const sev  = severityOf(story.score);
+    const conf = Math.round(story.score * 100);
+    const delay = Math.min((idx||0) * 0.04, 0.24);
+    const srcLabel = preferAr ? 'مصادر' : 'sources';
+    const ctrLabel = preferAr ? 'تناقض' : `contradiction${story.pairs.length!==1?'s':''}`;
+    const specLabel = preferAr ? 'طيف المصادر' : 'Source spectrum';
+    return `
+      <div class="story-fc card-in" style="animation-delay:${delay}s" data-sid="${story.id}">
+        <div class="story-fc-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          STORY
+          <span class="story-badge-sep">·</span>
+          ${story.sources.length} ${srcLabel}
+          <span class="story-badge-sep">·</span>
+          ${story.pairs.length} ${ctrLabel}
+        </div>
+        <div class="story-fc-dispute">${dispute}</div>
+        <div class="story-spectrum">
+          <div class="story-spectrum-label">${specLabel}</div>
+          <div class="story-spectrum-track">
+            ${story.sources.map(s=>`<span class="story-src-pill" style="background:${s.color}"><span class="story-src-pill-dot"></span>${s.name}</span>`).join('')}
+          </div>
+        </div>
+        <div class="story-fc-footer">
+          <span class="fc-time">${timeAgo(story.detected_at)}</span>
+          <div class="conf-wrap" style="margin-inline-start:auto">
+            <div class="conf-bar"><span style="width:${conf}%"></span></div>
+            <div class="score-info">
+              <span class="conf-pct ${sev.cls}">${t(sev.key)}</span>
+              <i class="score-info-icon">?<span class="score-tooltip">${t('score_tooltip')}</span></i>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function buildStoryModal(story) {
+    const dispute  = shortVerdict(story.bestPair) || (preferAr ? 'تناقض متعدد المصادر' : 'Multi-source contradiction');
+    const srcLabel = preferAr ? 'مصادر' : 'sources';
+    const ctrLabel = preferAr ? 'تناقض' : `contradiction${story.pairs.length!==1?'s':''}`;
+    const specLabel = preferAr ? 'طيف المصادر' : 'Source spectrum';
+
+    // Deduplicate articles across all pairs
+    const articleMap = {};
+    story.pairs.forEach(p => {
+      if (p.article_id_1 && !articleMap[p.article_id_1]) {
+        articleMap[p.article_id_1] = { hl_en: p.headline_1_en, hl_ar: p.headline_1_ar, src: p.source_1_name||p.source_1, color: regionColor(p.source_1) };
+      }
+      if (p.article_id_2 && !articleMap[p.article_id_2]) {
+        articleMap[p.article_id_2] = { hl_en: p.headline_2_en, hl_ar: p.headline_2_ar, src: p.source_2_name||p.source_2, color: regionColor(p.source_2) };
+      }
+    });
+    const articles = Object.values(articleMap);
+    const topPairs = [...story.pairs].sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score)).slice(0,5);
+
+    return `
+      <div>
+        <div class="story-modal-header">
+          <div class="story-modal-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            STORY <span class="story-badge-sep">·</span> ${story.sources.length} ${srcLabel} <span class="story-badge-sep">·</span> ${story.pairs.length} ${ctrLabel}
+          </div>
+          <div class="story-modal-dispute">${dispute}</div>
+          <div class="story-modal-spectrum">
+            <span class="story-modal-spectrum-lbl">${specLabel}:</span>
+            ${story.sources.map(s=>`<span class="story-src-pill" style="background:${s.color}"><span class="story-src-pill-dot"></span>${s.name}</span>`).join('')}
+          </div>
+        </div>
+        <div class="story-modal-body">
+          <div class="story-section-hd">${preferAr ? 'ما تقوله المصادر' : 'What each source says'}</div>
+          <div class="story-headlines-grid">
+            ${articles.map(a => {
+              const hl = (preferAr && a.hl_ar) ? a.hl_ar : (a.hl_en || '—');
+              return `<div class="story-hl-card">
+                <div class="story-hl-src"><span class="src-dot" style="background:${a.color}"></span>${a.src}</div>
+                <div class="story-hl-text${hasArabic(hl)?' ar':''}">${hl}</div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="story-section-hd">${preferAr ? 'أقوى التناقضات' : 'Strongest contradictions'} <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.68rem;color:var(--muted-2)">${preferAr?'— انقر للمقارنة الكاملة':'— click to compare'}</span></div>
+          ${topPairs.map(p => {
+            const n1 = p.source_1_name||p.source_1;
+            const n2 = p.source_2_name||p.source_2;
+            const sc = Math.round(parseFloat(p.weighted_score)*100);
+            return `<div class="story-pair-row" onclick="location.hash='#c${p.conflict_id}'">
+              <span class="story-pair-score">${sc}%</span>
+              <span class="story-pair-srcs">${n1} <span class="story-pair-vs">vs</span> ${n2}</span>
+              <span class="story-pair-arrow">→</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }
+
   // ── Render ────────────────────────────────────────────────────────────
   function render() {
     if (!cache) return;
@@ -2104,10 +2376,12 @@
     const feedSections = document.getElementById('feed-sections');
     // Topic sections only when browsing "All" with no active search
     if (topicFilter === 'all' && !searchQuery) {
-      feedSections.innerHTML = buildTopicSections(groupByTopic(visible));
+      const feedItems = toFeedItems(visible);
+      feedSections.innerHTML = buildTopicSections(groupByTopic(feedItems));
     } else {
       // Flat grid for filtered/search views
-      feedSections.innerHTML = `<div class="feed-grid">${visible.map((c,i) => buildCard(c,false,i)).join('')}</div>`;
+      const feedItems = toFeedItems(visible);
+      feedSections.innerHTML = `<div class="feed-grid">${feedItems.map((item,i) => renderFeedItem(item,i)).join('')}</div>`;
     }
 
     // Load more button
@@ -2132,6 +2406,12 @@
       el.addEventListener('click', e => {
         if (e.target.closest('a')) return;
         location.hash = `#c${el.dataset.cid}`;
+      });
+    });
+    document.querySelectorAll('[data-sid]').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('a')) return;
+        openStory(el.dataset.sid);
       });
     });
   }
@@ -2505,6 +2785,13 @@
     activate('cmp');
   }
 
+  function openStory(storyId) {
+    const story = storyById[storyId];
+    if (!story) return;
+    document.getElementById('modal-box').innerHTML = buildStoryModal(story);
+    document.getElementById('modal-wrap').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
   function openModal(id) {
     if (!cache) return;
     const c = cache.find(x=>String(x.conflict_id)===String(id));
@@ -2600,6 +2887,12 @@
     }
     // API returns {total, limit, offset, items} — fall back to bare array for old deploys
     cache = Array.isArray(data) ? data : (data.items || []);
+    // Build story clusters from the loaded pairs
+    storyById = buildStoryClusters(cache);
+    conflictToStoryId = {};
+    Object.entries(storyById).forEach(([sid, story]) => {
+      story.pairs.forEach(p => { conflictToStoryId[p.conflict_id] = sid; });
+    });
     const totalCount = Array.isArray(data) ? cache.length : (data.total ?? cache.length);
     document.getElementById('stat-total').textContent = totalCount.toLocaleString();
     document.getElementById('main-view').style.display = '';
