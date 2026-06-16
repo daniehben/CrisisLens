@@ -215,6 +215,25 @@
     }
     .ctrl-chip:hover { color: var(--ink); border-color: var(--muted-2); }
     .ctrl-chip.active { color: var(--ink); border-color: var(--ink-soft); background: var(--line-soft); }
+    .ctrl-divider { width: 1px; height: 16px; background: var(--line); margin: 0 .2rem; flex-shrink: 0; }
+    .ctrl-group-label {
+      font-size: .65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+      color: var(--muted); white-space: nowrap; display: flex; align-items: center; gap: .25rem;
+    }
+    .ctrl-info {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 13px; height: 13px; border-radius: 50%;
+      border: 1px solid var(--muted-2); font-size: .6rem; font-style: normal;
+      color: var(--muted); cursor: help; position: relative;
+    }
+    .ctrl-info[title]:hover::after {
+      content: attr(title);
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: var(--bg); font-size: .68rem; font-weight: 400;
+      padding: .4rem .6rem; border-radius: 6px; white-space: normal; width: 220px;
+      text-align: left; line-height: 1.4; z-index: 50; pointer-events: none;
+      letter-spacing: 0; text-transform: none;
+    }
 
     /* ── Search Bar — always visible, prominent ────────────────────────── */
     .search-bar {
@@ -782,6 +801,38 @@
     }
     .read-btn:hover { opacity:.75; }
 
+    /* ── Market signals panel ───────────────────────────────────────────── */
+    .mkt-panel {
+      margin: 1.1rem 0 .25rem;
+      background: var(--bg-featured);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: .65rem .85rem;
+    }
+    .mkt-label {
+      font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: .5rem; display: flex; align-items: center; gap: .4rem;
+    }
+    .mkt-label svg { flex-shrink: 0; }
+    .mkt-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .mkt-chip {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .73rem; font-weight: 600;
+      padding: .28rem .65rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--bg-card);
+      color: var(--ink-soft);
+      text-decoration: none;
+      transition: border-color .12s, color .12s, background .12s;
+      white-space: nowrap;
+    }
+    .mkt-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .mkt-chip i { font-size: 13px; color: var(--muted); flex-shrink: 0; }
+    .mkt-disclaimer {
+      font-size: .62rem; color: var(--muted-2); margin-top: .5rem; font-style: italic;
+    }
+
     .signal-details {
       margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1rem;
     }
@@ -946,6 +997,7 @@
       .score-tooltip { right: auto; left: 0; width: 200px; }
     }
   </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 </head>
 <body>
 
@@ -987,12 +1039,13 @@
 
   <!-- SEARCH ACTIVE PILL -->
   <div id="search-pill-wrap" class="search-pill-wrap" style="display:none">
-    <div class="search-pill-inner">
+    <div class="search-pill-inner" style="display:flex;align-items:center;gap:.6rem">
       <span class="search-pill">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span id="search-pill-text"></span>
         <button class="search-pill-x" id="search-pill-clear" aria-label="Clear search">✕</button>
       </span>
+      <span id="search-pill-count" style="font-size:.72rem;color:var(--muted)"></span>
     </div>
   </div>
 
@@ -1030,11 +1083,14 @@
       <div class="cat-controls">
         <button class="ctrl-chip filter-lang active" data-lang="all">All langs</button>
         <button class="ctrl-chip filter-lang" data-lang="ar">عربي</button>
-        <button class="ctrl-chip filter-score active" data-score="all">All scores</button>
-        <button class="ctrl-chip filter-score" data-score="0.45">Strong ≥0.45</button>
-        <button class="ctrl-chip filter-score" data-score="0.65">Critical ≥0.65</button>
-        <button class="ctrl-chip filter-sort active" data-sort="score">Strongest</button>
-        <button class="ctrl-chip filter-sort" data-sort="recent">Recent</button>
+        <span class="ctrl-divider"></span>
+        <span class="ctrl-group-label" id="ctrl-conf-label">Confidence <span class="ctrl-info" tabindex="0" title="How confident the AI is that this is a genuine contradiction — based on language model NLI score weighted by source trust.">ℹ</span></span>
+        <button class="ctrl-chip filter-score active" data-score="all" id="fs-all">Any</button>
+        <button class="ctrl-chip filter-score" data-score="0.45" id="fs-credible">Credible match</button>
+        <button class="ctrl-chip filter-score" data-score="0.65" id="fs-high">High confidence</button>
+        <span class="ctrl-divider"></span>
+        <button class="ctrl-chip filter-sort active" data-sort="score" id="fsort-score">Strongest first</button>
+        <button class="ctrl-chip filter-sort" data-sort="recent" id="fsort-recent">Most recent</button>
       </div>
     </div>
   </nav>
@@ -1222,10 +1278,10 @@
           <h2 class="meth-h2">From raw headline to displayed conflict</h2>
           <p class="meth-p">Every 15 minutes the pipeline runs end-to-end automatically:</p>
           <div class="meth-step"><div class="meth-step-num">1</div><div class="meth-step-text"><strong>Ingest</strong> — RSS feeds and public Telegram channels are fetched. Articles are deduplicated by URL.</div></div>
-          <div class="meth-step"><div class="meth-step-num">2</div><div class="meth-step-text"><strong>Translate</strong> — Arabic headlines and summaries are machine-translated to English using Google Translate (free tier). Bias analysis labels are also translated back to Arabic for the Arabic UI.</div></div>
-          <div class="meth-step"><div class="meth-step-num">3</div><div class="meth-step-text"><strong>Embed</strong> — Each article is converted to a 384-dimensional semantic vector using <code>paraphrase-multilingual-MiniLM-L12-v2</code>, a local CPU model that handles Arabic and English natively. The embedding is built from headline + summary so topically similar but factually different articles are separated.</div></div>
+          <div class="meth-step"><div class="meth-step-num">2</div><div class="meth-step-text"><strong>Translate</strong> — Arabic headlines and summaries are translated to English via <code>Groq LLM</code> (Llama 3, fast model). Framing analysis labels are also translated back to Arabic for the Arabic UI.</div></div>
+          <div class="meth-step"><div class="meth-step-num">3</div><div class="meth-step-text"><strong>Embed</strong> — Each article is converted to a 384-dimensional semantic vector using the <code>Jina AI Embeddings API</code> (<code>jina-embeddings-v3</code>), a multilingual model that handles Arabic and English natively. The embedding is built from headline + summary so topically similar but factually different articles are separated.</div></div>
           <div class="meth-step"><div class="meth-step-num">4</div><div class="meth-step-text"><strong>Pair</strong> — Articles with cosine similarity above 0.70 are paired as candidate contradictions. Same-source pairs are excluded. The pool is limited to recent articles (within 72 hours of each other) to avoid pairing stale reports.</div></div>
-          <div class="meth-step"><div class="meth-step-num">5</div><div class="meth-step-text"><strong>NLI</strong> — Each pair is run through <code>mDeBERTa-v3-base-xnli-multilingual-nli-2mil7</code>, a zero-shot natural language inference model. It classifies the pair as <em>entailment</em>, <em>neutral</em>, or <em>contradiction</em>. Pairs scoring below the contradiction threshold are discarded.</div></div>
+          <div class="meth-step"><div class="meth-step-num">5</div><div class="meth-step-text"><strong>NLI</strong> — Each pair is run through <code>Groq LLM</code> (Llama 3, fast model) with a zero-shot natural language inference prompt. It classifies the pair as <em>entailment</em>, <em>neutral</em>, or <em>contradiction</em> with a confidence score. Pairs scoring below the contradiction threshold are discarded.</div></div>
           <div class="meth-step"><div class="meth-step-num">6</div><div class="meth-step-text"><strong>Score</strong> — A conflict score is computed from the NLI contradiction probability, source trust weights, and a diversity bonus. The result is a single number from 0 to 1.</div></div>
           <div class="meth-step"><div class="meth-step-num">7</div><div class="meth-step-text"><strong>Framing analysis</strong> — A language model (Groq Llama 3) reads the article pair and writes a short prose analysis of the framing differences, emotional language, and named-party treatment between the two sources.</div></div>
         </div>
@@ -1443,7 +1499,7 @@
       beta: 'BETA', lang_toggle: 'العربية', wordmark: 'CrisisLens',
       cat_all: 'All', cat_palestine: 'Palestine', cat_iran: 'Iran',
       cat_lebanon: 'Lebanon', cat_syria: 'Syria', cat_yemen: 'Yemen',
-      cat_ukraine: 'Ukraine', cat_finance: 'Finance',
+      cat_ukraine: 'Ukraine', cat_sudan: 'Sudan', cat_iraq: 'Iraq', cat_finance: 'Finance',
       ctrl_all_langs: 'All langs', ctrl_ar: 'عربي',
       ctrl_strongest: 'Strongest', ctrl_recent: 'Recent',
       stat_contradictions: 'contradictions detected',
@@ -1501,7 +1557,7 @@
       beta: 'تجريبي', lang_toggle: 'English', wordmark: 'كرايسيس لنز',
       cat_all: 'الكل', cat_palestine: 'فلسطين', cat_iran: 'إيران',
       cat_lebanon: 'لبنان', cat_syria: 'سوريا', cat_yemen: 'اليمن',
-      cat_ukraine: 'أوكرانيا', cat_finance: 'الاقتصاد',
+      cat_ukraine: 'أوكرانيا', cat_sudan: 'السودان', cat_iraq: 'العراق', cat_finance: 'الاقتصاد',
       ctrl_all_langs: 'كل اللغات', ctrl_ar: 'عربي',
       ctrl_strongest: 'الأقوى', ctrl_recent: 'الأحدث',
       stat_contradictions: 'تناقض رُصد',
@@ -1972,11 +2028,19 @@
       if (searchQuery) { sc.textContent = preferAr ? `${filtered.length} نتيجة` : `${filtered.length} results`; sc.style.display='block'; }
       else sc.style.display='none';
     }
-    const pillWrap = document.getElementById('search-pill-wrap');
-    const pillText = document.getElementById('search-pill-text');
+    const pillWrap  = document.getElementById('search-pill-wrap');
+    const pillText  = document.getElementById('search-pill-text');
+    const pillCount = document.getElementById('search-pill-count');
     if (pillWrap && pillText) {
-      if (searchQuery) { pillText.textContent = searchQuery; pillWrap.style.display = ''; }
-      else pillWrap.style.display = 'none';
+      if (searchQuery) {
+        pillText.textContent  = searchQuery;
+        if (pillCount) pillCount.textContent = preferAr
+          ? `${filtered.length} نتيجة`
+          : `Showing ${filtered.length} result${filtered.length !== 1 ? 's' : ''}`;
+        pillWrap.style.display = '';
+      } else {
+        pillWrap.style.display = 'none';
+      }
     }
 
     // Top 4: hero + 3 sidebar
@@ -2128,6 +2192,43 @@
     return fallback || null;
   }
 
+  // ── Market signals ────────────────────────────────────────────────────────
+  const INSTRUMENTS = [
+    { id:'brent',   icon:'ti-droplet',          label:'Brent',    url:'https://www.investing.com/commodities/crude-oil',
+      kw:['gaza','israel','iran','iraq','saudi','arabia','yemen','libya','oil','petroleum','opec','houthi','strait','hormuz','erbil','gulf'] },
+    { id:'natgas',  icon:'ti-flame',             label:'Nat Gas',  url:'https://www.investing.com/commodities/natural-gas',
+      kw:['russia','ukraine','pipeline','natural gas','lng','europe','energy','nord stream','moldova','belarus'] },
+    { id:'gold',    icon:'ti-currency-dollar',   label:'Gold',     url:'https://www.investing.com/commodities/gold',
+      kw:[] },
+    { id:'wheat',   icon:'ti-plant',             label:'Wheat',    url:'https://www.investing.com/commodities/us-wheat',
+      kw:['ukraine','russia','grain','wheat','food','agriculture','sudan','famine','blockade','black sea'] },
+    { id:'defense', icon:'ti-shield',            label:'Defense',  url:'https://www.investing.com/equities/most-active-stock-market',
+      kw:['missile','strike','attack','military','weapon','army','war','bomb','airstrike','artillery','troops','drone','invasion','offensive','deploy','naval'] },
+    { id:'usdils',  icon:'ti-currency-shekel',   label:'USD/ILS',  url:'https://www.investing.com/currencies/usd-ils',
+      kw:['israel','jerusalem','tel aviv','netanyahu','idf','west bank','hamas','hezbollah','rafah','settler','annexation'] },
+    { id:'usdsar',  icon:'ti-currency-riyal',    label:'USD/SAR',  url:'https://www.investing.com/currencies/usd-sar',
+      kw:['saudi','riyadh','mbs','aramco','crown prince','neom','vision 2030'] },
+    { id:'usdirr',  icon:'ti-currency-iran',     label:'USD/IRR',  url:'https://www.investing.com/currencies/usd-irr',
+      kw:['iran','tehran','khamenei','irgc','nuclear','sanctions','enrichment','rouhani','raisi'] },
+    { id:'usdtry',  icon:'ti-currency-lira',     label:'USD/TRY',  url:'https://www.investing.com/currencies/usd-try',
+      kw:['turkey','erdogan','ankara','lira','turkish','nato','syria','kurdish','pkk'] },
+    { id:'usduah',  icon:'ti-trending-up',       label:'USD/UAH',  url:'https://www.investing.com/currencies/usd-uah',
+      kw:['ukraine','zelensky','kyiv','kharkiv','mariupol','donbas','zelenskyy','kherson','zaporizhzhia'] },
+  ];
+
+  function getMarketSignals(c) {
+    const text = [c.headline_1_en, c.headline_2_en, c.headline_1_ar, c.headline_2_ar,
+                  c.source_1_name, c.source_2_name, c.topic].filter(Boolean).join(' ').toLowerCase();
+    const matched = INSTRUMENTS.filter(inst =>
+      inst.kw.length > 0 && inst.kw.some(kw => text.includes(kw))
+    );
+    // Gold appears on any strong conflict (score ≥ 0.50)
+    if (parseFloat(c.weighted_score) >= 0.50 && !matched.find(m => m.id === 'gold')) {
+      matched.push(INSTRUMENTS.find(m => m.id === 'gold'));
+    }
+    return matched.slice(0, 6);
+  }
+
   function buildCmpPane(c) {
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
     const sim  = Math.round(parseFloat(c.similarity_score)*100);
@@ -2258,6 +2359,26 @@
 
         ${factual ? `<div class="sub-label" style="margin-top:1rem">${t('factual_disagreement')}</div><p class="cmp-detail" dir="auto">${factual}</p>` : ''}
         ${framing ? `<div class="sub-label" style="margin-top:.75rem">${t('framing_difference')}</div><p class="cmp-detail" dir="auto">${framing}</p>` : ''}
+
+        ${(() => {
+          const sigs = getMarketSignals(c);
+          if (!sigs.length) return '';
+          const disclaimer = preferAr
+            ? 'إشارات استكشافية · ليست توصيات مالية'
+            : 'Exploratory signals only · Not financial advice';
+          const panelLabel = preferAr ? 'قد يتحرك' : 'May move';
+          return `
+          <div class="mkt-panel">
+            <div class="mkt-label">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              ${panelLabel}
+            </div>
+            <div class="mkt-chips">
+              ${sigs.map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer" class="mkt-chip"><i class="ti ${s.icon}" aria-hidden="true"></i>${s.label}</a>`).join('')}
+            </div>
+            <div class="mkt-disclaimer">${disclaimer}</div>
+          </div>`;
+        })()}
 
         ${(c.url_a || c.url_b) ? `
         <div class="read-originals">
