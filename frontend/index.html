@@ -1134,32 +1134,54 @@
     .story-tab:hover:not(.active) { color: var(--ink-soft); }
 
     /* Compare All pane */
+    /* Compare All — dispute block */
     .story-dispute-block {
-      margin: 0 0 1rem; padding: .55rem .8rem;
+      margin: 0 0 1.1rem; padding: .65rem .9rem;
       border-inline-start: 3px solid var(--accent);
       background: color-mix(in srgb, var(--accent) 6%, transparent);
-      border-radius: 0 6px 6px 0;
+      border-radius: 0 7px 7px 0;
     }
-    [dir="rtl"] .story-dispute-block { border-radius: 6px 0 0 6px; }
+    [dir="rtl"] .story-dispute-block { border-radius: 7px 0 0 7px; }
     .story-dispute-label {
       font-size: .57rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
-      color: var(--accent); opacity: .85; margin-bottom: .2rem;
+      color: var(--accent); opacity: .85; margin-bottom: .25rem;
     }
-    .story-dispute-q { font-size: .88rem; font-weight: 700; color: var(--ink); line-height: 1.4; }
-    .story-compare-cols {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .7rem;
+    .story-dispute-q { font-size: .9rem; font-weight: 700; color: var(--ink); line-height: 1.45; }
+
+    /* Compare All — perspective rows */
+    .story-perspective {
+      border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+      margin-bottom: .5rem;
     }
-    .story-compare-col {
-      background: var(--bg-featured); border: 1px solid var(--line); border-radius: 10px;
-      padding: .75rem .85rem; display: flex; flex-direction: column; gap: .35rem;
+    .story-perspective-hd {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .45rem .85rem;
+      border-bottom: 1px solid var(--line-soft);
     }
-    .story-compare-src { display: flex; align-items: center; gap: .3rem; font-size: .68rem; font-weight: 700; }
-    .story-compare-hl { font-size: .81rem; font-weight: 700; color: var(--ink); line-height: 1.4; flex: 1; }
-    .story-compare-sum {
-      font-size: .72rem; color: var(--ink-soft); line-height: 1.5; margin-top: .15rem;
-      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
-      border-top: 1px solid var(--line-soft); padding-top: .35rem;
+    .story-perspective-src { font-size: .7rem; font-weight: 800; }
+    .story-perspective-region { font-size: .63rem; color: var(--muted); font-weight: 400; }
+    .story-perspective-body { padding: .65rem .85rem; display: flex; flex-direction: column; gap: .3rem; }
+    .story-perspective-hl { font-size: .82rem; font-weight: 700; color: var(--ink); line-height: 1.4; }
+    .story-perspective-sum {
+      font-size: .72rem; color: var(--ink-soft); line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
     }
+
+    /* Contradiction connector between perspective rows */
+    .story-ctr-connector {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .2rem 0 .2rem .85rem; margin-bottom: .5rem;
+    }
+    .story-ctr-connector-line { flex: 1; height: 1px; background: var(--line-soft); }
+    .story-ctr-connector-badge {
+      display: inline-flex; align-items: center; gap: .3rem;
+      font-size: .62rem; font-weight: 700; color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      padding: .15rem .5rem; border-radius: 999px; white-space: nowrap; cursor: pointer;
+      transition: background .12s;
+    }
+    .story-ctr-connector-badge:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 </head>
@@ -2305,14 +2327,28 @@
     const articleMap = {};
     story.pairs.forEach(p => {
       if (p.article_id_1 && !articleMap[p.article_id_1]) {
-        articleMap[p.article_id_1] = { hl_en: p.headline_1_en, hl_ar: p.headline_1_ar, sum_en: p.summary_1, sum_ar: p.summary_1_ar, src: p.source_1_name||p.source_1, color: regionColor(p.source_1) };
+        articleMap[p.article_id_1] = { id: p.article_id_1, hl_en: p.headline_1_en, hl_ar: p.headline_1_ar, sum_en: p.summary_1, sum_ar: p.summary_1_ar, src: p.source_1_name||p.source_1, code: p.source_1, color: regionColor(p.source_1) };
       }
       if (p.article_id_2 && !articleMap[p.article_id_2]) {
-        articleMap[p.article_id_2] = { hl_en: p.headline_2_en, hl_ar: p.headline_2_ar, sum_en: p.summary_2, sum_ar: p.summary_2_ar, src: p.source_2_name||p.source_2, color: regionColor(p.source_2) };
+        articleMap[p.article_id_2] = { id: p.article_id_2, hl_en: p.headline_2_en, hl_ar: p.headline_2_ar, sum_en: p.summary_2, sum_ar: p.summary_2_ar, src: p.source_2_name||p.source_2, code: p.source_2, color: regionColor(p.source_2) };
       }
     });
     const articles  = Object.values(articleMap);
-    const topPairs  = [...story.pairs].sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score)).slice(0,5);
+    // Sort articles by average contradiction score (most divergent first — same order as source spectrum)
+    const srcDivergence = {};
+    story.sources.forEach(s => { srcDivergence[s.code] = s.divergence; });
+    articles.sort((a,b) => (srcDivergence[b.code]||0) - (srcDivergence[a.code]||0));
+
+    const topPairs = [...story.pairs].sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score)).slice(0,5);
+
+    // Build a lookup: which pairs connect article X to article Y?
+    const pairByArticles = {};
+    story.pairs.forEach(p => {
+      const key1 = `${p.article_id_1}_${p.article_id_2}`;
+      const key2 = `${p.article_id_2}_${p.article_id_1}`;
+      if (!pairByArticles[key1] || parseFloat(p.weighted_score) > parseFloat(pairByArticles[key1].weighted_score)) pairByArticles[key1] = p;
+      if (!pairByArticles[key2] || parseFloat(p.weighted_score) > parseFloat(pairByArticles[key2].weighted_score)) pairByArticles[key2] = p;
+    });
 
     const pairRows = topPairs.map(p => {
       const n1 = p.source_1_name||p.source_1, n2 = p.source_2_name||p.source_2;
@@ -2324,6 +2360,7 @@
       </div>`;
     }).join('');
 
+    // Overview: headline cards grid
     const hlCards = articles.map(a => {
       const hl = (preferAr && a.hl_ar) ? a.hl_ar : (a.hl_en||'—');
       return `<div class="story-hl-card">
@@ -2332,24 +2369,45 @@
       </div>`;
     }).join('');
 
-    const compareCols = articles.map(a => {
+    // Compare All: full-width perspective rows with contradiction connectors
+    const perspectiveRows = [];
+    articles.forEach((a, i) => {
       const hl  = (preferAr && a.hl_ar)  ? a.hl_ar  : (a.hl_en  || '—');
       const sum = (preferAr && a.sum_ar) ? a.sum_ar : (a.sum_en || '');
-      return `<div class="story-compare-col">
-        <div class="story-compare-src">
-          <span class="src-dot" style="background:${a.color}"></span>
-          <strong style="color:${a.color}">${a.src}</strong>
-        </div>
-        <div class="story-compare-hl${hasArabic(hl)?' ar':''}">${hl}</div>
-        ${sum ? `<div class="story-compare-sum${hasArabic(sum)?' ar':''}">${sum}</div>` : ''}
-      </div>`;
-    }).join('');
+      perspectiveRows.push(`
+        <div class="story-perspective">
+          <div class="story-perspective-hd" style="background:color-mix(in srgb,${a.color} 10%,var(--bg-card));border-bottom-color:color-mix(in srgb,${a.color} 30%,var(--line))">
+            <span class="src-dot" style="background:${a.color}"></span>
+            <span class="story-perspective-src" style="color:${a.color}">${a.src}</span>
+            <span class="story-perspective-region">${regionLabel(a.code)}</span>
+          </div>
+          <div class="story-perspective-body">
+            <div class="story-perspective-hl${hasArabic(hl)?' ar':''}">${hl}</div>
+            ${sum ? `<div class="story-perspective-sum${hasArabic(sum)?' ar':''}">${sum}</div>` : ''}
+          </div>
+        </div>`);
 
-    const switchTab = `
-      this.parentElement.querySelectorAll('.story-tab').forEach(b=>b.classList.remove('active'));
-      this.classList.add('active');
-      const m=this.closest('[data-story-modal]');
-    `;
+      // After each article (except last), check if there's a high-score pair with the next article
+      if (i < articles.length - 1) {
+        const nextA = articles[i + 1];
+        const pair = pairByArticles[`${a.id}_${nextA.id}`] || pairByArticles[`${nextA.id}_${a.id}`];
+        if (pair) {
+          const sc = Math.round(parseFloat(pair.weighted_score) * 100);
+          const label = preferAr ? `${sc}% تناقض` : `${sc}% contradiction`;
+          perspectiveRows.push(`
+            <div class="story-ctr-connector">
+              <div class="story-ctr-connector-line"></div>
+              <div class="story-ctr-connector-badge" onclick="location.hash='#c${pair.conflict_id}'">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                ${label} — ${preferAr?'قارن':'compare'}
+              </div>
+              <div class="story-ctr-connector-line"></div>
+            </div>`);
+        }
+      }
+    });
+
+    const switchTab = `this.parentElement.querySelectorAll('.story-tab').forEach(b=>b.classList.remove('active'));this.classList.add('active');const m=this.closest('[data-story-modal]');`;
 
     return `
       <div data-story-modal="1">
@@ -2385,9 +2443,7 @@
             <div class="story-dispute-label">${t('at_issue')}</div>
             <div class="story-dispute-q">${dispute}</div>
           </div>
-          <div class="story-compare-cols">${compareCols}</div>
-          <div class="story-section-hd" style="margin-top:1.2rem">${preferAr?'التناقضات الفردية':'Pairwise contradictions'} <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.68rem;color:var(--muted-2)">${preferAr?'— انقر للتفاصيل':'— click for full analysis'}</span></div>
-          ${pairRows}
+          ${perspectiveRows.join('')}
         </div>
       </div>`;
   }
