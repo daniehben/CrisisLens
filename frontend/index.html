@@ -2986,25 +2986,6 @@
         ${factual ? `<div class="sub-label" style="margin-top:1rem">${t('factual_disagreement')}</div><p class="cmp-detail" dir="auto">${factual}</p>` : ''}
         ${framing ? `<div class="sub-label" style="margin-top:.75rem">${t('framing_difference')}</div><p class="cmp-detail" dir="auto">${framing}</p>` : ''}
 
-        ${(() => {
-          const sigs = getMarketSignals(c);
-          if (!sigs.length) return '';
-          const disclaimer = preferAr
-            ? 'إشارات استكشافية · ليست توصيات مالية'
-            : 'Exploratory signals only · Not financial advice';
-          const panelLabel = preferAr ? 'قد يتحرك' : 'May move';
-          return `
-          <div class="mkt-panel">
-            <div class="mkt-label">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-              ${panelLabel}
-            </div>
-            <div class="mkt-chips">
-              ${sigs.map(s => `<a href="${s.url}" target="_blank" rel="noopener noreferrer" class="mkt-chip"><i class="ti ${s.icon}" aria-hidden="true"></i>${s.label}</a>`).join('')}
-            </div>
-            <div class="mkt-disclaimer">${disclaimer}</div>
-          </div>`;
-        })()}
 
         ${(c.url_a || c.url_b) ? `
         <div class="read-originals">
