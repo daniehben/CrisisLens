@@ -2056,18 +2056,9 @@
   // Convert a filtered flat array of pairs → mixed [{type:'story',data}|{type:'pair',data}]
   // preserving sort order, deduplicating stories to one card per cluster
   function toFeedItems(pairs) {
-    const rendered = new Set();
-    const items    = [];
-    pairs.forEach(c => {
-      const sid = conflictToStoryId[c.conflict_id];
-      if (!sid) { items.push({ type:'pair', data:c }); return; }
-      if (rendered.has(sid)) return;
-      rendered.add(sid);
-      const story = storyById[sid];
-      if (story && story.sources.length >= 3) items.push({ type:'story', data:story });
-      else items.push({ type:'pair', data: story ? story.bestPair : c });
-    });
-    return items;
+    // Story clustering is developed on feature/story-clustering.
+    // Main shows clean 1v1 pairs for the meeting demo.
+    return pairs.map(c => ({ type:'pair', data:c }));
   }
 
   function renderFeedItem(item, i) {
