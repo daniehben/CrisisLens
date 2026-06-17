@@ -636,6 +636,63 @@
     .conf-bar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
     .conf-pct { font-size: .65rem; font-weight: 700; color: var(--ink-soft); min-width: 1.9rem; text-align: end; }
 
+    /* ── Freshness badge ──────────────────────────────────────────────── */
+    .new-badge {
+      display: inline-block; font-size: .54rem; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: #fff; background: var(--accent);
+      padding: .12rem .3rem; border-radius: 3px; line-height: 1.35;
+      vertical-align: middle; flex-shrink: 0;
+    }
+
+    /* ── Topic tab counts ─────────────────────────────────────────────── */
+    .tab-count {
+      font-size: .7em; font-weight: 700; opacity: .55;
+      padding: .05em .28em; border-radius: 3px;
+      background: var(--line-soft);
+    }
+    .cat-tab.active .tab-count { background: color-mix(in srgb, var(--accent) 15%, transparent); opacity: 1; }
+
+    /* ── Source trust dots ────────────────────────────────────────────── */
+    .trust-dot {
+      width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+      display: inline-block; vertical-align: middle; margin-inline-start: .22rem;
+    }
+    .trust-high { background: #1e8449; }
+    .trust-mid  { background: #b7950b; }
+    .trust-low  { background: #c0392b; }
+    .trust-unv  { background: var(--muted-2); }
+
+    /* ── Source tab hint in comparison pane ──────────────────────────── */
+    .src-tab-hint {
+      font-size: .67rem; color: var(--muted); margin-bottom: .8rem;
+      display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+    }
+    .stab-link {
+      background: none; border: none; color: var(--accent); cursor: pointer;
+      font-family: inherit; font-size: inherit; font-weight: 600; padding: 0;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .stab-link:hover { opacity: .7; }
+
+    /* ── Social share row ─────────────────────────────────────────────── */
+    .share-row {
+      display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+      margin: .75rem 0;
+    }
+    .share-row-label {
+      font-size: .62rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--muted); flex-shrink: 0;
+    }
+    .share-social-btn {
+      display: inline-flex; align-items: center; gap: .3rem;
+      font-size: .67rem; font-weight: 600; color: var(--ink-soft);
+      background: var(--bg-featured); border: 1px solid var(--line);
+      border-radius: 5px; padding: .28rem .55rem;
+      text-decoration: none; transition: border-color .12s, color .12s;
+      cursor: pointer; font-family: inherit;
+    }
+    .share-social-btn:hover { border-color: var(--muted-2); color: var(--ink); }
+
     /* ── Severity ──────────────────────────────────────────────────────── */
     .sev-critical    { color: #b01515; }
     .sev-strong      { color: #a05010; }
@@ -1899,6 +1956,14 @@
     if (n >= .40) return t('trust_low');
     return t('trust_unv');
   }
+  function trustTier(v) {
+    const n = parseFloat(v);
+    if (n >= .85) return 'high';
+    if (n >= .65) return 'mid';
+    if (n >= .40) return 'low';
+    return 'unv';
+  }
+  function isNew(iso) { return iso && (Date.now() - new Date(iso)) < 7200000; } // within 2h
   function isCross(c) { return regionOf(c.source_1) !== regionOf(c.source_2); }
 
   // ── Time / URL helpers ────────────────────────────────────────────────
@@ -2206,9 +2271,11 @@
           </div>
         </div>
         <div class="hero-body">
+          ${isNew(c.detected_at) ? `<div style="margin-bottom:.4rem"><span class="new-badge">${preferAr?'جديد':'NEW'}</span></div>` : ''}
           <div class="hero-src-row">
             <span class="src-dot" style="background:${rc1}"></span>
             <span style="color:${rc1};font-weight:700">${n1}</span>
+            <span class="trust-dot trust-${trustTier(c.trust_score_1)}" title="${trustLabel(c.trust_score_1)}"></span>
             <span style="color:var(--line)">·</span>
             <span>${regionLabel(c.source_1)}</span>
           </div>
@@ -2217,6 +2284,7 @@
           <div class="hero-src-row">
             <span class="src-dot" style="background:${rc2}"></span>
             <span style="color:${rc2};font-weight:700">${n2}</span>
+            <span class="trust-dot trust-${trustTier(c.trust_score_2)}" title="${trustLabel(c.trust_score_2)}"></span>
             <span style="color:var(--line)">·</span>
             <span>${regionLabel(c.source_2)}</span>
           </div>
@@ -2298,10 +2366,18 @@
           </div>
         </div>
         <div class="fc-body">
-          <div class="fc-src"><span class="src-dot" style="background:${rc1}"></span>${n1}</div>
+          <div class="fc-src">
+            <span class="src-dot" style="background:${rc1}"></span>
+            ${n1}
+            <span class="trust-dot trust-${trustTier(c.trust_score_1)}" title="${trustLabel(c.trust_score_1)}"></span>
+          </div>
           <div class="fc-hl ${hl1cls}">${h1||'—'}</div>
           <div class="fc-vs">vs</div>
-          <div class="fc-src"><span class="src-dot" style="background:${rc2}"></span>${n2}</div>
+          <div class="fc-src">
+            <span class="src-dot" style="background:${rc2}"></span>
+            ${n2}
+            <span class="trust-dot trust-${trustTier(c.trust_score_2)}" title="${trustLabel(c.trust_score_2)}"></span>
+          </div>
           <div class="fc-hl-2 ${hl2cls}">${h2||'—'}</div>
           ${verdict ? `
           <div class="fc-verdict">
@@ -2309,6 +2385,7 @@
             <div class="fc-verdict-text">${verdict}</div>
           </div>` : ''}
           <div class="fc-footer">
+            ${isNew(c.detected_at) ? `<span class="new-badge">${preferAr?'جديد':'NEW'}</span>` : ''}
             ${numeric ? `<span class="badge badge-numeric">${ICON_NEQ}</span>` : ''}
             ${framing ? `<span class="badge badge-framing">${ICON_FRAME}</span>` : ''}
             ${cross   ? `<span class="badge">${ICON_CROSS}</span>` : ''}
@@ -2530,6 +2607,16 @@
       : t('stat_contradictions');
     document.getElementById('stat-cross').textContent = filtered.filter(isCross).length.toLocaleString();
     document.getElementById('stat-lbl-cross').textContent = t('stat_cross');
+
+    // Update topic tab counts (count from full cache for discoverability)
+    document.querySelectorAll('.cat-tab[data-topic]').forEach(btn => {
+      const topic = btn.dataset.topic;
+      const count = topic === 'all' ? cache.length : cache.filter(c => matchesTopic(c, topic)).length;
+      const base = t('cat_' + topic);
+      btn.innerHTML = count > 0
+        ? `${base} <span class="tab-count">${count}</span>`
+        : base;
+    });
 
     const sc = document.getElementById('search-count');
     if (sc) {
@@ -2801,6 +2888,13 @@
           ${timeDelta ? `<span class="cmp-timedelta">🕐 ${t('time_apart', timeDelta)}</span>` : ''}
         </div>
 
+        <div class="src-tab-hint">
+          <span>${preferAr ? 'اقرأ المصدر كاملاً:' : 'Read full source:'}</span>
+          <button class="stab-link" data-stab="1">${n1}</button>
+          <span style="color:var(--line)">·</span>
+          <button class="stab-link" data-stab="2">${n2}</button>
+        </div>
+
         ${narrative ? `
           <div class="cmp-narrative" dir="auto">${narrative}</div>
           <p style="font-size:.7rem;color:var(--muted-2);margin:.4rem 0 0;font-style:italic">${t('ai_disclaimer')}</p>
@@ -2918,6 +3012,22 @@
           ${c.url_b ? `<a href="${c.url_b}" target="_blank" rel="noopener noreferrer" class="read-btn" style="border-color:${c2};color:${c2}">↗ ${n2}</a>` : ''}
         </div>` : ''}
 
+        <div class="share-row">
+          <span class="share-row-label">${preferAr ? 'شارك' : 'Share'}</span>
+          <button class="share-social-btn" id="cmp-copy-link" title="${preferAr ? 'نسخ الرابط' : 'Copy link'}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span id="cmp-copy-label">${preferAr ? 'نسخ الرابط' : 'Copy link'}</span>
+          </button>
+          <a class="share-social-btn" id="cmp-wa-btn" href="#" target="_blank" rel="noopener noreferrer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </a>
+          <a class="share-social-btn" id="cmp-x-btn" href="#" target="_blank" rel="noopener noreferrer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:var(--ink-soft)"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.766l7.33-8.38L1.172 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            X / Twitter
+          </a>
+        </div>
+
         <details class="signal-details">
           <summary>${t('signal_breakdown')}</summary>
           <div class="metric-row">
@@ -2981,8 +3091,8 @@
       </div>
       <div class="modal-tabs">
         <button class="modal-tab" data-tab="1">${n1}</button>
-        <button class="modal-tab" data-tab="2">${n2}</button>
         <button class="modal-tab" data-tab="cmp">${t('tab_comparison')}</button>
+        <button class="modal-tab" data-tab="2">${n2}</button>
       </div>
       <div class="modal-body">
         ${buildArticlePane(c,'1')}
@@ -2993,12 +3103,49 @@
 
   function wireModal(c) {
     document.getElementById('modal-close').onclick = closeModal;
+    const conflictUrl = `${location.origin}${location.pathname}#c${c.conflict_id}`;
+
+    // Header share button — copy link
     document.getElementById('modal-share').onclick = () => {
-      const url   = `${location.origin}${location.pathname}#c${c.conflict_id}`;
       const toast = document.getElementById('share-toast');
       const show  = () => { toast.textContent=t('share_copied'); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1800); };
-      navigator.clipboard.writeText(url).then(show).catch(show);
+      navigator.clipboard.writeText(conflictUrl).then(show).catch(show);
     };
+
+    // Comparison pane copy-link button
+    const copyBtn = document.getElementById('cmp-copy-link');
+    if (copyBtn) {
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(conflictUrl).then(() => {
+          const lbl = document.getElementById('cmp-copy-label');
+          if (lbl) { lbl.textContent = preferAr ? 'تم النسخ!' : 'Copied!'; setTimeout(()=>{ lbl.textContent = preferAr ? 'نسخ الرابط' : 'Copy link'; }, 1500); }
+        }).catch(() => {});
+      };
+    }
+
+    // WhatsApp share
+    const waBtn = document.getElementById('cmp-wa-btn');
+    if (waBtn) {
+      const n1 = c.source_1_name || c.source_1;
+      const n2 = c.source_2_name || c.source_2;
+      const hl = (preferAr && c.headline_1_ar) ? c.headline_1_ar : (c.headline_1_en || '');
+      const waText = preferAr
+        ? `تناقض إخباري: ${n1} مقابل ${n2} — ${hl}\n${conflictUrl}`
+        : `News contradiction: ${n1} vs ${n2} — ${hl}\n${conflictUrl}`;
+      waBtn.href = `https://wa.me/?text=${encodeURIComponent(waText)}`;
+    }
+
+    // X / Twitter share
+    const xBtn = document.getElementById('cmp-x-btn');
+    if (xBtn) {
+      const n1 = c.source_1_name || c.source_1;
+      const n2 = c.source_2_name || c.source_2;
+      const tweetText = preferAr
+        ? `تناقض إخباري: ${n1} مقابل ${n2} عبر @CrisisLens`
+        : `News contradiction: ${n1} vs ${n2} via @CrisisLens`;
+      xBtn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(conflictUrl)}`;
+    }
+
     const panes = document.querySelectorAll('.modal-pane');
     const tabs  = document.querySelectorAll('.modal-tab');
     function activate(key) {
@@ -3006,6 +3153,12 @@
       tabs.forEach(tb=>tb.classList.toggle('active', tb.dataset.tab===key));
     }
     tabs.forEach(tab=>tab.onclick=()=>activate(tab.dataset.tab));
+
+    // Source-tab hint links inside comparison pane
+    document.querySelectorAll('.stab-link').forEach(btn => {
+      btn.onclick = () => activate(btn.dataset.stab);
+    });
+
     activate('cmp');
   }
 
@@ -3072,7 +3225,7 @@
     if (chs) chs.textContent = t('cold_hint_sub');
     document.getElementById('error-view').textContent = t('error_msg');
     document.querySelectorAll('.cat-tab').forEach(btn => {
-      btn.textContent = t('cat_' + btn.dataset.topic);
+      btn.innerHTML = t('cat_' + btn.dataset.topic);
     });
     document.querySelectorAll('.filter-lang').forEach(btn => {
       if (btn.dataset.lang === 'all') btn.textContent = t('ctrl_all_langs');
