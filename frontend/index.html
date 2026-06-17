@@ -657,11 +657,19 @@
       border-radius: 7px; padding: .55rem .7rem;
       font-size: .7rem; line-height: 1.55; color: var(--ink-soft);
       pointer-events: none; opacity: 0; transition: opacity .15s;
-      z-index: 30; width: 220px;
+      z-index: 30; width: 240px;
       box-shadow: 0 4px 16px rgba(0,0,0,.15);
     }
     [dir="rtl"] .score-tooltip { right: auto; left: 0; font-size: .76rem; }
     .score-info:hover .score-tooltip { opacity: 1; }
+
+    /* Inline confidence sentence in Comparison tab */
+    .cmp-confidence {
+      font-size: .72rem; color: var(--ink-soft); line-height: 1.55;
+      margin: .5rem 0 .9rem; padding: .4rem .6rem;
+      background: var(--bg-featured); border-radius: 6px;
+    }
+    .cmp-confidence strong { color: var(--ink); font-weight: 700; }
 
     /* ── Skeleton ──────────────────────────────────────────────────────── */
     .skel { background: linear-gradient(90deg, var(--bg-card), var(--line-soft), var(--bg-card)); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 4px; }
@@ -2114,6 +2122,24 @@
     });
   }
 
+  // ── Score tooltip (dynamic, source-specific) ──────────────────────────
+  function scoreTooltipHtml(wgt, n1, n2) {
+    if (preferAr)
+      return `الذكاء الاصطناعي واثق بنسبة <strong>${wgt}%</strong> بأن ${n1} و${n2} يتعارضان في تغطية هذا الحدث — النتيجة مرجّحة بموثوقية المصدر.`;
+    return `Our AI is <strong>${wgt}%</strong> confident ${n1} and ${n2} genuinely contradict each other on this story. Score weighted by source trust.`;
+  }
+  function scoreTooltipStory(wgt, count) {
+    if (preferAr)
+      return `الذكاء الاصطناعي واثق بنسبة <strong>${wgt}%</strong> بوجود تناقض حقيقي بين ${count} مصادر في تغطية هذه القصة — مرجّح بموثوقية المصادر.`;
+    return `Our AI is <strong>${wgt}%</strong> confident this story is genuinely reported differently across ${count} sources. Score weighted by source trust.`;
+  }
+  // Inline confidence sentence for the Comparison tab
+  function cmpConfidenceHtml(wgt, n1, n2) {
+    if (preferAr)
+      return `الذكاء الاصطناعي واثق بنسبة <strong>${wgt}%</strong> بأن <strong>${n1}</strong> و<strong>${n2}</strong> يتعارضان فعلاً في تغطية هذا الحدث، مرجّحاً بموثوقية المصدر.`;
+    return `Our AI is <strong>${wgt}%</strong> confident <strong>${n1}</strong> and <strong>${n2}</strong> genuinely contradict each other on this story, weighted by source trust.`;
+  }
+
   // ── Severity ──────────────────────────────────────────────────────────
   function severityOf(score) {
     const pct = parseFloat(score) * 100;
@@ -2162,6 +2188,7 @@
     const rc2 = regionColor(c.source_2);
     const sev = severityOf(c.weighted_score);
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
+    const wgt  = Math.round(parseFloat(c.weighted_score)*100);
     const verdict = shortVerdict(c);
     const numeric = hasNumericDisagreement(c);
     const cross   = isCross(c);
@@ -2209,10 +2236,10 @@
             ${framing ? `<span class="badge badge-framing">${ICON_FRAME} ${t('badge_framing')}</span>` : ''}
             ${cross   ? `<span class="badge">${ICON_CROSS} ${t('badge_cross')}</span>` : ''}
             <div class="conf-wrap">
-              <div class="conf-bar"><span style="width:${conf}%"></span></div>
+              <div class="conf-bar"><span style="width:${wgt}%"></span></div>
               <div class="score-info">
-                <span class="conf-pct ${sev.cls}">${t(sev.key)}</span>
-                <i class="score-info-icon">?<span class="score-tooltip">${t('score_tooltip')}</span></i>
+                <span class="conf-pct ${sev.cls}">${t(sev.key)} · ${wgt}%</span>
+                <i class="score-info-icon">?<span class="score-tooltip">${scoreTooltipHtml(wgt,n1,n2)}</span></i>
               </div>
             </div>
             <span style="font-size:.62rem;color:var(--muted-2);margin-inline-start:.4rem">${timeAgo(c.detected_at)}</span>
@@ -2258,6 +2285,7 @@
     const rc2 = regionColor(c.source_2);
     const sev = severityOf(c.weighted_score);
     const conf = Math.round(parseFloat(c.contradiction_score)*100);
+    const wgt  = Math.round(parseFloat(c.weighted_score)*100);
     const verdict = shortVerdict(c);
     const numeric = hasNumericDisagreement(c);
     const cross   = isCross(c);
@@ -2295,10 +2323,10 @@
             ${cross   ? `<span class="badge">${ICON_CROSS}</span>` : ''}
             <span class="fc-time">${timeAgo(c.detected_at)}</span>
             <div class="conf-wrap">
-              <div class="conf-bar"><span style="width:${conf}%"></span></div>
+              <div class="conf-bar"><span style="width:${wgt}%"></span></div>
               <div class="score-info">
-                <span class="conf-pct ${sev.cls}">${t(sev.key)}</span>
-                <i class="score-info-icon">?<span class="score-tooltip">${t('score_tooltip')}</span></i>
+                <span class="conf-pct ${sev.cls}">${t(sev.key)} · ${wgt}%</span>
+                <i class="score-info-icon">?<span class="score-tooltip">${scoreTooltipHtml(wgt,n1,n2)}</span></i>
               </div>
             </div>
           </div>
@@ -2337,8 +2365,8 @@
           <div class="conf-wrap" style="margin-inline-start:auto">
             <div class="conf-bar"><span style="width:${conf}%"></span></div>
             <div class="score-info">
-              <span class="conf-pct ${sev.cls}">${t(sev.key)}</span>
-              <i class="score-info-icon">?<span class="score-tooltip">${t('score_tooltip')}</span></i>
+              <span class="conf-pct ${sev.cls}">${t(sev.key)} · ${conf}%</span>
+              <i class="score-info-icon">?<span class="score-tooltip">${scoreTooltipStory(conf,story.sources.length)}</span></i>
             </div>
           </div>
         </div>
@@ -2789,6 +2817,7 @@
             });
           ">⎘ Share</button>
         </div>
+        <p class="cmp-confidence" dir="auto">${cmpConfidenceHtml(wgt,n1,n2)}</p>
 
         ${narrative ? `
           <div class="cmp-narrative" dir="auto">${narrative}</div>
