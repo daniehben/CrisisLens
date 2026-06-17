@@ -1119,6 +1119,47 @@
     .story-pair-srcs { font-size: .73rem; font-weight: 600; color: var(--ink-soft); flex: 1; }
     .story-pair-vs { color: var(--muted); font-weight: 400; font-size: .7rem; }
     .story-pair-arrow { font-size: .75rem; color: var(--muted-2); flex-shrink: 0; }
+
+    /* Story modal tabs */
+    .story-tabs {
+      display: flex; border-bottom: 1px solid var(--line-soft); padding: 0 1.4rem;
+    }
+    .story-tab {
+      font-size: .76rem; font-weight: 600; color: var(--muted);
+      background: none; border: none; border-bottom: 2px solid transparent;
+      padding: .6rem .95rem .55rem; cursor: pointer; margin-bottom: -1px;
+      transition: color .12s, border-color .12s; font-family: inherit;
+    }
+    .story-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .story-tab:hover:not(.active) { color: var(--ink-soft); }
+
+    /* Compare All pane */
+    .story-dispute-block {
+      margin: 0 0 1rem; padding: .55rem .8rem;
+      border-inline-start: 3px solid var(--accent);
+      background: color-mix(in srgb, var(--accent) 6%, transparent);
+      border-radius: 0 6px 6px 0;
+    }
+    [dir="rtl"] .story-dispute-block { border-radius: 6px 0 0 6px; }
+    .story-dispute-label {
+      font-size: .57rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+      color: var(--accent); opacity: .85; margin-bottom: .2rem;
+    }
+    .story-dispute-q { font-size: .88rem; font-weight: 700; color: var(--ink); line-height: 1.4; }
+    .story-compare-cols {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .7rem;
+    }
+    .story-compare-col {
+      background: var(--bg-featured); border: 1px solid var(--line); border-radius: 10px;
+      padding: .75rem .85rem; display: flex; flex-direction: column; gap: .35rem;
+    }
+    .story-compare-src { display: flex; align-items: center; gap: .3rem; font-size: .68rem; font-weight: 700; }
+    .story-compare-hl { font-size: .81rem; font-weight: 700; color: var(--ink); line-height: 1.4; flex: 1; }
+    .story-compare-sum {
+      font-size: .72rem; color: var(--ink-soft); line-height: 1.5; margin-top: .15rem;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+      border-top: 1px solid var(--line-soft); padding-top: .35rem;
+    }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 </head>
@@ -2260,21 +2301,58 @@
     const ctrLabel = preferAr ? 'تناقض' : `contradiction${story.pairs.length!==1?'s':''}`;
     const specLabel = preferAr ? 'طيف المصادر' : 'Source spectrum';
 
-    // Deduplicate articles across all pairs
+    // Deduplicate articles, capturing summaries
     const articleMap = {};
     story.pairs.forEach(p => {
       if (p.article_id_1 && !articleMap[p.article_id_1]) {
-        articleMap[p.article_id_1] = { hl_en: p.headline_1_en, hl_ar: p.headline_1_ar, src: p.source_1_name||p.source_1, color: regionColor(p.source_1) };
+        articleMap[p.article_id_1] = { hl_en: p.headline_1_en, hl_ar: p.headline_1_ar, sum_en: p.summary_1, sum_ar: p.summary_1_ar, src: p.source_1_name||p.source_1, color: regionColor(p.source_1) };
       }
       if (p.article_id_2 && !articleMap[p.article_id_2]) {
-        articleMap[p.article_id_2] = { hl_en: p.headline_2_en, hl_ar: p.headline_2_ar, src: p.source_2_name||p.source_2, color: regionColor(p.source_2) };
+        articleMap[p.article_id_2] = { hl_en: p.headline_2_en, hl_ar: p.headline_2_ar, sum_en: p.summary_2, sum_ar: p.summary_2_ar, src: p.source_2_name||p.source_2, color: regionColor(p.source_2) };
       }
     });
-    const articles = Object.values(articleMap);
-    const topPairs = [...story.pairs].sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score)).slice(0,5);
+    const articles  = Object.values(articleMap);
+    const topPairs  = [...story.pairs].sort((a,b)=>parseFloat(b.weighted_score)-parseFloat(a.weighted_score)).slice(0,5);
+
+    const pairRows = topPairs.map(p => {
+      const n1 = p.source_1_name||p.source_1, n2 = p.source_2_name||p.source_2;
+      const sc = Math.round(parseFloat(p.weighted_score)*100);
+      return `<div class="story-pair-row" onclick="location.hash='#c${p.conflict_id}'">
+        <span class="story-pair-score">${sc}%</span>
+        <span class="story-pair-srcs">${n1} <span class="story-pair-vs">vs</span> ${n2}</span>
+        <span class="story-pair-arrow">→</span>
+      </div>`;
+    }).join('');
+
+    const hlCards = articles.map(a => {
+      const hl = (preferAr && a.hl_ar) ? a.hl_ar : (a.hl_en||'—');
+      return `<div class="story-hl-card">
+        <div class="story-hl-src"><span class="src-dot" style="background:${a.color}"></span>${a.src}</div>
+        <div class="story-hl-text${hasArabic(hl)?' ar':''}">${hl}</div>
+      </div>`;
+    }).join('');
+
+    const compareCols = articles.map(a => {
+      const hl  = (preferAr && a.hl_ar)  ? a.hl_ar  : (a.hl_en  || '—');
+      const sum = (preferAr && a.sum_ar) ? a.sum_ar : (a.sum_en || '');
+      return `<div class="story-compare-col">
+        <div class="story-compare-src">
+          <span class="src-dot" style="background:${a.color}"></span>
+          <strong style="color:${a.color}">${a.src}</strong>
+        </div>
+        <div class="story-compare-hl${hasArabic(hl)?' ar':''}">${hl}</div>
+        ${sum ? `<div class="story-compare-sum${hasArabic(sum)?' ar':''}">${sum}</div>` : ''}
+      </div>`;
+    }).join('');
+
+    const switchTab = `
+      this.parentElement.querySelectorAll('.story-tab').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      const m=this.closest('[data-story-modal]');
+    `;
 
     return `
-      <div>
+      <div data-story-modal="1">
         <div class="story-modal-header">
           <div class="story-modal-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -2286,28 +2364,30 @@
             ${story.sources.map(s=>`<span class="story-src-pill" style="background:${s.color}"><span class="story-src-pill-dot"></span>${s.name}</span>`).join('')}
           </div>
         </div>
-        <div class="story-modal-body">
+        <div class="story-tabs">
+          <button class="story-tab active" onclick="${switchTab}m.querySelector('[data-story-pane=overview]').style.display='';m.querySelector('[data-story-pane=compare]').style.display='none'">
+            ${preferAr ? 'نظرة عامة' : 'Overview'}
+          </button>
+          <button class="story-tab" onclick="${switchTab}m.querySelector('[data-story-pane=overview]').style.display='none';m.querySelector('[data-story-pane=compare]').style.display=''">
+            ${preferAr ? 'مقارنة شاملة' : 'Compare All'}
+          </button>
+        </div>
+
+        <div data-story-pane="overview" class="story-modal-body">
           <div class="story-section-hd">${preferAr ? 'ما تقوله المصادر' : 'What each source says'}</div>
-          <div class="story-headlines-grid">
-            ${articles.map(a => {
-              const hl = (preferAr && a.hl_ar) ? a.hl_ar : (a.hl_en || '—');
-              return `<div class="story-hl-card">
-                <div class="story-hl-src"><span class="src-dot" style="background:${a.color}"></span>${a.src}</div>
-                <div class="story-hl-text${hasArabic(hl)?' ar':''}">${hl}</div>
-              </div>`;
-            }).join('')}
-          </div>
+          <div class="story-headlines-grid">${hlCards}</div>
           <div class="story-section-hd">${preferAr ? 'أقوى التناقضات' : 'Strongest contradictions'} <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.68rem;color:var(--muted-2)">${preferAr?'— انقر للمقارنة الكاملة':'— click to compare'}</span></div>
-          ${topPairs.map(p => {
-            const n1 = p.source_1_name||p.source_1;
-            const n2 = p.source_2_name||p.source_2;
-            const sc = Math.round(parseFloat(p.weighted_score)*100);
-            return `<div class="story-pair-row" onclick="location.hash='#c${p.conflict_id}'">
-              <span class="story-pair-score">${sc}%</span>
-              <span class="story-pair-srcs">${n1} <span class="story-pair-vs">vs</span> ${n2}</span>
-              <span class="story-pair-arrow">→</span>
-            </div>`;
-          }).join('')}
+          ${pairRows}
+        </div>
+
+        <div data-story-pane="compare" class="story-modal-body" style="display:none">
+          <div class="story-dispute-block">
+            <div class="story-dispute-label">${t('at_issue')}</div>
+            <div class="story-dispute-q">${dispute}</div>
+          </div>
+          <div class="story-compare-cols">${compareCols}</div>
+          <div class="story-section-hd" style="margin-top:1.2rem">${preferAr?'التناقضات الفردية':'Pairwise contradictions'} <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.68rem;color:var(--muted-2)">${preferAr?'— انقر للتفاصيل':'— click for full analysis'}</span></div>
+          ${pairRows}
         </div>
       </div>`;
   }
