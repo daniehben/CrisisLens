@@ -2799,16 +2799,7 @@
         <div class="cmp-meta-row">
           ${ctypeBadge}
           ${timeDelta ? `<span class="cmp-timedelta">🕐 ${t('time_apart', timeDelta)}</span>` : ''}
-          <button class="cmp-copy-btn" title="Copy link to this conflict" onclick="
-            const _u=location.origin+location.pathname+'#c${c.conflict_id}';
-            navigator.clipboard.writeText(_u).then(()=>{
-              this.textContent='✓ Copied';setTimeout(()=>this.textContent='⎘ Share',1500);
-            }).catch(()=>{
-              this.textContent='✓ Copied';setTimeout(()=>this.textContent='⎘ Share',1500);
-            });
-          ">⎘ Share</button>
         </div>
-        <p class="cmp-confidence" dir="auto">${cmpConfidenceHtml(wgt,n1,n2)}</p>
 
         ${narrative ? `
           <div class="cmp-narrative" dir="auto">${narrative}</div>
