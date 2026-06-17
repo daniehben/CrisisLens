@@ -1183,6 +1183,21 @@
     }
     .story-ctr-connector-badge:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); }
 
+    /* Back breadcrumb in 1v1 modal */
+    .modal-breadcrumb {
+      padding: .65rem 1.4rem .4rem;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .modal-back-btn {
+      display: inline-flex; align-items: center; gap: .3rem;
+      font-size: .67rem; font-weight: 700; color: var(--muted);
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: inherit; letter-spacing: .02em;
+      transition: color .12s;
+    }
+    .modal-back-btn:hover { color: var(--ink); }
+    .modal-back-btn svg { flex-shrink: 0; }
+
     /* Claim (how they answer the dispute) inside perspective card */
     .story-perspective-claim-label {
       font-size: .6rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
@@ -1194,15 +1209,6 @@
       display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
     }
 
-    /* Back button in 1v1 modal */
-    .modal-back-btn {
-      display: inline-flex; align-items: center; gap: .35rem;
-      font-size: .68rem; font-weight: 700; color: var(--muted);
-      background: var(--bg-hover); border: 1px solid var(--line);
-      border-radius: 6px; padding: .25rem .6rem; cursor: pointer;
-      margin-bottom: .55rem; transition: color .12s, background .12s;
-    }
-    .modal-back-btn:hover { color: var(--ink); background: var(--line); }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 </head>
@@ -2910,7 +2916,14 @@
     const framing = isFraming(c);
     const ba      = c.framing_analysis || null;
     const dispute = ba ? ((preferAr ? ba.dispute_ar : null) || ba.dispute || null) : null;
-    return `
+    const backHtml = activeStoryId ? `
+      <div class="modal-breadcrumb">
+        <button class="modal-back-btn" onclick="openStory('${activeStoryId}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          ${preferAr ? 'العودة إلى القصة' : 'Back to story'}
+        </button>
+      </div>` : '';
+    return `${backHtml}
       <div class="modal-head">
         <div style="min-width:0;flex:1">
           <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .8rem">
@@ -2965,17 +2978,6 @@
     }
     tabs.forEach(tab=>tab.onclick=()=>activate(tab.dataset.tab));
     activate('cmp');
-    // Inject back button if we came from a story modal
-    if (activeStoryId) {
-      const sid = activeStoryId;
-      const backLabel = preferAr ? '← العودة إلى القصة' : '← Back to story';
-      const btn = document.createElement('button');
-      btn.className = 'modal-back-btn';
-      btn.textContent = backLabel;
-      btn.onclick = () => { openStory(sid); };
-      const modalBox = document.getElementById('modal-box');
-      modalBox.insertBefore(btn, modalBox.firstChild);
-    }
   }
 
   function openStory(storyId) {
