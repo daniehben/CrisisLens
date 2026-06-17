@@ -1182,6 +1182,27 @@
       transition: background .12s;
     }
     .story-ctr-connector-badge:hover { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+    /* Claim (how they answer the dispute) inside perspective card */
+    .story-perspective-claim-label {
+      font-size: .6rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+      color: var(--muted); margin-top: .3rem;
+    }
+    .story-perspective-claim {
+      font-size: .75rem; color: var(--ink); line-height: 1.5; font-style: italic;
+      border-inline-start: 2px solid var(--line); padding-inline-start: .55rem;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* Back button in 1v1 modal */
+    .modal-back-btn {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .68rem; font-weight: 700; color: var(--muted);
+      background: var(--bg-hover); border: 1px solid var(--line);
+      border-radius: 6px; padding: .25rem .6rem; cursor: pointer;
+      margin-bottom: .55rem; transition: color .12s, background .12s;
+    }
+    .modal-back-btn:hover { color: var(--ink); background: var(--line); }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 </head>
@@ -1896,6 +1917,7 @@
   let cache = null;
   let storyById        = {};   // storyId → story object
   let conflictToStoryId = {};  // conflict_id → storyId
+  let activeStoryId    = null; // storyId that opened the current 1v1 modal (back nav)
   let preferAr   = localStorage.getItem('cl.lang') === 'ar';
   let langFilter  = 'all';
   let sortMode    = 'score';
@@ -2353,7 +2375,7 @@
     const pairRows = topPairs.map(p => {
       const n1 = p.source_1_name||p.source_1, n2 = p.source_2_name||p.source_2;
       const sc = Math.round(parseFloat(p.weighted_score)*100);
-      return `<div class="story-pair-row" onclick="location.hash='#c${p.conflict_id}'">
+      return `<div class="story-pair-row" onclick="navigateToConflict(${p.conflict_id},'${story.id}')">
         <span class="story-pair-score">${sc}%</span>
         <span class="story-pair-srcs">${n1} <span class="story-pair-vs">vs</span> ${n2}</span>
         <span class="story-pair-arrow">→</span>
@@ -2369,11 +2391,32 @@
       </div>`;
     }).join('');
 
+    // Build a per-article claim map using framing_analysis.claims_a / claims_b
+    const sourceClaimsMap = {}; // articleId → claim string
+    story.pairs.forEach(p => {
+      const fa = p.framing_analysis;
+      if (!fa) return;
+      const claimA = (preferAr && fa.claims_a_ar) ? fa.claims_a_ar : (fa.claims_a || null);
+      const claimB = (preferAr && fa.claims_b_ar) ? fa.claims_b_ar : (fa.claims_b || null);
+      const sc = parseFloat(p.weighted_score) || 0;
+      if (p.article_id_1 && claimA) {
+        const prev = sourceClaimsMap[p.article_id_1];
+        if (!prev || sc > prev.score) sourceClaimsMap[p.article_id_1] = { claim: claimA, score: sc };
+      }
+      if (p.article_id_2 && claimB) {
+        const prev = sourceClaimsMap[p.article_id_2];
+        if (!prev || sc > prev.score) sourceClaimsMap[p.article_id_2] = { claim: claimB, score: sc };
+      }
+    });
+    const claimLabel = preferAr ? 'موقفهم من القضية' : 'Their position on the dispute';
+
     // Compare All: full-width perspective rows with contradiction connectors
     const perspectiveRows = [];
     articles.forEach((a, i) => {
       const hl  = (preferAr && a.hl_ar)  ? a.hl_ar  : (a.hl_en  || '—');
       const sum = (preferAr && a.sum_ar) ? a.sum_ar : (a.sum_en || '');
+      const claimEntry = sourceClaimsMap[a.id];
+      const claim = claimEntry ? claimEntry.claim : null;
       perspectiveRows.push(`
         <div class="story-perspective">
           <div class="story-perspective-hd" style="background:color-mix(in srgb,${a.color} 10%,var(--bg-card));border-bottom-color:color-mix(in srgb,${a.color} 30%,var(--line))">
@@ -2383,7 +2426,10 @@
           </div>
           <div class="story-perspective-body">
             <div class="story-perspective-hl${hasArabic(hl)?' ar':''}">${hl}</div>
-            ${sum ? `<div class="story-perspective-sum${hasArabic(sum)?' ar':''}">${sum}</div>` : ''}
+            ${claim ? `
+              <div class="story-perspective-claim-label">${claimLabel}</div>
+              <div class="story-perspective-claim${hasArabic(claim)?' ar':''}">${claim}</div>
+            ` : sum ? `<div class="story-perspective-sum${hasArabic(sum)?' ar':''}">${sum}</div>` : ''}
           </div>
         </div>`);
 
@@ -2397,7 +2443,7 @@
           perspectiveRows.push(`
             <div class="story-ctr-connector">
               <div class="story-ctr-connector-line"></div>
-              <div class="story-ctr-connector-badge" onclick="location.hash='#c${pair.conflict_id}'">
+              <div class="story-ctr-connector-badge" onclick="navigateToConflict(${pair.conflict_id},'${story.id}')">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 ${label} — ${preferAr?'قارن':'compare'}
               </div>
@@ -2919,16 +2965,40 @@
     }
     tabs.forEach(tab=>tab.onclick=()=>activate(tab.dataset.tab));
     activate('cmp');
+    // Inject back button if we came from a story modal
+    if (activeStoryId) {
+      const sid = activeStoryId;
+      const backLabel = preferAr ? '← العودة إلى القصة' : '← Back to story';
+      const btn = document.createElement('button');
+      btn.className = 'modal-back-btn';
+      btn.textContent = backLabel;
+      btn.onclick = () => { openStory(sid); };
+      const modalBox = document.getElementById('modal-box');
+      modalBox.insertBefore(btn, modalBox.firstChild);
+    }
   }
 
   function openStory(storyId) {
+    activeStoryId = null;
     const story = storyById[storyId];
     if (!story) return;
     document.getElementById('modal-box').innerHTML = buildStoryModal(story);
     document.getElementById('modal-wrap').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
+  // Navigate from a story modal into a 1v1 conflict modal, keeping back-nav context
+  function navigateToConflict(conflictId, fromStoryId) {
+    activeStoryId = fromStoryId || null;
+    if (!cache) return;
+    const c = cache.find(x=>String(x.conflict_id)===String(conflictId));
+    if (!c) return;
+    document.getElementById('modal-box').innerHTML = buildModal(c);
+    document.getElementById('modal-wrap').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    wireModal(c);
+  }
   function openModal(id) {
+    activeStoryId = null; // direct hash navigation — no story context
     if (!cache) return;
     const c = cache.find(x=>String(x.conflict_id)===String(id));
     if (!c) return;
@@ -2938,6 +3008,7 @@
     wireModal(c);
   }
   function closeModal() {
+    activeStoryId = null;
     document.getElementById('modal-wrap').classList.remove('open');
     document.body.style.overflow = '';
     if (location.hash.startsWith('#c')) history.replaceState(null,'',location.pathname);
