@@ -30,7 +30,7 @@ from typing import Optional
 log = logging.getLogger(__name__)
 
 FAST_MODEL  = "openai/gpt-oss-20b"          # 1,000 RPM / 250K TPM (replaces llama-3.1-8b-instant)
-SMART_MODEL = "openai/gpt-oss-20b"        # 1,000 RPM / 250K TPM (replaces llama-3.3-70b-versatile)
+SMART_MODEL = "openai/gpt-oss-120b"         # 1,000 RPM / 250K TPM (replaces llama-3.3-70b-versatile)
 
 # Soft daily caps — set high since these are paid models with no strict daily req limit.
 # Acts as a runaway-cost guard only. At our usage level (~500 calls/day) this won't trigger.
