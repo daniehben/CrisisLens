@@ -3,7 +3,7 @@
 Model: jina-embeddings-v3 (cloud inference, 89 languages, MRL truncation to 384-dim)
   - 384-dim vectors — matches existing vector(384) DB column, no schema migration needed
   - Multilingual: Arabic + English in same embedding space (better than MiniLM-L12)
-  - Free tier: 1M tokens/month — sufficient at current scale (~100 articles/cycle)
+  - Free tier: 1M tokens/month — only embed articles with summaries to stay within budget
   - Zero RAM footprint — no local model, no torch, no 480MB download
 
 Why switched from local sentence-transformers:
@@ -119,6 +119,7 @@ def run_task9():
                 FROM articles
                 WHERE (headline_ar IS NOT NULL OR headline_en IS NOT NULL)
                   AND embedding IS NULL
+                  AND (summary IS NOT NULL OR summary_ar IS NOT NULL)
                 ORDER BY article_id
                 LIMIT 100
             """)
