@@ -4,19 +4,20 @@ Two model tiers:
   FAST_MODEL  — high volume, used per-article (summaries, translation)
   SMART_MODEL — lower volume, used per-conflict (bias analysis)
 
-Free-tier limits (as of 2026):
-  FAST_MODEL  (llama-3.1-8b-instant)     — 30 RPM / 14,400 req/day
-  SMART_MODEL (llama-3.3-70b-versatile)  — 30 RPM /  1,000 req/day
+Developer-plan rate limits (as of 2026-08):
+  FAST_MODEL  (openai/gpt-oss-20b)   — 1,000 RPM / 250K TPM (paid, ~$0.075/$0.30 per 1M)
+  SMART_MODEL (openai/gpt-oss-120b)  — 1,000 RPM / 250K TPM (paid, ~$0.15/$0.60 per 1M)
+
+Note: llama-3.1-8b-instant and llama-3.3-70b-versatile were deprecated 2026-08-16.
+These GPT-OSS models are the official replacements per console.groq.com/docs/deprecations.
 
 Two guards are applied before every call:
-  1. RPM throttle  — sleeps enough to stay under 30 RPM per model
-  2. Daily cap     — refuses the call and returns None if today's quota is
-                     exhausted, logs a single WARNING (not per-call noise)
+  1. RPM throttle  — sleeps enough to stay under 1000 RPM per model
+  2. Daily cap     — soft safety cap, set high (effectively uncapped at our usage level)
 
 The daily counter resets at midnight UTC. Counts survive across ingestion
 cycles within the same worker process (module-level state). On worker
-restart the counter resets — acceptable because free-tier quotas also
-reset daily and restarts are rare.
+restart the counter resets.
 """
 import json
 import logging
@@ -28,17 +29,18 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-FAST_MODEL  = "llama-3.1-8b-instant"        # 30 RPM / 14,400 req/day
-SMART_MODEL = "llama-3.3-70b-versatile"     # 30 RPM /  1,000 req/day
+FAST_MODEL  = "openai/gpt-oss-20b"          # 1,000 RPM / 250K TPM (replaces llama-3.1-8b-instant)
+SMART_MODEL = "openai/gpt-oss-120b"         # 1,000 RPM / 250K TPM (replaces llama-3.3-70b-versatile)
 
-# Daily request caps per model (free tier)
+# Soft daily caps — set high since these are paid models with no strict daily req limit.
+# Acts as a runaway-cost guard only. At our usage level (~500 calls/day) this won't trigger.
 _DAILY_CAPS: dict[str, int] = {
-    FAST_MODEL:  14_400,
-    SMART_MODEL: 1_000,
+    FAST_MODEL:  50_000,
+    SMART_MODEL: 10_000,
 }
 
-# RPM guard — minimum seconds between calls to stay under 30 RPM
-_MIN_INTERVAL_S = 2.1
+# RPM guard — minimum seconds between calls to stay under 1000 RPM
+_MIN_INTERVAL_S = 0.1
 
 # ---- thread-safe shared state ------------------------------------------- #
 _lock = threading.Lock()
@@ -121,7 +123,7 @@ def get_client():
 
 
 def _throttle(model: str) -> None:
-    """Sleep just long enough to keep this model under the 30 RPM cap."""
+    """Sleep just long enough to keep this model under the 1000 RPM cap."""
     with _lock:
         last = _last_call_at.get(model, 0.0)
         wait = _MIN_INTERVAL_S - (time.time() - last)
