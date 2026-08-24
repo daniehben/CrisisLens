@@ -34,6 +34,8 @@ def get_all_adapters():
         'BNO', 'MAYE',                      # moved from Telegram to RSS
         # ── YouTube commentary ────────────────────────────────────────────
         'YT_BP', 'YT_DN', 'YT_RT',
+        # ── Activations (in DB, now wired in) ─────────────────────────────
+        'HAA', 'TNA', 'ASH', 'MAN',
     ]:
         adapters.append(RSSAdapter(code))
     # Telegram: only sources with no RSS alternative

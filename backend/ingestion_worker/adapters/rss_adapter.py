@@ -242,6 +242,31 @@ RSS_SOURCES = {
         'language': 'en',
         'trust_weight': 0.45,
     },
+    # ── Activations: sources already in DB, now wired into ingestion ──────────
+    'HAA': {
+        # Haaretz (English) — independent Israeli, often contradicts JRP; key for Israel-internal conflict
+        'url': 'https://news.google.com/rss/search?q=site:haaretz.com&hl=en&gl=IL&ceid=IL:en',
+        'language': 'en',
+        'trust_weight': 0.70,
+    },
+    'TNA': {
+        # The New Arab — independent English/Arabic outlet, strong on Syria and Gulf
+        'url': 'https://news.google.com/rss/search?q=site:thenewsarab.com&hl=en&gl=GB&ceid=GB:en',
+        'language': 'en',
+        'trust_weight': 0.65,
+    },
+    'ASH': {
+        # Asharq Al-Awsat — Saudi-owned pan-Arab daily, high editorial quality, distinct from ARB
+        'url': 'https://news.google.com/rss/search?q=site:aawsat.com&hl=ar&gl=SA&ceid=SA:ar',
+        'language': 'ar',
+        'trust_weight': 0.65,
+    },
+    'MAN': {
+        # Ma'an News Agency — Palestinian, West Bank ground-level reporting; complements WAFA
+        'url': 'https://news.google.com/rss/search?q=site:maannews.com&hl=en&gl=PS&ceid=PS:en',
+        'language': 'en',
+        'trust_weight': 0.60,
+    },
 }
 
 # Mimic a real browser to avoid being blocked
