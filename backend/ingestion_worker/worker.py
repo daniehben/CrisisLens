@@ -13,12 +13,17 @@ from backend.ingestion_worker.adapters.telegram_web_adapter import TelegramWebAd
 # Render free tier is 512MB; each adapter holds HTML + parsed feed in memory.
 MAX_CONCURRENT_FETCHES = 3
 
+# Telegram adapters are module-level singletons so their watermark (highest
+# seen message ID) persists across cycles within the same process. RSS adapters
+# are recreated each cycle — they're stateless and the global check_and_mark
+# set handles intra-process dedup for them.
+_TELEGRAM_ADAPTERS = [TelegramWebAdapter(code) for code in ['AJA+', 'WM', 'SI']]
+
 
 def get_all_adapters():
-    adapters = []
-    for code in [
+    rss_adapters = [RSSAdapter(code) for code in [
         # ── Core Arabic-first sources ──────────────────────────────────────
-        'AJA',                              # Al Jazeera (trust 1.0)
+        'AJA',                              # Al Jazeera Arabic (trust 0.90)
         'DW', 'F24', 'ARB',                # Arabic broadcasters
         'BBAR', 'SKA',                      # BBC Arabic, Sky News Arabia
         # ── Palestinian / resistance perspective ──────────────────────────
@@ -31,18 +36,13 @@ def get_all_adapters():
         # ── Independent voices ────────────────────────────────────────────
         'GG', 'GZ', 'CJ', 'AW', 'CRA', 'DSN',
         # ── Breaking news / aggregators ───────────────────────────────────
-        'BNO', 'MAYE',                      # moved from Telegram to RSS
+        'BNO', 'MAYE',
         # ── YouTube commentary ────────────────────────────────────────────
         'YT_BP', 'YT_DN', 'YT_RT',
         # ── Activations (in DB, now wired in) ─────────────────────────────
         'HAA', 'TNA', 'ASH', 'MAN',
-    ]:
-        adapters.append(RSSAdapter(code))
-    # Telegram: only sources with no RSS alternative
-    # BBC+ dropped (redundant with BBC RSS), BNO/MAYE moved to RSS
-    for code in ['AJA+', 'WM', 'SI']:
-        adapters.append(TelegramWebAdapter(code))
-    return adapters
+    ]]
+    return rss_adapters + _TELEGRAM_ADAPTERS
 
 
 def log_ingestion(conn, source_code: str, fetched: int, inserted: int,

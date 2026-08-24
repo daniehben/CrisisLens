@@ -118,6 +118,11 @@ class TelegramWebAdapter(FeedAdapter):
             raise ValueError(f"Unknown Telegram source code: {code}")
         self._code = code
         self._cfg = TELEGRAM_SOURCES[code]
+        # Watermark: highest numeric message ID seen across cycles.
+        # Kept on the instance so it persists as long as the process runs.
+        # After a restart it resets to 0 — the DB unique constraint on external_id
+        # catches any re-inserts so no duplicate articles are written.
+        self._watermark: int = 0
 
     def source_code(self) -> str:
         return self._code
@@ -143,6 +148,8 @@ class TelegramWebAdapter(FeedAdapter):
             return articles
 
         lang = self._cfg['language']
+        new_watermark = self._watermark
+
         for msg in messages[-30:]:
             try:
                 text_el = msg.find('div', class_='tgme_widget_message_text')
@@ -164,6 +171,11 @@ class TelegramWebAdapter(FeedAdapter):
                 if not msg_id:
                     continue
 
+                # Skip messages already processed in a previous cycle
+                msg_id_int = int(msg_id) if msg_id.isdigit() else 0
+                if msg_id_int <= self._watermark:
+                    continue
+
                 time_el = msg.find('time')
                 published = _parse_iso(time_el.get('datetime')) if time_el and time_el.get('datetime') else datetime.utcnow()
 
@@ -182,9 +194,20 @@ class TelegramWebAdapter(FeedAdapter):
                     body_snippet=text[:1500],
                 )
                 articles.append(article)
+
+                if msg_id_int > new_watermark:
+                    new_watermark = msg_id_int
+
             except Exception as e:
                 log.debug(f"[{self._code}] skipping message: {e}")
                 continue
 
-        log.info(f"[{self._code}] Fetched {len(articles)} messages from Telegram")
+        # Advance watermark only after a successful fetch so a partial failure
+        # doesn't permanently skip messages.
+        if articles or new_watermark > self._watermark:
+            self._watermark = new_watermark
+            log.info(f"[{self._code}] Fetched {len(articles)} new messages (watermark → {self._watermark})")
+        else:
+            log.info(f"[{self._code}] No new messages since watermark {self._watermark}")
+
         return articles
