@@ -27,7 +27,13 @@ import threading
 from datetime import datetime, timezone
 from typing import Optional
 
+from backend.shared.circuit_breaker import CircuitBreaker
+
 log = logging.getLogger(__name__)
+
+# Circuit breaker: OPEN after 5 consecutive Groq failures, resets after 5 min.
+# Prevents hammering a failing API every 15 minutes and cluttering logs.
+_groq_cb = CircuitBreaker('groq', failure_threshold=5, cooldown_s=300)
 
 FAST_MODEL  = "openai/gpt-oss-20b"          # 1,000 RPM / 250K TPM (replaces llama-3.1-8b-instant)
 SMART_MODEL = "openai/gpt-oss-120b"         # 1,000 RPM / 250K TPM (replaces llama-3.3-70b-versatile)
@@ -145,6 +151,10 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
     if not allowed:
         return None
 
+    if not _groq_cb.allow():
+        log.debug(f"[groq] circuit breaker OPEN — skipping call to {model}")
+        return None
+
     _throttle(model)
 
     kwargs = {
@@ -160,9 +170,11 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
         resp = client.chat.completions.create(**kwargs)
         with _lock:
             _increment_daily(model)
+        _groq_cb.record_success()
         return resp.choices[0].message.content
     except Exception as e:
         log.warning(f"[groq] chat failed for model={model}: {type(e).__name__}: {e}")
+        _groq_cb.record_failure()
         return None
 
 
@@ -178,6 +190,11 @@ def chat_json(prompt: str, model: str = SMART_MODEL,
     except json.JSONDecodeError as e:
         log.warning(f"[groq] JSON parse failed for model={model}: {e}; raw: {raw[:200]}")
         return None
+
+
+def get_groq_cb_status() -> dict:
+    """Return the Groq circuit breaker's current status snapshot."""
+    return _groq_cb.status()
 
 
 def get_daily_usage() -> dict[str, dict]:

@@ -1,3 +1,4 @@
+import json
 import os
 import base64
 import logging
@@ -10,7 +11,7 @@ from backend.ingestion_worker.worker import run_worker
 from backend.nlp_pipeline.task7_fetch_body import run_task7
 from backend.nlp_pipeline.task7_5_summarize import run_task7_5
 from backend.nlp_pipeline.task8_translate import run_task8, run_task8b
-from backend.nlp_pipeline.task9_embed import run_task9, release_model as release_task9_model
+from backend.nlp_pipeline.task9_embed import run_task9, release_model as release_task9_model, get_jina_cb_status
 from backend.nlp_pipeline.task10_pairs import run_task10
 from backend.nlp_pipeline.task11_nli import run_task11
 from backend.nlp_pipeline.task12_conflicts import run_task12
@@ -18,6 +19,7 @@ from backend.nlp_pipeline.task13_bias_analysis import run_task13
 from backend.nlp_pipeline.task14_translate_analysis import run_task14
 from backend.nlp_pipeline.task6_images import run_task6
 from backend.nlp_pipeline.task15_cleanup import run_task15
+from backend.shared.groq_client import get_daily_usage, get_groq_cb_status
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -39,10 +41,23 @@ def restore_telegram_session():
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        try:
+            payload = {
+                "status": "worker running",
+                "groq_usage": get_daily_usage(),
+                "circuit_breakers": {
+                    "groq": get_groq_cb_status(),
+                    "jina": get_jina_cb_status(),
+                },
+            }
+            body = json.dumps(payload).encode()
+        except Exception:
+            body = b'{"status": "worker running"}'
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
         self.end_headers()
-        self.wfile.write(b'{"status": "worker running"}')
+        self.wfile.write(body)
 
     def do_HEAD(self):
         self.send_response(200)
@@ -113,6 +128,72 @@ def run_daily_cleanup():
         log.error(f"[scheduler] task15 (cleanup) crashed: {e}", exc_info=True)
 
 
+def run_embedding_migration():
+    """
+    Idempotent 768-dim embedding migration.
+
+    If the articles.embedding column is already vector(768), this is a no-op.
+    If it's vector(384) (old schema), the column is dropped and recreated at
+    768-dim, the vector index is rebuilt, and processed_nlp is reset so every
+    article gets re-embedded on the next task9 cycle.
+
+    Run once at worker startup (before the first ingestion cycle).
+    """
+    from backend.shared.database import get_db_connection
+    TARGET_DIM = 768
+    log.info(f"[migration] Checking embedding column dimension (target: {TARGET_DIM})...")
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT atttypmod
+                    FROM pg_attribute
+                    WHERE attrelid = 'articles'::regclass
+                      AND attname = 'embedding'
+                      AND attnum > 0
+                      AND NOT attisdropped
+                """)
+                row = cur.fetchone()
+
+                if row is None:
+                    # Column doesn't exist — add it
+                    cur.execute(f"ALTER TABLE articles ADD COLUMN embedding vector({TARGET_DIM})")
+                    log.info(f"[migration] Added embedding vector({TARGET_DIM}) column")
+                elif row[0] == TARGET_DIM:
+                    log.info(f"[migration] embedding column already vector({TARGET_DIM}) — no migration needed")
+                    return
+                else:
+                    old_dim = row[0]
+                    log.info(
+                        f"[migration] Migrating embedding column "
+                        f"vector({old_dim}) → vector({TARGET_DIM})..."
+                    )
+                    # Drop old index (auto-dropped with column, but be explicit)
+                    cur.execute("DROP INDEX IF EXISTS articles_embedding_idx")
+                    cur.execute("DROP INDEX IF EXISTS articles_embedding_cosine_idx")
+                    # Drop and recreate column
+                    cur.execute("ALTER TABLE articles DROP COLUMN embedding")
+                    cur.execute(f"ALTER TABLE articles ADD COLUMN embedding vector({TARGET_DIM})")
+                    # Reset processed_nlp so articles get re-embedded
+                    cur.execute("UPDATE articles SET processed_nlp = FALSE")
+                    log.info(
+                        f"[migration] Column recreated at {TARGET_DIM}-dim; "
+                        "processed_nlp reset — all articles will be re-embedded"
+                    )
+
+                # (Re)create cosine similarity index — IVFFlat needs data to
+                # train lists; use HNSW which works on an empty table too.
+                cur.execute(f"""
+                    CREATE INDEX IF NOT EXISTS articles_embedding_cosine_idx
+                    ON articles USING hnsw (embedding vector_cosine_ops)
+                    WITH (m = 16, ef_construction = 64)
+                """)
+            conn.commit()
+        log.info("[migration] Embedding migration complete")
+    except Exception as e:
+        log.error(f"[migration] Embedding migration failed: {e}", exc_info=True)
+
+
 def main():
     print("[scheduler] CrisisLens ingestion worker starting...")
 
@@ -124,6 +205,7 @@ def main():
         print(f"[scheduler] CONFIG ERROR: {e}")
         raise
 
+    run_embedding_migration()
     restore_telegram_session()
 
     # Start dummy HTTP server in background thread so Render sees a web service

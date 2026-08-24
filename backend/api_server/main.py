@@ -60,6 +60,9 @@ SOURCE_PROFILE: dict[str, str] = {
     "YT_BP":"US independent political commentary",
     "YT_DN":"US progressive public media",
     "YT_RT":"US progressive independent",
+    "HAA":  "Israeli left-liberal broadsheet · independent",
+    "TNA":  "UK-based · pro-Arab editorial line",
+    "MAN":  "Palestinian news agency · West Bank-based",
 }
 
 # ── Rate limiting ────────────────────────────────────────────────────────────
@@ -143,11 +146,16 @@ def run_startup_migrations():
                         ('Middle East Eye',   'MEE',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:middleeasteye.net&hl=en&gl=GB&ceid=GB:en',     'rss', TRUE),
                         ('Sudan Tribune',     'SDT',  'en', 3, 0.60, 'https://sudantribune.com/feed/',                                                          'rss', TRUE),
                         -- Arabic broadcasters
-                        ('BBC Arabic',        'BBAR', 'ar', 2, 0.80, 'http://feeds.bbci.co.uk/arabic/rss.xml',                                                  'rss', TRUE),
+                        ('BBC Arabic',        'BBAR', 'ar', 2, 0.80, 'https://feeds.bbci.co.uk/arabic/rss.xml',                                                 'rss', TRUE),
                         ('Sky News Arabia',   'SKA',  'ar', 3, 0.65, 'https://news.google.com/rss/search?q=site:skynewsarabia.com&hl=ar&gl=AE&ceid=AE:ar',     'rss', TRUE),
                         -- Breaking / aggregator (RSS, not Telegram)
                         ('BNO News',          'BNO',  'en', 3, 0.50, 'https://bnonews.com/index.php/feed/',                                                     'rss', TRUE),
                         ('Al Mayadeen EN',    'MAYE', 'en', 3, 0.45, 'https://www.almayadeen.net/rss/all.xml',                                                  'rss', TRUE),
+                        -- New sources (activated 2026-08)
+                        ('Haaretz',           'HAA',  'en', 2, 0.70, 'https://news.google.com/rss/search?q=site:haaretz.com&hl=en&gl=IL&ceid=IL:en',              'rss', TRUE),
+                        ('The New Arab',      'TNA',  'en', 3, 0.65, 'https://news.google.com/rss/search?q=site:thenewsarab.com&hl=en&gl=GB&ceid=GB:en',         'rss', TRUE),
+                        ('Asharq Al-Awsat',   'ASH',  'ar', 2, 0.65, 'https://news.google.com/rss/search?q=site:aawsat.com&hl=ar&gl=SA&ceid=SA:ar',              'rss', TRUE),
+                        ('Maan News Agency',  'MAN',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:maannews.com&hl=en&gl=PS&ceid=PS:en',            'rss', TRUE),
                         -- Telegram (only sources with no RSS alternative)
                         ('AJ Plus Arabic',    'AJA+', 'ar', 3, 0.50, 'https://t.me/s/ajplusar',          'telegram_web', TRUE),
                         ('War Monitor',       'WM',   'en', 4, 0.25, 'https://t.me/s/WarMonitor1',       'telegram_web', TRUE),

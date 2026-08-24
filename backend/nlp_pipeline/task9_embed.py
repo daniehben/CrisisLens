@@ -1,7 +1,7 @@
 """Task 9 — Generate sentence embeddings via Jina AI API.
 
-Model: jina-embeddings-v3 (cloud inference, 89 languages, MRL truncation to 384-dim)
-  - 384-dim vectors — matches existing vector(384) DB column, no schema migration needed
+Model: jina-embeddings-v3 (cloud inference, 89 languages, MRL truncation to 768-dim)
+  - 768-dim vectors — richer semantic signal for conflict pair detection
   - Multilingual: Arabic + English in same embedding space (better than MiniLM-L12)
   - Free tier: 1M tokens/month — only embed articles with summaries to stay within budget
   - Zero RAM footprint — no local model, no torch, no 480MB download
@@ -24,13 +24,23 @@ import os
 
 import requests
 
+from backend.shared.circuit_breaker import CircuitBreaker
 from backend.shared.database import get_db_connection
 
 log = logging.getLogger(__name__)
 
 JINA_API_URL  = "https://api.jina.ai/v1/embeddings"
 JINA_MODEL    = "jina-embeddings-v3"
-EMBEDDING_DIM = 384   # MRL truncation — matches existing vector(384) column
+EMBEDDING_DIM = 768   # MRL truncation — 768-dim for richer cosine similarity
+
+# Circuit breaker: OPEN after 3 consecutive Jina failures, resets after 3 min.
+# Prevents hammering a failing auth/network on every batch and cluttering logs.
+_jina_cb = CircuitBreaker('jina', failure_threshold=3, cooldown_s=180)
+
+
+def get_jina_cb_status() -> dict:
+    """Return circuit breaker status snapshot for health checks."""
+    return _jina_cb.status()
 
 
 def _build_embed_text(headline: str | None, summary: str | None) -> str | None:
@@ -57,7 +67,7 @@ def _build_embed_text(headline: str | None, summary: str | None) -> str | None:
 def get_embeddings_jina(texts: list[str], batch_size: int = 32) -> list[list[float] | None]:
     """
     Embed a list of texts via Jina AI API.
-    Returns one 384-dim vector per input, or None on failure.
+    Returns one 768-dim vector per input, or None on failure.
     """
     api_key = os.getenv("JINA_API_KEY")
     if not api_key:
@@ -73,6 +83,12 @@ def get_embeddings_jina(texts: list[str], batch_size: int = 32) -> list[list[flo
 
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
+
+        if not _jina_cb.allow():
+            log.debug(f"[Task9] Jina circuit breaker OPEN — skipping batch {i}–{i+len(batch)}")
+            results.extend([None] * len(batch))
+            continue
+
         try:
             resp = requests.post(
                 JINA_API_URL,
@@ -80,7 +96,7 @@ def get_embeddings_jina(texts: list[str], batch_size: int = 32) -> list[list[flo
                 json={
                     "model":      JINA_MODEL,
                     "input":      batch,
-                    "dimensions": EMBEDDING_DIM,   # MRL truncation to 384
+                    "dimensions": EMBEDDING_DIM,   # MRL truncation to 768
                     "task":       "text-matching", # optimised for semantic similarity
                 },
                 timeout=30,
@@ -90,8 +106,10 @@ def get_embeddings_jina(texts: list[str], batch_size: int = 32) -> list[list[flo
             # Jina returns items sorted by index — sort defensively anyway
             items = sorted(data["data"], key=lambda x: x["index"])
             results.extend(item["embedding"] for item in items)
+            _jina_cb.record_success()
         except Exception as e:
             log.warning(f"[Task9] Jina batch {i}–{i+len(batch)} failed: {e} — appending Nones")
+            _jina_cb.record_failure()
             results.extend([None] * len(batch))
 
     return results
