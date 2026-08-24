@@ -12,9 +12,10 @@ _IMG_TAG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.IGNORECASE)
 
 RSS_SOURCES = {
     'AJA': {
-        'url': 'https://www.aljazeera.com/xml/rss/all.xml',
-        'language': 'en',  # temporarily English until DACR credentials arrive
-        'trust_weight': 1.00,
+        # Al Jazeera Arabic — switched from English feed; Arabic is platform-primary
+        'url': 'https://www.aljazeera.net/rss/all.xml',
+        'language': 'ar',
+        'trust_weight': 0.90,
     },
     # AJA+ disabled — RSSHub bridge hits Telegram rate limit (429) on free tier.
     # See docs/BACKLOG.md to re-enable once we have a paid RSSHub or alternative.
@@ -63,8 +64,8 @@ RSS_SOURCES = {
     },
     # ── State media counter-Western perspective ────────────────────────────
     'TAS': {
-        # Tasnim (Iranian state, Arabic edition)
-        'url': 'https://news.google.com/rss/search?q=site:tasnimnews.com/ar&hl=ar&gl=IR&ceid=IR:ar',
+        # Tasnim (Iranian state, Arabic edition) — removed /ar path suffix; too narrow on Google News
+        'url': 'https://news.google.com/rss/search?q=site:tasnimnews.com&hl=ar&gl=IR&ceid=IR:ar',
         'language': 'ar',
         'trust_weight': 0.40,
     },
@@ -146,8 +147,8 @@ RSS_SOURCES = {
         'trust_weight': 0.85,
     },
     'AP': {
-        # Associated Press — official AP top news RSS
-        'url': 'https://feeds.apnews.com/rss/apf-topnews',
+        # Associated Press — official feed dead; route via Google News
+        'url': 'https://news.google.com/rss/search?q=site:apnews.com&hl=en&gl=US&ceid=US:en',
         'language': 'en',
         'trust_weight': 0.80,
     },
@@ -173,8 +174,8 @@ RSS_SOURCES = {
     },
     # ── Al Mayadeen: moved from Telegram scraping to direct RSS ──────────
     'MAYE': {
-        # Al Mayadeen English — official RSS
-        'url': 'https://www.almayadeen.net/rss/all.xml',
+        # Al Mayadeen English — direct RSS dead (CMS migration); route via Google News
+        'url': 'https://news.google.com/rss/search?q=site:english.almayadeen.net&hl=en&gl=LB&ceid=LB:en',
         'language': 'en',
         'trust_weight': 0.45,
     },
@@ -193,7 +194,7 @@ RSS_SOURCES = {
     },
     'BBAR': {
         # BBC Arabic — same trust as BBC English, Arabic edition
-        'url': 'http://feeds.bbci.co.uk/arabic/rss.xml',
+        'url': 'https://feeds.bbci.co.uk/arabic/rss.xml',
         'language': 'ar',
         'trust_weight': 0.80,
     },
@@ -210,8 +211,8 @@ RSS_SOURCES = {
         'trust_weight': 0.60,
     },
     'SDT': {
-        # Sudan Tribune — geography expansion: Sudan, Horn of Africa, Sahel
-        'url': 'https://sudantribune.com/feed/',
+        # Sudan Tribune — direct feed dead (site relaunch); route via Google News
+        'url': 'https://news.google.com/rss/search?q=site:sudantribune.com&hl=en&gl=SD&ceid=SD:en',
         'language': 'en',
         'trust_weight': 0.60,
     },
