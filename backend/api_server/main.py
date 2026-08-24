@@ -63,6 +63,8 @@ SOURCE_PROFILE: dict[str, str] = {
     "HAA":  "Israeli left-liberal broadsheet · independent",
     "TNA":  "UK-based · pro-Arab editorial line",
     "MAN":  "Palestinian news agency · West Bank-based",
+    "PCH":  "Palestine Chronicle · independent · West Bank correspondents",
+    "IMEMC":"IMEMC · Bethlehem-based · incident-level West Bank reporting",
 }
 
 # ── Rate limiting ────────────────────────────────────────────────────────────
@@ -138,24 +140,26 @@ def run_startup_migrations():
                         -- Global mainstream (RSS, not NewsAPI)
                         ('BBC News',          'BBC',  'en', 1, 0.80, 'https://feeds.bbci.co.uk/news/world/rss.xml',                                              'rss', TRUE),
                         ('Reuters',           'REU',  'en', 1, 0.85, 'https://news.google.com/rss/search?q=site:reuters.com&hl=en&gl=US&ceid=US:en',             'rss', TRUE),
-                        ('Associated Press',  'AP',   'en', 1, 0.80, 'https://feeds.apnews.com/rss/apf-topnews',                                                 'rss', TRUE),
+                        ('Associated Press',  'AP',   'en', 1, 0.80, 'https://news.google.com/rss/search?q=site:apnews.com&hl=en&gl=US&ceid=US:en',              'rss', TRUE),
                         ('Washington Post',   'WP',   'en', 2, 0.75, 'https://news.google.com/rss/search?q=site:washingtonpost.com&hl=en&gl=US&ceid=US:en',     'rss', TRUE),
                         ('Jerusalem Post',    'JRP',  'en', 2, 0.70, 'https://news.google.com/rss/search?q=site:jpost.com&hl=en&gl=IL&ceid=IL:en',              'rss', TRUE),
                         ('CNN',               'CNN',  'en', 2, 0.75, 'https://news.google.com/rss/search?q=site:cnn.com&hl=en&gl=US&ceid=US:en',                'rss', TRUE),
                         ('The Guardian',      'GUA',  'en', 2, 0.78, 'https://www.theguardian.com/world/rss',                                                   'rss', TRUE),
                         ('Middle East Eye',   'MEE',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:middleeasteye.net&hl=en&gl=GB&ceid=GB:en',     'rss', TRUE),
-                        ('Sudan Tribune',     'SDT',  'en', 3, 0.60, 'https://sudantribune.com/feed/',                                                          'rss', TRUE),
+                        ('Sudan Tribune',     'SDT',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:sudantribune.com&hl=en&gl=SD&ceid=SD:en',       'rss', TRUE),
                         -- Arabic broadcasters
                         ('BBC Arabic',        'BBAR', 'ar', 2, 0.80, 'https://feeds.bbci.co.uk/arabic/rss.xml',                                                 'rss', TRUE),
                         ('Sky News Arabia',   'SKA',  'ar', 3, 0.65, 'https://news.google.com/rss/search?q=site:skynewsarabia.com&hl=ar&gl=AE&ceid=AE:ar',     'rss', TRUE),
                         -- Breaking / aggregator (RSS, not Telegram)
                         ('BNO News',          'BNO',  'en', 3, 0.50, 'https://bnonews.com/index.php/feed/',                                                     'rss', TRUE),
-                        ('Al Mayadeen EN',    'MAYE', 'en', 3, 0.45, 'https://www.almayadeen.net/rss/all.xml',                                                  'rss', TRUE),
+                        ('Al Mayadeen EN',    'MAYE', 'en', 3, 0.45, 'https://news.google.com/rss/search?q=site:english.almayadeen.net&hl=en&gl=LB&ceid=LB:en', 'rss', TRUE),
                         -- New sources (activated 2026-08)
                         ('Haaretz',           'HAA',  'en', 2, 0.70, 'https://news.google.com/rss/search?q=site:haaretz.com&hl=en&gl=IL&ceid=IL:en',              'rss', TRUE),
-                        ('The New Arab',      'TNA',  'en', 3, 0.65, 'https://news.google.com/rss/search?q=site:thenewsarab.com&hl=en&gl=GB&ceid=GB:en',         'rss', TRUE),
+                        ('The New Arab',      'TNA',  'en', 3, 0.65, 'https://news.google.com/rss/search?q=site:newarab.com&hl=en&gl=GB&ceid=GB:en',             'rss', TRUE),
                         ('Asharq Al-Awsat',   'ASH',  'ar', 2, 0.65, 'https://news.google.com/rss/search?q=site:aawsat.com&hl=ar&gl=SA&ceid=SA:ar',              'rss', TRUE),
-                        ('Maan News Agency',  'MAN',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:maannews.com&hl=en&gl=PS&ceid=PS:en',            'rss', TRUE),
+                        ('Maan News Agency',  'MAN',  'en', 3, 0.60, 'https://news.google.com/rss/search?q=site:maannews.com&hl=en&gl=PS&ceid=PS:en',            'rss', FALSE),
+                        ('Palestine Chronicle','PCH',  'en', 3, 0.55, 'https://news.google.com/rss/search?q=site:palestinechronicle.com&hl=en&gl=PS&ceid=PS:en',    'rss', TRUE),
+                        ('IMEMC',             'IMEMC','en', 3, 0.60, 'https://news.google.com/rss/search?q=site:imemc.org&hl=en&gl=PS&ceid=PS:en',                  'rss', TRUE),
                         -- Telegram (only sources with no RSS alternative)
                         ('AJ Plus Arabic',    'AJA+', 'ar', 3, 0.50, 'https://t.me/s/ajplusar',          'telegram_web', TRUE),
                         ('War Monitor',       'WM',   'en', 4, 0.25, 'https://t.me/s/WarMonitor1',       'telegram_web', TRUE),
@@ -170,8 +174,11 @@ def run_startup_migrations():
                 # Disable sources no longer in use
                 cur.execute("""
                     UPDATE sources SET is_active = FALSE
-                    WHERE code IN ('AJE', 'BBC+')
+                    WHERE code IN ('AJE', 'BBC+', 'MAN')
                 """)
+                # MAN (Ma'an News Agency) deactivated 2026-08: maannews.com not in
+                # Google News index (0 results) and direct RSS returns 403.
+                # Palestinian coverage is served by WAF (WAFA) instead.
 
             conn.commit()
             log.info("[startup] migrations OK")

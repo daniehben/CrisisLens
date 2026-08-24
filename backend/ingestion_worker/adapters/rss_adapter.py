@@ -62,6 +62,21 @@ RSS_SOURCES = {
         'language': 'ar',
         'trust_weight': 0.55,
     },
+    'PCH': {
+        # Palestine Chronicle — independent, US-registered but publishes West Bank correspondents
+        # Analytical/contextual; replaces MAN for independent Palestinian ground reporting
+        'url': 'https://news.google.com/rss/search?q=site:palestinechronicle.com&hl=en&gl=PS&ceid=PS:en',
+        'language': 'en',
+        'trust_weight': 0.55,
+    },
+    'IMEMC': {
+        # IMEMC — International Middle East Media Center, physically based in Bethlehem
+        # Joint international-Palestinian project; incident-level West Bank reporting
+        # (settler attacks, IDF raids, checkpoint closures at village granularity)
+        'url': 'https://news.google.com/rss/search?q=site:imemc.org&hl=en&gl=PS&ceid=PS:en',
+        'language': 'en',
+        'trust_weight': 0.60,
+    },
     # ── State media counter-Western perspective ────────────────────────────
     'TAS': {
         # Tasnim (Iranian state, Arabic edition) — removed /ar path suffix; too narrow on Google News
@@ -251,7 +266,8 @@ RSS_SOURCES = {
     },
     'TNA': {
         # The New Arab — independent English/Arabic outlet, strong on Syria and Gulf
-        'url': 'https://news.google.com/rss/search?q=site:thenewsarab.com&hl=en&gl=GB&ceid=GB:en',
+        # Domain is newarab.com (thenewsarab.com has no Google News index — 0 results)
+        'url': 'https://news.google.com/rss/search?q=site:newarab.com&hl=en&gl=GB&ceid=GB:en',
         'language': 'en',
         'trust_weight': 0.65,
     },
@@ -261,12 +277,9 @@ RSS_SOURCES = {
         'language': 'ar',
         'trust_weight': 0.65,
     },
-    'MAN': {
-        # Ma'an News Agency — Palestinian, West Bank ground-level reporting; complements WAFA
-        'url': 'https://news.google.com/rss/search?q=site:maannews.com&hl=en&gl=PS&ceid=PS:en',
-        'language': 'en',
-        'trust_weight': 0.60,
-    },
+    # MAN (Ma'an News Agency) removed 2026-08: maannews.com not indexed by Google News
+    # (HTTP 200 but 0 entries across all geo/hl variants); direct RSS returns 403.
+    # Palestinian ground-level coverage is served by WAF (WAFA) instead.
 }
 
 # Mimic a real browser to avoid being blocked

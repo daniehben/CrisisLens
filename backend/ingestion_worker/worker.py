@@ -27,7 +27,7 @@ def get_all_adapters():
         'DW', 'F24', 'ARB',                # Arabic broadcasters
         'BBAR', 'SKA',                      # BBC Arabic, Sky News Arabia
         # ── Palestinian / resistance perspective ──────────────────────────
-        'MND', 'WAF', 'AKH', 'EI',
+        'MND', 'WAF', 'AKH', 'EI', 'PCH', 'IMEMC',
         # ── State media ───────────────────────────────────────────────────
         'TAS', 'PTV', 'RTA', 'ANA',
         # ── Western mainstream (now via RSS, not NewsAPI) ─────────────────
@@ -40,7 +40,7 @@ def get_all_adapters():
         # ── YouTube commentary ────────────────────────────────────────────
         'YT_BP', 'YT_DN', 'YT_RT',
         # ── Activations (in DB, now wired in) ─────────────────────────────
-        'HAA', 'TNA', 'ASH', 'MAN',
+        'HAA', 'TNA', 'ASH',   # MAN removed 2026-08: not in Google News index
     ]]
     return rss_adapters + _TELEGRAM_ADAPTERS
 
