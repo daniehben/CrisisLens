@@ -41,9 +41,16 @@ from backend.shared.circuit_breaker import CircuitBreaker
 
 log = logging.getLogger(__name__)
 
-# Circuit breaker: OPEN after 5 consecutive Groq failures, resets after 5 min.
-# Prevents hammering a failing API every 15 minutes and cluttering logs.
-_groq_cb = CircuitBreaker('groq', failure_threshold=5, cooldown_s=300)
+# Per-model circuit breakers: OPEN after 5 consecutive failures, reset after 5 min.
+# One CB per model so a SMART_MODEL rate-limit storm (task13) doesn't block
+# FAST_MODEL calls (task7.5, task8b) in the next ingestion cycle.
+_groq_cbs: dict[str, CircuitBreaker] = {}
+
+def _get_cb(model: str) -> CircuitBreaker:
+    """Return the circuit breaker for this model, creating it on first use."""
+    if model not in _groq_cbs:
+        _groq_cbs[model] = CircuitBreaker(f'groq-{model}', failure_threshold=5, cooldown_s=300)
+    return _groq_cbs[model]
 
 FAST_MODEL  = "openai/gpt-oss-20b"          # 1,000 RPM / 250K TPM (replaces llama-3.1-8b-instant)
 SMART_MODEL = "openai/gpt-oss-120b"         # 1,000 RPM / 250K TPM (replaces llama-3.3-70b-versatile)
@@ -289,8 +296,9 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
     if not _has_token_budget(model, max_tokens):
         return None
 
-    if not _groq_cb.allow():
-        log.debug(f"[groq] circuit breaker OPEN — skipping call to {model}")
+    cb = _get_cb(model)
+    if not cb.allow():
+        log.debug(f"[groq] circuit breaker OPEN for {model} — skipping call")
         return None
 
     _throttle(model)
@@ -313,7 +321,7 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
         _update_tpd_from_headers(model, raw.headers)
         with _lock:
             _increment_daily(model)
-        _groq_cb.record_success()
+        _get_cb(model).record_success()
         return resp.choices[0].message.content
     except Exception as e:
         err_str = str(e)
@@ -325,7 +333,7 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
         if "tokens per day" in err_str.lower() or "tpd" in err_str.lower():
             _set_tpd_freeze(model, err_str)
         else:
-            _groq_cb.record_failure()
+            _get_cb(model).record_failure()
         return None
 
 
@@ -344,8 +352,8 @@ def chat_json(prompt: str, model: str = SMART_MODEL,
 
 
 def get_groq_cb_status() -> dict:
-    """Return the Groq circuit breaker's current status snapshot."""
-    return _groq_cb.status()
+    """Return circuit breaker status for all models that have been called."""
+    return {model: cb.status() for model, cb in _groq_cbs.items()}
 
 
 def get_daily_usage() -> dict[str, dict]:

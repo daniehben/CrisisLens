@@ -20,6 +20,7 @@ Runs after task13 in the scheduler.
 """
 import json
 import logging
+import time
 
 import psycopg2.extras
 from deep_translator import MyMemoryTranslator
@@ -53,13 +54,20 @@ def _translate_via_mymemory(fields: dict) -> dict:
     Limits: ~500 words/request, ~1000 words/day on the anonymous tier.
     Acceptable for a fallback that only fires when Groq is unavailable.
     """
+    _MYMEMORY_MAX_CHARS = 490
+
     result = {}
+    first = True
     for key, value in fields.items():
         if not value:
             result[f"{key}_ar"] = value
             continue
+        if not first:
+            time.sleep(0.25)          # stay under MyMemory's ~5 req/s limit
+        first = False
+        text = value[:_MYMEMORY_MAX_CHARS] if len(value) > _MYMEMORY_MAX_CHARS else value
         try:
-            translated = MyMemoryTranslator(source='en-US', target='ar-SA').translate(value)
+            translated = MyMemoryTranslator(source='en-US', target='ar-SA').translate(text)
             result[f"{key}_ar"] = translated or value
         except Exception as e:
             log.warning(f"[Task14] MyMemory fallback failed for {key}: {e}")

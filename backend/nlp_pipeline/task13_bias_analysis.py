@@ -242,9 +242,9 @@ def run_task13():
                     failed += 1
                     continue
 
-                analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=1200)
+                analysis = chat_json(prompt, model=SMART_MODEL, max_tokens=1500)
                 if not analysis:
-                    analysis = chat_json(prompt, model=FAST_MODEL, max_tokens=1200)
+                    analysis = chat_json(prompt, model=FAST_MODEL, max_tokens=1500)
                 if not analysis or "narrative" not in analysis:
                     log.warning(f"[Task13] Conflict {r['conflict_id']}: no usable analysis from either model")
                     failed += 1
