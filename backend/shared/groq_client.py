@@ -11,18 +11,22 @@ Developer-plan rate limits (as of 2026-08):
 Note: llama-3.1-8b-instant and llama-3.3-70b-versatile were deprecated 2026-08-16.
 These GPT-OSS models are the official replacements per console.groq.com/docs/deprecations.
 
-Three guards are applied before every call:
-  1. RPM throttle  — sleeps enough to stay under 1000 RPM per model
-  2. Daily cap     — soft safety cap, set high (effectively uncapped at our usage level)
-  3. TPD freeze    — when Groq reports "tokens per day" exhausted, halts all calls to
-                     that model until the retry time Groq specifies (or midnight UTC if
-                     unparseable). Unlike the circuit breaker (which probes every 5 min),
-                     a TPD freeze is deterministic: retrying before midnight is guaranteed
-                     to fail and burns quota on the probe attempt.
+Four guards are applied before every call:
+  1. RPM throttle     — sleeps enough to stay under 1000 RPM per model
+  2. Daily cap        — soft safety cap (runaway-cost guard; effectively uncapped at current usage)
+  3. TPD freeze       — when Groq reports "tokens per day" exhausted, halts calls until
+                        the exact retry time from the error (or midnight UTC). Deterministic:
+                        retrying before reset is guaranteed to fail and wastes quota.
+  4. Proactive budget — reads x-ratelimit-remaining-tokens-day from every response header
+                        and skips the next call if remaining tokens can't cover max_tokens +
+                        prompt overhead. Prevents the 429 entirely rather than reacting to it.
 
-The daily counter resets at midnight UTC. Counts survive across ingestion
-cycles within the same worker process (module-level state). On worker
-restart the counter resets.
+The real remaining-token count comes from Groq's own response headers, not from our local
+estimates. After each successful call, _tpd_remaining[model] is updated to what Groq says is
+left. That value is exposed in the health endpoint and logged whenever it drops below 20%.
+
+The daily counter resets at midnight UTC. Module-level state survives across ingestion
+cycles in the same worker process; resets on worker restart.
 """
 import json
 import logging
@@ -72,6 +76,22 @@ _cap_logged: dict[str, bool] = {}
 # because every probe attempt also fails and wastes quota. A TPD freeze is
 # deterministic — we know it won't work until the specified time.
 _tpd_frozen_until: dict[str, float] = {}   # model -> epoch seconds
+
+# Live token budget from Groq's response headers.
+# Updated after every successful call. None = no data yet (worker just started).
+# Groq sends x-ratelimit-remaining-tokens-day and x-ratelimit-limit-tokens-day
+# with every response — these are the authoritative numbers, not our estimates.
+_tpd_remaining: dict[str, int | None] = {}  # model -> tokens remaining today
+_tpd_limit:     dict[str, int | None] = {}  # model -> total daily token ceiling
+
+# If remaining tokens are below this threshold, skip the call rather than
+# let it hit a 429. Covers max_tokens + typical prompt overhead (~500 tokens).
+# Callers can override per-call by passing a larger max_tokens value — the check
+# uses max_tokens * 2 so short prompts don't burn the last few thousand tokens.
+_MIN_TOKENS_RESERVE = 2_000
+
+# Log a warning when remaining tokens drop below this fraction of the daily limit.
+_LOW_TOKEN_WARN_PCT = 0.20
 
 _client = None
 # --------------------------------------------------------------------------- #
@@ -153,6 +173,70 @@ def _set_tpd_freeze(model: str, error_message: str) -> None:
     )
 
 
+def _update_tpd_from_headers(model: str, headers) -> None:
+    """Read actual remaining/limit token counts from a Groq response's HTTP headers.
+
+    Called after every successful completion. Groq returns:
+      x-ratelimit-remaining-tokens-day  — tokens left in today's budget
+      x-ratelimit-limit-tokens-day      — total daily ceiling for this org/key
+
+    These are the real numbers, not our local estimates. We store them and use
+    them to make proactive skip decisions on the next call.
+    """
+    try:
+        remaining_str = headers.get("x-ratelimit-remaining-tokens-day")
+        limit_str     = headers.get("x-ratelimit-limit-tokens-day")
+
+        if remaining_str is not None:
+            remaining = int(remaining_str)
+            _tpd_remaining[model] = remaining
+
+            # Log a warning the first time we drop below the low-water mark.
+            limit = _tpd_limit.get(model)
+            if limit and limit > 0:
+                pct = remaining / limit
+                if pct < _LOW_TOKEN_WARN_PCT:
+                    log.warning(
+                        f"[groq] {model}: {remaining:,} / {limit:,} tokens remaining today "
+                        f"({pct:.0%}) — LLM tasks will be skipped once budget is exhausted."
+                    )
+                else:
+                    log.debug(
+                        f"[groq] {model}: {remaining:,} / {limit:,} tokens remaining ({pct:.0%})"
+                    )
+
+        if limit_str is not None:
+            _tpd_limit[model] = int(limit_str)
+
+    except Exception as e:
+        log.debug(f"[groq] Could not parse TPD headers for {model}: {e}")
+
+
+def _has_token_budget(model: str, max_tokens: int) -> bool:
+    """Return False if we know there isn't enough token budget left for this call.
+
+    Uses the last-known remaining-tokens count from Groq's response headers.
+    Skips the call proactively rather than letting it hit a 429.
+
+    The check is: remaining >= max_tokens * 2
+    The *2 accounts for the prompt (input) tokens we can't know exactly in advance.
+    For a 400-token output with a 300-token prompt, total ≈ 700 — well within 2×.
+    This is conservative: if remaining is unknown (None) we always allow the call.
+    """
+    remaining = _tpd_remaining.get(model)
+    if remaining is None:
+        return True                             # no data yet — allow and learn from the response
+    needed = max(max_tokens * 2, _MIN_TOKENS_RESERVE)
+    if remaining < needed:
+        log.warning(
+            f"[groq] {model}: only {remaining:,} tokens remaining today, "
+            f"need ~{needed:,} for this call — skipping to avoid 429. "
+            f"Budget resets at midnight UTC."
+        )
+        return False
+    return True
+
+
 def get_client():
     """Lazy-init Groq client; returns None if no API key configured."""
     global _client
@@ -200,6 +284,11 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
         log.debug(f"[groq] TPD freeze active for {model} — skipping call")
         return None
 
+    # Proactive budget check: if the last response told us how many tokens are left
+    # and it isn't enough to cover this call, skip it before hitting a 429.
+    if not _has_token_budget(model, max_tokens):
+        return None
+
     if not _groq_cb.allow():
         log.debug(f"[groq] circuit breaker OPEN — skipping call to {model}")
         return None
@@ -216,7 +305,12 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
         kwargs["response_format"] = {"type": "json_object"}
 
     try:
-        resp = client.chat.completions.create(**kwargs)
+        # Use with_raw_response so we get HTTP headers alongside the parsed response.
+        # Groq sends x-ratelimit-remaining-tokens-day in every response — reading it
+        # here means we always have an up-to-date picture of our daily token budget.
+        raw  = client.with_raw_response.chat.completions.create(**kwargs)
+        resp = raw.parse()
+        _update_tpd_from_headers(model, raw.headers)
         with _lock:
             _increment_daily(model)
         _groq_cb.record_success()
@@ -257,25 +351,45 @@ def get_groq_cb_status() -> dict:
 def get_daily_usage() -> dict[str, dict]:
     """
     Returns today's usage stats for all models that have been called.
-    Useful for health checks or admin logging.
+    Exposed by the health endpoint so you can see actual token budget without SSH.
 
     Example return value:
       {
-        "openai/gpt-oss-20b":  {"date": "2026-08-26", "count": 87, "cap": 50000,
-                                 "tpd_frozen": True, "tpd_frozen_until_utc": "2026-08-26T23:59:59Z"},
-        "openai/gpt-oss-120b": {"date": "2026-08-26", "count": 12, "cap": 10000,
-                                 "tpd_frozen": False},
+        "openai/gpt-oss-20b": {
+          "date": "2026-08-27", "calls_today": 87, "calls_cap": 50000,
+          "tokens_remaining": 45231, "tokens_limit": 200000, "tokens_pct": 22.6,
+          "tpd_frozen": False,
+        },
+        "openai/gpt-oss-120b": {
+          "date": "2026-08-27", "calls_today": 12, "calls_cap": 10000,
+          "tokens_remaining": None,   # no successful call yet this process lifetime
+          "tokens_limit": None,
+          "tokens_pct": None,
+          "tpd_frozen": False,
+        },
       }
+
+    tokens_remaining / tokens_limit come directly from Groq's response headers
+    (x-ratelimit-remaining-tokens-day / x-ratelimit-limit-tokens-day) and are
+    updated after every successful call. None means the worker hasn't made a
+    successful call to that model yet since its last restart.
     """
     with _lock:
         result = {}
         for model, entry in _daily.items():
-            frozen = _is_tpd_frozen(model)
+            frozen    = _is_tpd_frozen(model)
+            remaining = _tpd_remaining.get(model)
+            limit     = _tpd_limit.get(model)
+            pct       = round(remaining / limit * 100, 1) if (remaining is not None and limit) else None
+
             row = {
-                "date":       entry["date"],
-                "count":      entry["count"],
-                "cap":        _DAILY_CAPS.get(model, None),
-                "tpd_frozen": frozen,
+                "date":             entry["date"],
+                "calls_today":      entry["count"],
+                "calls_cap":        _DAILY_CAPS.get(model, None),
+                "tokens_remaining": remaining,
+                "tokens_limit":     limit,
+                "tokens_pct":       pct,
+                "tpd_frozen":       frozen,
             }
             if frozen:
                 until_s = _tpd_frozen_until.get(model, 0.0)
