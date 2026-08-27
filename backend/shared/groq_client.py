@@ -11,9 +11,14 @@ Developer-plan rate limits (as of 2026-08):
 Note: llama-3.1-8b-instant and llama-3.3-70b-versatile were deprecated 2026-08-16.
 These GPT-OSS models are the official replacements per console.groq.com/docs/deprecations.
 
-Two guards are applied before every call:
+Three guards are applied before every call:
   1. RPM throttle  — sleeps enough to stay under 1000 RPM per model
   2. Daily cap     — soft safety cap, set high (effectively uncapped at our usage level)
+  3. TPD freeze    — when Groq reports "tokens per day" exhausted, halts all calls to
+                     that model until the retry time Groq specifies (or midnight UTC if
+                     unparseable). Unlike the circuit breaker (which probes every 5 min),
+                     a TPD freeze is deterministic: retrying before midnight is guaranteed
+                     to fail and burns quota on the probe attempt.
 
 The daily counter resets at midnight UTC. Counts survive across ingestion
 cycles within the same worker process (module-level state). On worker
@@ -22,6 +27,7 @@ restart the counter resets.
 import json
 import logging
 import os
+import re
 import time
 import threading
 from datetime import datetime, timezone
@@ -59,6 +65,13 @@ _daily: dict[str, dict] = {}
 # Set to True (per model) the first time the cap is logged, so we don't spam
 # the log with one WARNING per skipped call.
 _cap_logged: dict[str, bool] = {}
+
+# TPD (tokens-per-day) freeze: when Groq says "daily token limit exhausted",
+# we freeze that model until the exact retry time Groq gives us.
+# The circuit breaker (OPEN → HALF_OPEN every 5 min) is wrong for this case
+# because every probe attempt also fails and wastes quota. A TPD freeze is
+# deterministic — we know it won't work until the specified time.
+_tpd_frozen_until: dict[str, float] = {}   # model -> epoch seconds
 
 _client = None
 # --------------------------------------------------------------------------- #
@@ -110,6 +123,36 @@ def _check_daily_cap(model: str) -> bool:
     return True
 
 
+def _is_tpd_frozen(model: str) -> bool:
+    """Return True if this model is frozen due to daily token exhaustion."""
+    until = _tpd_frozen_until.get(model, 0.0)
+    return time.time() < until
+
+
+def _set_tpd_freeze(model: str, error_message: str) -> None:
+    """Parse Groq's 'try again in Xh Ym Zs' from a TPD error and freeze until then.
+    Falls back to end-of-day UTC if the message can't be parsed."""
+    # Groq error format: "...try again in 3h17m8.64s..."
+    match = re.search(r'try again in (\d+)h(\d+)m([\d.]+)s', error_message, re.IGNORECASE)
+    if match:
+        h, m, s = int(match.group(1)), int(match.group(2)), float(match.group(3))
+        freeze_for_s = h * 3600 + m * 60 + s
+    else:
+        # Can't parse exact time — freeze until 23:59:59 UTC today
+        now = datetime.now(timezone.utc)
+        midnight = now.replace(hour=23, minute=59, second=59, microsecond=0)
+        freeze_for_s = max(0.0, (midnight - now).total_seconds())
+
+    _tpd_frozen_until[model] = time.time() + freeze_for_s
+    hours = int(freeze_for_s // 3600)
+    mins  = int((freeze_for_s % 3600) // 60)
+    log.warning(
+        f"[groq] TPD exhausted for {model} — freezing calls for "
+        f"~{hours}h {mins}m (until Groq resets). "
+        f"Tasks using this model will be skipped until then."
+    )
+
+
 def get_client():
     """Lazy-init Groq client; returns None if no API key configured."""
     global _client
@@ -151,6 +194,12 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
     if not allowed:
         return None
 
+    # TPD freeze check: if today's token quota is exhausted, don't even try.
+    # Unlike the circuit breaker, we know the exact time it'll clear — no point probing.
+    if _is_tpd_frozen(model):
+        log.debug(f"[groq] TPD freeze active for {model} — skipping call")
+        return None
+
     if not _groq_cb.allow():
         log.debug(f"[groq] circuit breaker OPEN — skipping call to {model}")
         return None
@@ -173,8 +222,16 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
         _groq_cb.record_success()
         return resp.choices[0].message.content
     except Exception as e:
-        log.warning(f"[groq] chat failed for model={model}: {type(e).__name__}: {e}")
-        _groq_cb.record_failure()
+        err_str = str(e)
+        log.warning(f"[groq] chat failed for model={model}: {type(e).__name__}: {err_str}")
+        # Detect daily token quota exhaustion — different from a transient outage.
+        # "tokens per day" appears in Groq's 429 error message for TPD limit hits.
+        # Don't count these as circuit-breaker failures: retrying before reset is
+        # pointless, and the probe attempt itself wastes quota.
+        if "tokens per day" in err_str.lower() or "tpd" in err_str.lower():
+            _set_tpd_freeze(model, err_str)
+        else:
+            _groq_cb.record_failure()
         return None
 
 
@@ -204,16 +261,26 @@ def get_daily_usage() -> dict[str, dict]:
 
     Example return value:
       {
-        "llama-3.1-8b-instant":    {"date": "2026-06-03", "count": 87,  "cap": 14400},
-        "llama-3.3-70b-versatile": {"date": "2026-06-03", "count": 12,  "cap": 1000},
+        "openai/gpt-oss-20b":  {"date": "2026-08-26", "count": 87, "cap": 50000,
+                                 "tpd_frozen": True, "tpd_frozen_until_utc": "2026-08-26T23:59:59Z"},
+        "openai/gpt-oss-120b": {"date": "2026-08-26", "count": 12, "cap": 10000,
+                                 "tpd_frozen": False},
       }
     """
     with _lock:
         result = {}
         for model, entry in _daily.items():
-            result[model] = {
-                "date":  entry["date"],
-                "count": entry["count"],
-                "cap":   _DAILY_CAPS.get(model, None),
+            frozen = _is_tpd_frozen(model)
+            row = {
+                "date":       entry["date"],
+                "count":      entry["count"],
+                "cap":        _DAILY_CAPS.get(model, None),
+                "tpd_frozen": frozen,
             }
+            if frozen:
+                until_s = _tpd_frozen_until.get(model, 0.0)
+                row["tpd_frozen_until_utc"] = datetime.fromtimestamp(
+                    until_s, tz=timezone.utc
+                ).strftime("%Y-%m-%dT%H:%M:%SZ")
+            result[model] = row
         return result

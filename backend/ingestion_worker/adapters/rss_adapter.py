@@ -12,8 +12,10 @@ _IMG_TAG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.IGNORECASE)
 
 RSS_SOURCES = {
     'AJA': {
-        # Al Jazeera Arabic — switched from English feed; Arabic is platform-primary
-        'url': 'https://www.aljazeera.net/rss/all.xml',
+        # Al Jazeera Arabic — direct RSS (aljazeera.net/rss/all.xml) returns 404 in production.
+        # Routed to Google News proxy (same fix pattern as F24, ARB, WAF).
+        # gl=QA because AJA is Qatar-based; hl=ar for Arabic edition results.
+        'url': 'https://news.google.com/rss/search?q=site:aljazeera.net&hl=ar&gl=QA&ceid=QA:ar',
         'language': 'ar',
         'trust_weight': 0.90,
     },

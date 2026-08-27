@@ -22,7 +22,7 @@ import json
 import logging
 
 import psycopg2.extras
-from deep_translator import GoogleTranslator
+from deep_translator import MyMemoryTranslator
 
 from backend.shared.database import get_db_connection
 from backend.shared.groq_client import chat_json, FAST_MODEL
@@ -41,19 +41,29 @@ Output ONLY valid JSON, no other text.
 {input_json}"""
 
 
-def _translate_via_google(fields: dict) -> dict:
-    """Per-field Google Translate fallback. Returns dict with _ar keys."""
-    translator = GoogleTranslator(source='en', target='ar')
+def _translate_via_mymemory(fields: dict) -> dict:
+    """Per-field MyMemory fallback. Returns dict with _ar keys.
+
+    MyMemory (deep_translator.MyMemoryTranslator) is a free public translation
+    API that doesn't require an API key and doesn't use Google's unofficial
+    scraping endpoint. It replaced the GoogleTranslator fallback after
+    deep_translator's GoogleTranslator started returning TranslationNotFound
+    for all inputs (2026-08).
+
+    Limits: ~500 words/request, ~1000 words/day on the anonymous tier.
+    Acceptable for a fallback that only fires when Groq is unavailable.
+    """
     result = {}
     for key, value in fields.items():
         if not value:
             result[f"{key}_ar"] = value
             continue
         try:
-            result[f"{key}_ar"] = translator.translate(value) or value
+            translated = MyMemoryTranslator(source='en-US', target='ar-SA').translate(value)
+            result[f"{key}_ar"] = translated or value
         except Exception as e:
-            log.warning(f"[Task14] Google fallback failed for {key}: {e}")
-            result[f"{key}_ar"] = value
+            log.warning(f"[Task14] MyMemory fallback failed for {key}: {e}")
+            result[f"{key}_ar"] = value          # keep English rather than drop the field
     return result
 
 
@@ -117,8 +127,8 @@ def run_task14():
                         if key in ar_fields:
                             ba[f"{key}_ar"] = ar_fields[key]
                 else:
-                    log.info(f"[Task14] Conflict {row['conflict_id']}: Groq unavailable, using Google fallback")
-                    ar = _translate_via_google(fields_to_translate)
+                    log.info(f"[Task14] Conflict {row['conflict_id']}: Groq unavailable, using MyMemory fallback")
+                    ar = _translate_via_mymemory(fields_to_translate)
                     ba.update(ar)
 
                 cur.execute(
