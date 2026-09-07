@@ -110,11 +110,22 @@ def framing_flip(a_texts: list[str], b_texts: list[str]) -> bool:
 def is_same_story(similarity: float, a_texts: list[str], b_texts: list[str]) -> bool:
     """True if the pair looks like the same event reported by two outlets,
     not a real contradiction. Heuristic: high embedding similarity AND high
-    keyword overlap AND no numeric disagreement to argue otherwise."""
+    keyword overlap AND no numeric disagreement AND no framing flip.
+
+    Framing flip (e.g. 'terrorist' vs 'resistance fighter', 'killed' vs
+    'martyred') is the defining signal of a cross-perspective narrative
+    conflict — two outlets that use opposing vocabulary about the same event
+    ARE producing a genuine conflict, not a same-story duplicate. Without
+    this check, high-trust cross-region pairs (BBC vs AJA etc.) covering the
+    same breaking event get suppressed even when they contradict each other
+    on substance, leaving task12 with 0 conflicts stored every cycle.
+    """
     if similarity < 0.85:
         return False
     if numeric_disagreement(a_texts, b_texts):
         return False  # numbers disagree — definitely worth surfacing
+    if framing_flip(a_texts, b_texts):
+        return False  # opposing vocabulary — genuine narrative conflict
     return keyword_jaccard(a_texts, b_texts) >= 0.50
 
 

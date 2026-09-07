@@ -53,18 +53,23 @@ def _translate_via_mymemory(fields: dict) -> dict:
 
     Limits: ~500 words/request, ~1000 words/day on the anonymous tier.
     Acceptable for a fallback that only fires when Groq is unavailable.
+
+    Rate: always sleep 0.35s before every request (including the first).
+    This caps throughput at ~2.86 req/s, safely below MyMemory's 5 req/s
+    limit even when many conflicts hit the fallback simultaneously.
+    Previously the first request had no sleep, causing bursts of 5 req/s
+    within the first 1-second window (7 fields at 0.25s apart = 5 hits in
+    1.0 s) when FAST_MODEL was frozen and all conflicts queued to MyMemory.
     """
     _MYMEMORY_MAX_CHARS = 490
+    _INTER_REQUEST_SLEEP = 0.35   # always, even before first: ~2.86 req/s
 
     result = {}
-    first = True
     for key, value in fields.items():
         if not value:
             result[f"{key}_ar"] = value
             continue
-        if not first:
-            time.sleep(0.25)          # stay under MyMemory's ~5 req/s limit
-        first = False
+        time.sleep(_INTER_REQUEST_SLEEP)
         text = value[:_MYMEMORY_MAX_CHARS] if len(value) > _MYMEMORY_MAX_CHARS else value
         try:
             translated = MyMemoryTranslator(source='en-US', target='ar-SA').translate(text)
@@ -121,12 +126,21 @@ def run_task14():
                     "framing_difference":   ba.get("framing_difference"),
                 }
 
-                # Single Groq JSON call for all 4 fields
-                input_json = json.dumps(fields_to_translate, ensure_ascii=False)
+                # Truncate each field before sending to Groq so the output JSON
+                # is bounded. 300 chars → ~75 tokens per field; 7 fields + JSON
+                # overhead ≈ 600 tokens out — well within 1 600 budget.
+                # Previously max_tokens=800 was too tight for longer fields,
+                # causing "max completion tokens reached" 400 errors.
+                _GROQ_FIELD_MAX = 300
+                fields_for_groq = {
+                    k: (v[:_GROQ_FIELD_MAX] if isinstance(v, str) else v)
+                    for k, v in fields_to_translate.items()
+                }
+                input_json = json.dumps(fields_for_groq, ensure_ascii=False)
                 ar_fields = chat_json(
                     _PROMPT.format(input_json=input_json),
                     model=FAST_MODEL,
-                    max_tokens=800,
+                    max_tokens=1600,   # was 800 — raised to cover 7 Arabic fields
                 )
 
                 if ar_fields and ("claims_a" in ar_fields or "narrative" in ar_fields):
