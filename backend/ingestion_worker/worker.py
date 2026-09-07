@@ -1,3 +1,4 @@
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from backend.shared.deduplication import check_and_mark
@@ -7,6 +8,90 @@ from backend.ingestion_worker.adapters.rss_adapter import RSSAdapter
 from backend.ingestion_worker.adapters.telegram_web_adapter import TelegramWebAdapter
 # NewsAPIAdapter removed — free/dev plan cannot be used in production (ToS violation).
 # All former NewsAPI sources (BBC, REU, AP, WP, JRP) now served via RSS.
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Topic filter — Evolution Step 1
+# Keep only Palestine · Israel · Lebanon · Iran · Regional Spillover content.
+# Blocks off-topic articles (Bangladesh cricket, Sudan general news, etc.)
+# before they ever hit the DB or NLP pipeline.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Sources whose entire editorial scope is our focus — no keyword check needed.
+_ALWAYS_RELEVANT_SOURCES = {
+    'WAF',   # WAFA Palestinian news agency — 100 % Palestine
+    'MND',   # Mondoweiss — I-P conflict focus
+    'EI',    # Electronic Intifada
+    'JRP',   # Jerusalem Post
+    'AKH',   # Al-Akhbar Lebanon
+}
+
+# English keyword regex — any match → article is on-topic.
+_TOPIC_RE_EN = re.compile(
+    r'\b(?:'
+    # Palestinian / Israeli geography & entities
+    r'palest\w+|israel\w*|'
+    r'gaza|west\s+bank|jenin|nablus|ramallah|hebron|tulkarm|'
+    r'rafah|khan\s+younis|jabalia|beit\s+lahiya|deir\s+al.balah|'
+    r'al.aqsa|temple\s+mount|haifa|tel\s+aviv|jerusalem|golan|'
+    # Lebanon
+    r'lebanon\w*|beirut|south\s+lebanon|hezbollah|'
+    # Iran
+    r'iran\w*|tehran|irgc|khuzestan|'
+    # Yemen / Houthis
+    r'houthi\w*|ansar\s+allah|yemeni?|sanaa|'
+    # Iraqi PMF / Axis of Resistance
+    r'kataib|hashd|popular\s+mobilization|axis\s+of\s+resistance|'
+    # Key actors
+    r'hamas|islamic\s+jihad|nasrallah|sinwar|haniyeh|'
+    r'khamenei|netanyahu|idf\b|iof\b|plo\b|fatah\b|'
+    # Conflict vocabulary
+    r'occupation|occupied|settler\w*|settlements?|ceasefire|'
+    r'intifada|apartheid|blockade|siege|hostage\w*|'
+    r'rafah\s+crossing|kerem\s+shalom|'
+    r'red\s+sea|strait\s+of\s+hormuz'
+    r')\b',
+    re.IGNORECASE,
+)
+
+# Arabic terms — substring match against Arabic headline.
+_TOPIC_TERMS_AR = (
+    'فلسطين', 'فلسطيني', 'إسرائيل', 'غزة', 'الضفة', 'جنين', 'نابلس',
+    'رام الله', 'الخليل', 'طولكرم', 'رفح', 'خانيونس', 'الأقصى', 'القدس',
+    'لبنان', 'بيروت', 'حزب الله',
+    'إيران', 'طهران', 'الحرس الثوري',
+    'الحوثي', 'أنصار الله', 'اليمن',
+    'حماس', 'الجهاد الإسلامي',
+    'نصر الله', 'نتنياهو', 'خامنئي', 'سنوار',
+    'المقاومة', 'الاحتلال', 'المستوطنات', 'وقف إطلاق النار',
+    'البحر الأحمر', 'الأسرى', 'الرهائن',
+)
+
+
+def _is_relevant(article) -> bool:
+    """True if the article is on-topic for CrisisLens's focus:
+    Palestine · Israel · Lebanon · Iran · Regional Spillover.
+
+    Sources in _ALWAYS_RELEVANT_SOURCES bypass the check — their entire scope
+    already matches. For all others, at least one keyword must appear in
+    headline_en, the first 200 chars of body_snippet, or headline_ar.
+    """
+    if article.source_code in _ALWAYS_RELEVANT_SOURCES:
+        return True
+    # English / snippet check
+    en_text = ' '.join(filter(None, [
+        article.headline_en,
+        (article.body_snippet or '')[:200],
+    ]))
+    if en_text and _TOPIC_RE_EN.search(en_text):
+        return True
+    # Arabic headline check (substring — word boundaries don't work cleanly in Arabic regex)
+    ar_text = article.headline_ar or ''
+    if ar_text:
+        for term in _TOPIC_TERMS_AR:
+            if term in ar_text:
+                return True
+    return False
 
 
 # Cap concurrent fetches. Tradeoff: higher = faster cycle, lower = less memory.
@@ -94,6 +179,7 @@ def run_ingestion_cycle() -> None:
     total_fetched = 0
     total_inserted = 0
     total_dupes = 0
+    total_filtered = 0
 
     # Phase 1 — fetch all sources concurrently.
     # I/O-bound work (HTTP to external APIs) → threads are the right tool.
@@ -110,26 +196,30 @@ def run_ingestion_cycle() -> None:
             fetched = len(articles)
             new_articles = []
             dupes = 0
+            filtered = 0
             for article in articles:
                 if check_and_mark(article.url):
                     dupes += 1
+                elif not _is_relevant(article):
+                    filtered += 1
                 else:
                     new_articles.append(article)
             inserted, db_skipped = write_batch(new_articles, source_map=source_map)
             dupes += db_skipped
             log_ingestion(conn, code, fetched, inserted, db_skipped, errors, fetch_ms)
             print(f"[worker] [{code}] fetched={fetched} "
-                  f"new={inserted} dupes={db_skipped} errors={errors} "
+                  f"new={inserted} dupes={db_skipped} filtered={filtered} errors={errors} "
                   f"({fetch_ms}ms)")
             total_fetched += fetched
             total_inserted += inserted
             total_dupes += db_skipped
+            total_filtered += filtered
         conn.commit()
 
     cycle_ms = int((datetime.now(timezone.utc) - cycle_start).total_seconds() * 1000)
     print(f"[worker] === Cycle complete in {cycle_ms}ms: "
           f"fetched={total_fetched} inserted={total_inserted} "
-          f"dupes={total_dupes} ===\n")
+          f"dupes={total_dupes} filtered={total_filtered} ===\n")
 
 def run_worker():
     run_ingestion_cycle()
