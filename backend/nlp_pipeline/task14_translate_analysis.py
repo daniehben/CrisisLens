@@ -138,6 +138,7 @@ def run_task14():
                     log.info(f"[Task14] Conflict {row['conflict_id']}: Groq unavailable, using MyMemory fallback")
                     ar = _translate_via_mymemory(fields_to_translate)
                     ba.update(ar)
+                    time.sleep(1.0)  # inter-conflict gap: without this, first field of N+1 fires immediately after last field of N
 
                 cur.execute(
                     "UPDATE conflicts SET framing_analysis = %s WHERE conflict_id = %s",
