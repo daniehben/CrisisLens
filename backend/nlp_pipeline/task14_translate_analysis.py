@@ -15,12 +15,14 @@ results back into the existing framing_analysis JSONB:
     "framing_difference_ar":   "..." | null
   }
 
-Falls back to Google Translate per-field if Groq is unavailable.
+Falls back to MyMemory per-field if Groq is unavailable.
 Runs after task13 in the scheduler.
 """
 import json
 import logging
+import threading
 import time
+from datetime import datetime, timezone
 
 import psycopg2.extras
 from deep_translator import MyMemoryTranslator
@@ -31,6 +33,33 @@ from backend.shared.groq_client import chat_json, FAST_MODEL
 log = logging.getLogger(__name__)
 
 BATCH_SIZE = 20
+
+# Module-level daily-quota freeze for MyMemory.
+# When the anonymous 200 k char/day limit is hit, we set this to the next
+# midnight UTC so every subsequent call in the same process skips MyMemory
+# entirely (rather than burning 20 failing requests per cycle).
+_mymemory_frozen_until: float = 0.0
+_mymemory_freeze_lock = threading.Lock()
+
+
+def _mymemory_is_frozen() -> bool:
+    return time.time() < _mymemory_frozen_until
+
+
+def _set_mymemory_day_freeze() -> None:
+    """Freeze MyMemory until the next midnight UTC."""
+    global _mymemory_frozen_until
+    now = datetime.now(timezone.utc)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    next_midnight = midnight.replace(day=midnight.day + 1)
+    reset_ts = next_midnight.timestamp()
+    with _mymemory_freeze_lock:
+        _mymemory_frozen_until = reset_ts
+    log.warning(
+        f"[Task14] MyMemory daily quota exhausted — "
+        f"freezing until {next_midnight.isoformat()} UTC. "
+        "Fallback translation skipped for rest of today."
+    )
 
 _PROMPT = """\
 Translate the following news analysis fields from English to natural Modern \
@@ -51,32 +80,49 @@ def _translate_via_mymemory(fields: dict) -> dict:
     deep_translator's GoogleTranslator started returning TranslationNotFound
     for all inputs (2026-08).
 
-    Limits: ~500 words/request, ~1000 words/day on the anonymous tier.
-    Acceptable for a fallback that only fires when Groq is unavailable.
+    Limits: ~500 words/request, ~200 k chars/day on the anonymous tier.
+    When the daily limit is hit the function sets a module-level freeze until
+    midnight UTC and returns English values rather than burning requests on
+    every subsequent pipeline cycle.
 
     Rate: always sleep 0.35s before every request (including the first).
     This caps throughput at ~2.86 req/s, safely below MyMemory's 5 req/s
     limit even when many conflicts hit the fallback simultaneously.
-    Previously the first request had no sleep, causing bursts of 5 req/s
-    within the first 1-second window (7 fields at 0.25s apart = 5 hits in
-    1.0 s) when FAST_MODEL was frozen and all conflicts queued to MyMemory.
     """
     _MYMEMORY_MAX_CHARS = 490
     _INTER_REQUEST_SLEEP = 0.35   # always, even before first: ~2.86 req/s
+
+    # Fast-path: skip entirely if daily quota already exhausted this process-day
+    if _mymemory_is_frozen():
+        log.debug("[Task14] MyMemory day-freeze active — returning English values")
+        return {f"{key}_ar": value for key, value in fields.items()}
 
     result = {}
     for key, value in fields.items():
         if not value:
             result[f"{key}_ar"] = value
             continue
+
+        # Re-check freeze inside loop: a previous field may have hit the limit
+        if _mymemory_is_frozen():
+            log.debug(f"[Task14] MyMemory day-freeze triggered mid-batch, skipping {key}")
+            result[f"{key}_ar"] = value
+            continue
+
         time.sleep(_INTER_REQUEST_SLEEP)
         text = value[:_MYMEMORY_MAX_CHARS] if len(value) > _MYMEMORY_MAX_CHARS else value
         try:
             translated = MyMemoryTranslator(source='en-US', target='ar-SA').translate(text)
             result[f"{key}_ar"] = translated or value
         except Exception as e:
-            log.warning(f"[Task14] MyMemory fallback failed for {key}: {e}")
-            result[f"{key}_ar"] = value          # keep English rather than drop the field
+            err_str = str(e).upper()
+            if ("DAILY" in err_str or "LIMIT" in err_str or "QUOTA" in err_str
+                    or "429" in err_str or "TOO MANY" in err_str):
+                _set_mymemory_day_freeze()
+                result[f"{key}_ar"] = value      # keep English for this and remaining fields
+            else:
+                log.warning(f"[Task14] MyMemory fallback failed for {key}: {e}")
+                result[f"{key}_ar"] = value      # keep English rather than drop the field
     return result
 
 
