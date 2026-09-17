@@ -288,7 +288,7 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
     # TPD freeze check: if today's token quota is exhausted, don't even try.
     # Unlike the circuit breaker, we know the exact time it'll clear — no point probing.
     if _is_tpd_frozen(model):
-        log.debug(f"[groq] TPD freeze active for {model} — skipping call")
+        log.warning(f"[groq] TPD freeze active for {model} — all calls skipped until reset time. Check /health for tpd_frozen_until_utc.")
         return None
 
     # Proactive budget check: if the last response told us how many tokens are left
@@ -298,7 +298,7 @@ def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
 
     cb = _get_cb(model)
     if not cb.allow():
-        log.debug(f"[groq] circuit breaker OPEN for {model} — skipping call")
+        log.warning(f"[groq] circuit breaker OPEN for {model} — call skipped. POST /reset-breakers to clear if Groq is healthy.")
         return None
 
     _throttle(model)
@@ -406,3 +406,46 @@ def get_daily_usage() -> dict[str, dict]:
                 ).strftime("%Y-%m-%dT%H:%M:%SZ")
             result[model] = row
         return result
+
+
+def reset_circuit_breakers() -> dict:
+    """
+    Reset ALL Groq circuit breakers to CLOSED and clear any TPD freeze.
+
+    Call this via POST /reset-breakers after confirming Groq is healthy
+    (e.g. Groq playground responds, or a manual curl test succeeds).
+
+    Returns a summary of what was reset so the caller can log it.
+    """
+    with _lock:
+        reset_models = []
+        for model, cb in _groq_cbs.items():
+            with cb._lock:
+                prev_state = cb._state
+                cb._failures = 0
+                cb._state = 'CLOSED'
+                cb._probe_in_flight = False
+                cb._opened_at = 0.0
+            reset_models.append({"model": model, "was": prev_state})
+
+        # Clear any TPD freeze (worker restart would do this too, but this
+        # lets you recover without a redeploy if the freeze was set by mistake
+        # or the daily budget actually rolled over at midnight UTC).
+        cleared_freezes = []
+        for model in list(_tpd_frozen_until.keys()):
+            if _tpd_frozen_until[model] > 0:
+                cleared_freezes.append(model)
+            _tpd_frozen_until[model] = 0.0
+
+        # Also clear the proactive budget cache — stale low-token values from
+        # before the daily reset should not keep blocking calls.
+        _tpd_remaining.clear()
+        _tpd_limit.clear()
+
+    log.warning(
+        f"[groq] reset_circuit_breakers() called — "
+        f"CBs reset: {[r['model'] for r in reset_models]}, "
+        f"TPD freezes cleared: {cleared_freezes}, "
+        f"token budget cache cleared."
+    )
+    return {"reset": reset_models, "tpd_freezes_cleared": cleared_freezes}

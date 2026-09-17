@@ -19,7 +19,7 @@ from backend.nlp_pipeline.task13_bias_analysis import run_task13
 from backend.nlp_pipeline.task14_translate_analysis import run_task14
 from backend.nlp_pipeline.task6_images import run_task6
 from backend.nlp_pipeline.task15_cleanup import run_task15
-from backend.shared.groq_client import get_daily_usage, get_groq_cb_status
+from backend.shared.groq_client import get_daily_usage, get_groq_cb_status, reset_circuit_breakers
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -63,6 +63,24 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
+
+    def do_POST(self):
+        """POST /reset-breakers — reset Groq circuit breakers and clear TPD freeze."""
+        if self.path == '/reset-breakers':
+            try:
+                result = reset_circuit_breakers()
+                body = json.dumps({"status": "ok", "result": result}).encode()
+                self.send_response(200)
+            except Exception as e:
+                body = json.dumps({"status": "error", "detail": str(e)}).encode()
+                self.send_response(500)
+        else:
+            body = b'{"status": "not found"}'
+            self.send_response(404)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, format, *args):
         pass  # silence HTTP logs
