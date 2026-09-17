@@ -101,6 +101,11 @@ _MIN_TOKENS_RESERVE = 2_000
 _LOW_TOKEN_WARN_PCT = 0.20
 
 _client = None
+
+# Mock mode — set GROQ_MOCK=true in env to bypass real API calls.
+# FAST_MODEL + json_mode → NLI response (contradiction). SMART_MODEL + json_mode →
+# full framing JSON. Text mode → canned string. No quota burned, pipeline runs clean.
+_GROQ_MOCK = os.getenv("GROQ_MOCK", "").lower() in ("1", "true", "yes")
 # --------------------------------------------------------------------------- #
 
 
@@ -275,6 +280,30 @@ def _throttle(model: str) -> None:
 def chat(prompt: str, model: str = FAST_MODEL, max_tokens: int = 400,
          json_mode: bool = False) -> Optional[str]:
     """Single-turn completion. Returns raw text, or None on failure or cap exhausted."""
+    if _GROQ_MOCK:
+        log.info(f"[groq] MOCK mode — returning canned response (model={model}, json_mode={json_mode})")
+        if json_mode:
+            if model == SMART_MODEL:
+                # t13 framing analysis
+                import json as _json
+                return _json.dumps({
+                    "dispute": "Mock dispute over reported casualty figures",
+                    "narrative": "Source A and Source B report conflicting accounts of the same engagement, with significant discrepancies in reported outcomes and attribution of responsibility.",
+                    "claims_a": "Source A asserts forces advanced and secured the position.",
+                    "claims_b": "Source B denies any change in control, reporting the advance was repelled.",
+                    "key_question": "Who currently controls the disputed position?",
+                    "factual_disagreement": "Both sources report directly contradictory outcomes of the same engagement.",
+                    "framing_difference": None,
+                    "emotion_a": {"anger": 0.6, "fear": 0.3, "sadness": 0.2, "hope": 0.1, "neutral": 0.0},
+                    "emotion_b": {"anger": 0.4, "fear": 0.5, "sadness": 0.3, "hope": 0.0, "neutral": 0.1},
+                })
+            else:
+                # t11 NLI — return contradiction so t12 creates a real conflict
+                import json as _json
+                return _json.dumps({"label": "contradiction", "confidence": 0.9})
+        # text mode: t7.5 summaries, t8 translations, t14 Arabic translation
+        return "[MOCK] Synthetic news content for pipeline testing. This article reports on an ongoing conflict with disputed casualty figures."
+
     client = get_client()
     if client is None:
         return None
