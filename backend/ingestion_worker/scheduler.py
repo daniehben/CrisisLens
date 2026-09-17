@@ -8,6 +8,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from backend.ingestion_worker.worker import run_worker
+from backend.shared.database import get_db_connection
 from backend.nlp_pipeline.task7_fetch_body import run_task7
 from backend.nlp_pipeline.task7_5_summarize import run_task7_5
 from backend.nlp_pipeline.task8_translate import run_task8, run_task8b
@@ -65,11 +66,21 @@ class HealthHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        """POST /reset-breakers — reset Groq circuit breakers and clear TPD freeze."""
+        """POST /reset-breakers — reset Groq circuit breakers and clear TPD freeze.
+        POST /seed-test-pairs — insert a synthetic article pair so t11→t14 can be tested
+                                without waiting for t10 to find natural pairs from the backlog."""
         if self.path == '/reset-breakers':
             try:
                 result = reset_circuit_breakers()
                 body = json.dumps({"status": "ok", "result": result}).encode()
+                self.send_response(200)
+            except Exception as e:
+                body = json.dumps({"status": "error", "detail": str(e)}).encode()
+                self.send_response(500)
+        elif self.path == '/seed-test-pairs':
+            try:
+                result = _seed_test_pairs()
+                body = json.dumps(result).encode()
                 self.send_response(200)
             except Exception as e:
                 body = json.dumps({"status": "error", "detail": str(e)}).encode()
@@ -84,6 +95,80 @@ class HealthHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         pass  # silence HTTP logs
+
+
+
+def _seed_test_pairs():
+    """Pick two recent articles from different sources that have text content and
+    insert them as a pending pair in article_pairs. This bypasses t10 entirely so
+    t11→t14 can be tested without waiting for the embedding backlog to clear.
+
+    Returns a dict with the inserted pair_id and the two article IDs, or a message
+    if a suitable pair could not be found.
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            # Find recent articles that have usable text (summary or headline)
+            cur.execute("""
+                SELECT article_id, source_id
+                FROM articles
+                WHERE (
+                    (summary IS NOT NULL AND length(summary) > 20)
+                    OR (headline_en IS NOT NULL AND length(headline_en) > 10)
+                )
+                ORDER BY published_at DESC
+                LIMIT 100
+            """)
+            candidates = cur.fetchall()
+
+    if len(candidates) < 2:
+        return {"status": "error", "detail": "Not enough articles with text content"}
+
+    # Group by source and pick the most recent article per source
+    by_source = {}
+    for article_id, source_id in candidates:
+        if source_id not in by_source:
+            by_source[source_id] = article_id
+
+    sources = list(by_source.keys())
+    if len(sources) < 2:
+        return {"status": "error", "detail": "Need at least 2 different sources"}
+
+    art1 = by_source[sources[0]]
+    art2 = by_source[sources[1]]
+    id1, id2 = min(art1, art2), max(art1, art2)
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO article_pairs (article_id_1, article_id_2, similarity_score)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (article_id_1, article_id_2) DO NOTHING
+                RETURNING pair_id
+            """, (id1, id2, 0.85))
+            row = cur.fetchone()
+        conn.commit()
+
+    if not row:
+        return {
+            "status": "already_exists",
+            "article_id_1": id1,
+            "article_id_2": id2,
+            "source_1": sources[0],
+            "source_2": sources[1],
+            "message": "Pair already exists — t11 will process it on the next cycle if status is still pending.",
+        }
+
+    log.info(f"[seed] Inserted test pair {row[0]}: articles {id1} ({sources[0]}) vs {id2} ({sources[1]})")
+    return {
+        "status": "ok",
+        "pair_id": row[0],
+        "article_id_1": id1,
+        "article_id_2": id2,
+        "source_1": sources[0],
+        "source_2": sources[1],
+        "message": "Test pair inserted. t11 will classify it on the next 15-min cycle. Check /api/v1/conflicts afterwards.",
+    }
 
 
 def start_health_server():
