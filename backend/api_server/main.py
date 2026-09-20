@@ -444,3 +444,187 @@ def get_conflict_detail(request: Request, conflict_id: int):
     d["source_1_profile"] = SOURCE_PROFILE.get(d.get("source_1", ""), "")
     d["source_2_profile"] = SOURCE_PROFILE.get(d.get("source_2", ""), "")
     return d
+
+@app.get("/api/v1/stories")
+@limiter.limit("60/minute")
+def get_stories(
+    request: Request,
+    min_score: float = Query(0.4, ge=0.0, le=1.0),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT
+                    c.conflict_id,
+                    c.article_a_id,
+                    c.article_b_id,
+                    c.weighted_score,
+                    c.nli_confidence    AS contradiction_score,
+                    c.similarity_score,
+                    c.framing_analysis,
+                    c.detected_at,
+                    a1.headline_en      AS h1_en,
+                    a1.headline_ar      AS h1_ar,
+                    a1.summary          AS summary1_en,
+                    a1.summary_ar       AS summary1_ar,
+                    a1.url              AS url_a,
+                    a1.image_url        AS image1,
+                    a1.published_at     AS pub1,
+                    s1.code             AS src1_code,
+                    s1.name             AS src1_name,
+                    s1.trust_weight     AS trust1,
+                    s1.language         AS lang1,
+                    a2.headline_en      AS h2_en,
+                    a2.headline_ar      AS h2_ar,
+                    a2.summary          AS summary2_en,
+                    a2.summary_ar       AS summary2_ar,
+                    a2.url              AS url_b,
+                    a2.image_url        AS image2,
+                    a2.published_at     AS pub2,
+                    s2.code             AS src2_code,
+                    s2.name             AS src2_name,
+                    s2.trust_weight     AS trust2,
+                    s2.language         AS lang2
+                FROM conflicts c
+                JOIN articles a1 ON a1.article_id = c.article_a_id
+                JOIN articles a2 ON a2.article_id = c.article_b_id
+                JOIN sources  s1 ON s1.source_id  = a1.source_id
+                JOIN sources  s2 ON s2.source_id  = a2.source_id
+                WHERE c.weighted_score >= %s
+                ORDER BY c.detected_at DESC
+                LIMIT 600
+            """, (min_score,))
+            rows = cur.fetchall()
+
+    if not rows:
+        return {"total": 0, "limit": limit, "offset": offset, "stories": []}
+
+    conflicts_by_id = {r["conflict_id"]: dict(r) for r in rows}
+
+    article_to_conflicts: dict[int, list[int]] = {}
+    for r in rows:
+        for aid in (r["article_a_id"], r["article_b_id"]):
+            article_to_conflicts.setdefault(aid, []).append(r["conflict_id"])
+
+    parent: dict[int, int] = {cid: cid for cid in conflicts_by_id}
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(x: int, y: int) -> None:
+        parent[find(x)] = find(y)
+
+    for conflict_ids in article_to_conflicts.values():
+        for i in range(1, len(conflict_ids)):
+            union(conflict_ids[0], conflict_ids[i])
+
+    clusters: dict[int, list[dict]] = {}
+    for cid, data in conflicts_by_id.items():
+        root = find(cid)
+        clusters.setdefault(root, []).append(data)
+
+    stories = []
+    for cluster_conflicts in clusters.values():
+        articles: dict[int, dict] = {}
+        for c in cluster_conflicts:
+            if c["article_a_id"] not in articles:
+                articles[c["article_a_id"]] = {
+                    "article_id":   c["article_a_id"],
+                    "headline_en":  c["h1_en"],
+                    "headline_ar":  c["h1_ar"],
+                    "summary_en":   c["summary1_en"],
+                    "summary_ar":   c["summary1_ar"],
+                    "url":          c["url_a"],
+                    "image_url":    c["image1"],
+                    "published_at": c["pub1"].isoformat() if c["pub1"] else None,
+                    "source_code":  c["src1_code"],
+                    "source_name":  c["src1_name"],
+                    "trust_weight": float(c["trust1"]) if c["trust1"] else 0.5,
+                    "language":     c["lang1"],
+                }
+            if c["article_b_id"] not in articles:
+                articles[c["article_b_id"]] = {
+                    "article_id":   c["article_b_id"],
+                    "headline_en":  c["h2_en"],
+                    "headline_ar":  c["h2_ar"],
+                    "summary_en":   c["summary2_en"],
+                    "summary_ar":   c["summary2_ar"],
+                    "url":          c["url_b"],
+                    "image_url":    c["image2"],
+                    "published_at": c["pub2"].isoformat() if c["pub2"] else None,
+                    "source_code":  c["src2_code"],
+                    "source_name":  c["src2_name"],
+                    "trust_weight": float(c["trust2"]) if c["trust2"] else 0.5,
+                    "language":     c["lang2"],
+                }
+
+        anchor = max(articles.values(), key=lambda a: a["trust_weight"])
+        top = max(cluster_conflicts, key=lambda c: float(c["weighted_score"]))
+        fa = top.get("framing_analysis") or {}
+
+        stories.append({
+            "story_id":        f"story_{top['conflict_id']}",
+            "headline_en":     anchor["headline_en"],
+            "headline_ar":     anchor["headline_ar"],
+            "source_count":    len(articles),
+            "conflict_count":  len(cluster_conflicts),
+            "max_score":       float(max(c["weighted_score"] for c in cluster_conflicts)),
+            "latest_at":       max(
+                                 c["detected_at"].isoformat() if c["detected_at"] else ""
+                                 for c in cluster_conflicts
+                               ),
+            "dispute_en":      fa.get("dispute"),
+            "dispute_ar":      fa.get("dispute_ar"),
+            "key_question_en": fa.get("key_question"),
+            "key_question_ar": fa.get("key_question_ar"),
+            "sources": [
+                {
+                    "source_code":  a["source_code"],
+                    "source_name":  a["source_name"],
+                    "trust_weight": a["trust_weight"],
+                    "language":     a["language"],
+                    "headline_en":  a["headline_en"],
+                    "headline_ar":  a["headline_ar"],
+                    "summary_en":   a["summary_en"],
+                    "summary_ar":   a["summary_ar"],
+                    "url":          a["url"],
+                    "image_url":    a["image_url"],
+                    "published_at": a["published_at"],
+                }
+                for a in sorted(articles.values(), key=lambda a: -a["trust_weight"])
+            ],
+            "conflicts": [
+                {
+                    "conflict_id":         c["conflict_id"],
+                    "source_a":            c["src1_code"],
+                    "source_b":            c["src2_code"],
+                    "weighted_score":      float(c["weighted_score"]),
+                    "contradiction_score": float(c["contradiction_score"]) if c["contradiction_score"] else None,
+                    "claims_a_en":         (c.get("framing_analysis") or {}).get("claims_a"),
+                    "claims_a_ar":         (c.get("framing_analysis") or {}).get("claims_a_ar"),
+                    "claims_b_en":         (c.get("framing_analysis") or {}).get("claims_b"),
+                    "claims_b_ar":         (c.get("framing_analysis") or {}).get("claims_b_ar"),
+                    "narrative_en":        (c.get("framing_analysis") or {}).get("narrative"),
+                    "narrative_ar":        (c.get("framing_analysis") or {}).get("narrative_ar"),
+                }
+                for c in sorted(cluster_conflicts, key=lambda c: -float(c["weighted_score"]))
+            ],
+        })
+
+    stories.sort(
+        key=lambda s: (s["max_score"] * s["source_count"], s["latest_at"]),
+        reverse=True,
+    )
+
+    total = len(stories)
+    return {
+        "total":   total,
+        "limit":   limit,
+        "offset":  offset,
+        "stories": stories[offset: offset + limit],
+    }
