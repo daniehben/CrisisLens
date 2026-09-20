@@ -128,6 +128,10 @@ def run_task8():
         log.info(f"[Task8] Cleaned body_snippet for {len(already_arabic)} Arabic articles")
 
     if to_translate:
+        GROQ_CAP = 16  # max EN→AR per cycle to stay under 200k TPD
+        if len(to_translate) > GROQ_CAP:
+            log.info(f"[Task8] Capping EN\u2192AR to {GROQ_CAP} this cycle (backlog: {len(to_translate)})")
+            to_translate = to_translate[:GROQ_CAP]
         log.info(f"[Task8] Translating {len(to_translate)} English headlines to Arabic...")
         batch_size = 16
         translated_count = 0
@@ -182,7 +186,7 @@ def run_task8_summaries():
                   AND summary_ar IS NULL
                   AND language = 'en'
                 ORDER BY article_id DESC
-                LIMIT 60
+                LIMIT 5  -- reduced to stay under 200k TPD
             """)
             rows = cur.fetchall()
 
@@ -254,7 +258,7 @@ def run_task8b():
                   AND headline_ar IS NOT NULL
                   AND headline_en IS NULL
                 ORDER BY article_id DESC
-                LIMIT 80
+                LIMIT 20  -- reduced to stay under 200k TPD
             """)
             rows = cur.fetchall()
 
