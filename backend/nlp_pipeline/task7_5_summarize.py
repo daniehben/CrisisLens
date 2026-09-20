@@ -13,7 +13,7 @@ from backend.shared.groq_client import chat, FAST_MODEL
 log = logging.getLogger(__name__)
 
 # Lowered to spread Groq RPM and keep memory bounded.
-BATCH_SIZE = 15
+BATCH_SIZE = 5
 
 PROMPT = """You're a news summarization assistant. Summarize the article below \
 in 2-3 short, factual sentences. Be strictly neutral — no editorializing. \

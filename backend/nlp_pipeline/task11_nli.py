@@ -22,7 +22,7 @@ from backend.shared.groq_client import chat, FAST_MODEL
 
 log = logging.getLogger(__name__)
 
-BATCH_SIZE = 50   # pairs per cycle — well within Groq's 14,400/day free cap
+BATCH_SIZE = 10   # reduced to stay under 200k TPD free tier
 
 PROMPT = """\
 You are a news contradiction classifier. Two news excerpts are provided below. \
