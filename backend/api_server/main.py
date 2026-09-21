@@ -628,3 +628,13 @@ def get_stories(
         "offset":  offset,
         "stories": stories[offset: offset + limit],
     }
+
+
+# ── TEMPORARY: one-shot cleanup trigger — REMOVE after use ───────────────────
+@app.post("/admin/force-cleanup")
+def force_cleanup():
+    """Trigger task15 cleanup immediately. Remove this endpoint after use."""
+    from backend.nlp_pipeline.task15_cleanup import run_task15
+    import os
+    result = run_task15()
+    return {"status": "done", "retention_days": int(os.getenv("ARTICLE_RETENTION_DAYS", "90")), "result": result}
