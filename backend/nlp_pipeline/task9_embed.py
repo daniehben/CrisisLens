@@ -137,7 +137,7 @@ def run_task9():
                 FROM articles
                 WHERE (headline_ar IS NOT NULL OR headline_en IS NOT NULL)
                   AND embedding IS NULL
-                  -- headline-only embedding allowed; summary adds signal but is not required
+                  AND (summary IS NOT NULL OR summary_ar IS NOT NULL)  -- only embed once summarised; cuts Jina token use ~5x
                 ORDER BY article_id
                 LIMIT 100
             """)
